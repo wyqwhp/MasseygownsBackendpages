@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchContact } from "../api/ContactApi";
+import { fetchContact } from "../api/ContactApi.js";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { ChevronRight, ChevronDown } from "lucide-react";
