@@ -6,8 +6,8 @@ import AdminNavbar from "@/pages/AdminNavbar.jsx";
 import AdminEditCeremonies from "./components/AdminEditCeremonies.jsx";
 import AdminExtractOrders from "./components/AdminExtractOrders.jsx";
 import AdminEditDegrees from "./components/AdminEditDegrees.jsx";
-// import BuyRegalia from "./pages/BuyRegalia";
-// import HireRegalia from "./pages/hireRegalia";
+import BuyRegalia from "./pages/BuyRegalia";
+import HireRegalia from "./pages/hireRegalia";
 
 function App() {
   return (
@@ -26,6 +26,16 @@ function App() {
         <Route path="/admineditdegrees" element={
             <Authentication>
                 <AdminEditDegrees/>
+            </Authentication>
+        }/>
+        <Route path="/BuyRegalia" element={
+            <Authentication>
+                <BuyRegalia/>
+            </Authentication>
+        }/>
+        <Route path="/HireRegalia" element={
+            <Authentication>
+                <HireRegalia/>
             </Authentication>
         }/>
         <Route path="/adminextractorders" element={
