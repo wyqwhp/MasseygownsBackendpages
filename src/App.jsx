@@ -7,7 +7,7 @@ import AdminEditCeremonies from "./components/AdminEditCeremonies.jsx";
 import AdminExtractOrders from "./components/AdminExtractOrders.jsx";
 import AdminEditDegrees from "./components/AdminEditDegrees.jsx";
 import BuyRegalia from "./pages/BuyRegalia";
-import HireRegalia from "./pages/hireRegalia";
+import HireRegalia from "./pages/HireRegalia";
 
 function App() {
   return (
