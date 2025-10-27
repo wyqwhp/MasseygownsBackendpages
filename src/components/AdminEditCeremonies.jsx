@@ -6,7 +6,7 @@ const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://local
 export default function CeremonyEditor() {
     const [ceremonies, setCeremonies] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [form, setForm] = useState({ name: "", dueDate: ""});
+    const [form, setForm] = useState({ name: "", dueDate: "", visible: ""});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -31,6 +31,11 @@ export default function CeremonyEditor() {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
+    // Handle field change
+    const handleToggle = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.checked });
+    };
+
     // Start editing
     const handleEdit = (ceremony) => {
         setEditingId(ceremony.id);
@@ -38,19 +43,20 @@ export default function CeremonyEditor() {
             id: ceremony.id,
             name: ceremony.name,
             dueDate: ceremony.dueDate,
-            // location: ceremony.location,
+            visible: ceremony.visible,
         });
     };
 
     // Cancel editing
     const handleCancel = () => {
         setEditingId(null);
-        setForm({ name: "", dueDate: ""});
+        setForm({ name: "", dueDate: "", visible: ""});
     };
 
     // Save update
     const handleSave = async () => {
         try {
+            console.log(form)
             const res = await axios.put(`${API_URL}/ceremonies/${editingId}`, form);
             setCeremonies(
                 ceremonies.map((c) => (c.id === editingId ? res.data : c))
@@ -72,7 +78,7 @@ export default function CeremonyEditor() {
                 <tr className="bg-gray-200 text-left">
                     <th className="p-2 border">Name</th>
                     <th className="p-2 border">Due date</th>
-                    {/*<th className="p-2 border">Location</th>*/}
+                    <th className="p-2 border text-center">Visible</th>
                     <th className="p-2 border">Actions</th>
                 </tr>
                 </thead>
@@ -99,15 +105,15 @@ export default function CeremonyEditor() {
                                         className="border rounded p-1 w-full"
                                     />
                                 </td>
-                                {/*<td className="p-2 border">*/}
-                                {/*    <input*/}
-                                {/*        type="text"*/}
-                                {/*        name="location"*/}
-                                {/*        value={form.location}*/}
-                                {/*        onChange={handleChange}*/}
-                                {/*        className="border rounded p-1 w-full"*/}
-                                {/*    />*/}
-                                {/*</td>*/}
+                                <td className="p-2 border">
+                                    <input
+                                        type="checkbox"
+                                        name="visible"
+                                        checked={form.visible}
+                                        onChange={handleToggle}
+                                        className="border rounded p-1 w-full"
+                                    />
+                                </td>
                                 <td className="p-2 border">
                                     <button
                                         onClick={handleSave}
@@ -127,7 +133,14 @@ export default function CeremonyEditor() {
                             <>
                                 <td className="p-2 border">{ceremony.name}</td>
                                 <td className="p-2 border">{ceremony.dueDate}</td>
-                                {/*<td className="p-2 border">{ceremony.location}</td>*/}
+                                <td className="p-2 border">
+                                    <input
+                                        type="checkbox"
+                                        name="visible"
+                                        checked={ceremony.visible}
+                                        className="border rounded p-1 w-full"
+                                    />
+                                </td>
                                 <td className="p-2 border">
                                     <button
                                         onClick={() => handleEdit(ceremony)}

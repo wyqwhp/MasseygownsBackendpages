@@ -2,7 +2,8 @@ import React from "react";
 import {Link} from "react-router-dom";
 import "./AdminNavbar.css"
 import {useAuth} from "@/components/AuthContext.jsx";
-import generatePDF from "@/components/PrintLabels.jsx"
+// import generatePDF from "@/components/PrintLabels.jsx"
+import printOrders from "@/components/PrintLabels.jsx"
 
 function AdminNavbar() {
     const { logout } = useAuth();
@@ -35,7 +36,7 @@ function AdminNavbar() {
                             </Link>
                         </li>
                         <li>
-                            <a onClick={generatePDF} style={{cursor: "pointer"}}>
+                            <a onClick={printOrders} style={{cursor: "pointer"}}>
                                 PRINT LABELS
                             </a>
                         </li>

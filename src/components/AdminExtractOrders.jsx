@@ -43,7 +43,6 @@ export default function OrdersToCSV() {
     const convertToCSV = (data) => {
         let rows = [];
         data.forEach((item) => {
-            // console.log(item);
             const flatItems = item.items.map(obj =>
                 Object.entries(obj)
                     .map(([k, v]) => `${k}:${v === null ? "null" : v}`)
