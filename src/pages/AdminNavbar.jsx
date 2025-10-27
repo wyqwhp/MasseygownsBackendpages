@@ -31,8 +31,13 @@ function AdminNavbar() {
                             </Link>
                         </li>
                         <li>
-                            <Link to="/adminextractorders">
-                                SHOW ORDERS
+                            <Link to="/BuyRegalia">
+                                SHOW  BUY ORDERS
+                            </Link>
+                        </li>
+                        <li>
+                            <Link to="/HireRegalia">
+                                SHOW HIRE ORDERS
                             </Link>
                         </li>
                         <li>
