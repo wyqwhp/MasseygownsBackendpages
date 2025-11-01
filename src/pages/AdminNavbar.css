@@ -85,8 +85,9 @@
 .dropdown-panel,
 .dropdown_panel {
   position: absolute;
-  top: 100%;
-  left: 0;
+  top: 150%;
+  left: auto;
+  right: -30%;
   background: #f4f6f5;
   color: #ffffff;
   border-radius: 10px;
@@ -136,10 +137,12 @@
 } */
 
 .dropdown-panel {
-  min-width: 520px;
+  min-width: 220px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(240px, 1fr));
-  gap: 18px 28px;
+  grid-template-columns: 1fr;
+  /*grid-template-columns: repeat(2, minmax(240px, 1fr));*/
+  /*gap: 18px 28px;*/
+  gap: 12px;
 }
 
 .buyfull h4,
@@ -175,7 +178,7 @@
 }
 
 .has-dropdown .menu-link.active {
-  background-color: rgba(your-color, 0.1);
+  background-color: rgba(0,255,0,0.1);
 }
 
 /* Cart Icon Styles */
