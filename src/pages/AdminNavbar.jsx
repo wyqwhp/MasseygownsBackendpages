@@ -1,15 +1,14 @@
 import React from "react";
+import { useState } from "react";
 import {Link} from "react-router-dom";
 import ReactDOM from "react-dom";
 import "./AdminNavbar.css"
-import {useAuth} from "@/components/AuthContext.jsx";
-import printOrdersWrapper from "@/components/PrintLabels.jsx"
 import "./Spinner.css"
-import { useState } from "react";
-import generatePDF from "@/components/PrintLabels.jsx";
+import {useAuth} from "@/components/AuthContext.jsx";
+// import printOrdersWrapper from "@/components/PrintLabels.jsx"
+import {generateLabelsPDF, generateManifestPDF} from "@/components/PrintLabels.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
-
 
 function MenuItem({ printLabels, loading, children }) {
     return (
@@ -43,8 +42,22 @@ function AdminNavbar() {
         try {
             let response = await fetch(`${API_URL}/orders`)
             let orders = await response.json();
-            generatePDF(orders);
+            generateLabelsPDF(orders);
             console.log("Backend result:", orders);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function printManifest() {
+        setLoading(true);
+        try {
+            let response = await fetch(`${API_URL}/orders`)
+            let orders = await response.json();
+            generateManifestPDF(orders);
+            // console.log("Backend result:", orders);
         } catch (err) {
             console.error(err);
         } finally {
@@ -96,7 +109,8 @@ function AdminNavbar() {
                                 <a onClick={printLabels} style={{cursor:"pointer"}}>
                                     PRINT LABELS
                                 </a>
-                                <a onClick={printOrdersWrapper} style={{cursor: "pointer"}}>
+                                {loading && <FullscreenSpinner />}
+                                <a onClick={printManifest} style={{cursor: "pointer"}}>
                                     PRINT MANIFEST
                                 </a>
                             </ul>

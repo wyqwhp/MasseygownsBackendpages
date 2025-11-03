@@ -15,7 +15,7 @@ function PrintOrdersWrapper() {
         try {
             let response = await fetch(`${API_URL}/orders`)
             let orders = await response.json();
-            generatePDF(orders);
+            generateLabelsPDF(orders);
             // console.log(data);
         } finally {
             setLoading(false);
@@ -30,7 +30,7 @@ function PrintOrdersWrapper() {
     }
 }
 
-export default function generatePDF(orders) {
+export  function generateLabelsPDF(orders) {
     const doc = new jsPDF();
 
     let i = 0;
@@ -41,9 +41,7 @@ export default function generatePDF(orders) {
 
         doc.setFontSize(10);
         doc.text(order.lastName + ", " + order.firstName, x, y);
-        // console.log(order.ceremonyId);
         doc.text(String(order.ceremonyId) == 'null'?"":String(order.ceremonyId), x + WIDTH - 20, y);
-        // doc.setFontSize(8);
         let itemsLine = ['No Hood', '', 'No Hat'];
         order.items.forEach((item) => {
             if (item.itemName.startsWith("Gown")) {
@@ -59,8 +57,6 @@ export default function generatePDF(orders) {
 
         doc.text(itemsLine[0] + "   " + itemsLine[1] + "   " + itemsLine[2], x, y + 6);
         doc.text(String(order.id), x, y + 12);
-        // doc.text("Amount: $100", x, y + 8);
-        // doc.text("Date: 11-Oct-2025", x, y + 12);
 
         if (++j == 3) {
             j = 0; i++;
@@ -71,4 +67,28 @@ export default function generatePDF(orders) {
         }
     });
     doc.save("invoice.pdf");
+}
+
+export function generateManifestPDF(orders) {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Master List", 10, 20);
+    doc.text("Auckland Graduation 2025", 80, 20);
+    doc.line(10,22, 200, 22);
+
+
+    var i = 0;
+    orders.forEach((order) => {
+        doc.setLineDash([1, 1]);
+        const y = 20 + (i % 25 + 1) * 10;
+        doc.setFontSize(10);
+        doc.text(order.lastName + " " + order.firstName, 10, y);
+        doc.text("Graduation items", 80, y);
+        doc.line(10,y + 2, 200, y + 2);
+        if (i != 0 && i % 24 == 0)
+            doc.addPage();
+        i++;
+    });
+    doc.setLineDash([]);
+    doc.save("manifest.pdf");
 }
