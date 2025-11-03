@@ -13,7 +13,7 @@ export default function CeremonyEditor() {
     // Fetch ceremonies on mount
     useEffect(() => {
         axios
-            .get(`${API_URL}/ceremonies`)
+            .get(`${API_URL}/ceremonies?all=true`)
             .then((res) => {
                 setCeremonies(res.data);
                 setLoading(false);
