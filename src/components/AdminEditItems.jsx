@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
+import UpdatePic from "@/components/UpdatePic.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -115,10 +116,13 @@ export default function ItemsEditor() {
                                     />
                                 </td>
                                 <td className="p-2 border">
+                                    <UpdatePic image = {item.pictureBase64} />
+                                </td>
+                                <td className="p-2 border">
                                     <input
                                         type="text"
                                         name="category"
-                                        value={form.category}
+                                        value={item.category}
                                         onChange={handleChange}
                                         className="border rounded p-1 w-full"
                                     />
@@ -127,24 +131,53 @@ export default function ItemsEditor() {
                                     <input
                                         type="text"
                                         name="description"
-                                        value={form.description}
+                                        value={item.description}
                                         onChange={handleChange}
                                         className="border rounded p-1 w-full"
                                     />
                                 </td>
                                 <td className="p-2 border">
-                                    <button
-                                        onClick={handleSave}
-                                        className="!bg-green-600 text-white px-3 py-1 rounded mr-2 hover:!bg-green-700"
-                                    >
-                                        Save
-                                    </button>
-                                    <button
-                                        onClick={handleCancel}
-                                        className="!bg-gray-400 text-white px-3 py-1 rounded hover:!bg-gray-500"
-                                    >
-                                        Cancel
-                                    </button>
+                                    <input
+                                        type="text"
+                                        name="hire_price"
+                                        value={item.hirePrice}
+                                        onChange={handleChange}
+                                        className="border rounded p-1 w-full"
+                                    />
+                                </td>
+                                <td className="p-2 border">
+                                    <input
+                                        type="text"
+                                        name="buy_price"
+                                        value={item.buyPrice}
+                                        onChange={handleChange}
+                                        className="border rounded p-1 w-full"
+                                    />
+                                </td>
+                                <td className="p-2 border">
+                                    <input
+                                        type="checkbox"
+                                        name="for_hire"
+                                        value={item.isHiring}
+                                        onChange={handleChange}
+                                        className="border rounded p-1 w-full"
+                                    />
+                                </td>
+                                <td className="p-2 border">
+                                    <div className="flex items-center p-2 justify-center">
+                                        <button
+                                            onClick={handleSave}
+                                            className="!bg-green-600 text-white px-3 py-1 rounded mr-2 hover:!bg-green-700"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={handleCancel}
+                                            className="!bg-gray-400 text-white px-3 py-1 rounded hover:!bg-gray-500"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
                                 </td>
                             </>
                         ) : (
@@ -170,6 +203,7 @@ export default function ItemsEditor() {
                                         type="checkbox"
                                         name="visible"
                                         checked={item.isHiring}
+                                        readOnly='True'
                                         className="border rounded p-1 w-full"
                                     />
                                 </td>
