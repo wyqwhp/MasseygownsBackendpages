@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import UpdatePic from "@/components/UpdatePic.jsx";
+import {PlaceholderImage} from "@/components/UpdatePic.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144"
 
 export default function ItemsEditor() {
     const [items, setItems] = useState([]);
@@ -12,26 +13,6 @@ export default function ItemsEditor() {
     const [form, setForm] = useState({ name: "", dueDate: ""});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    const PlaceholderImage = () => (
-        <div className="w-24 h-24 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center mx-auto">
-            <svg
-                className="block w-12 h-12"
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="gray"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            >
-                <path d="M22 7L12 3 2 7l10 4 10-4z" />
-                <path d="M6 10v6c4 2.5 8 2.5 12 0v-6" />
-                <path d="M12 12v8" />
-            </svg>
-        </div>
-    );
 
     // Fetch ceremonies on mount
     useEffect(() => {

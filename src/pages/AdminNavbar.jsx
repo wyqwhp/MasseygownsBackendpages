@@ -90,11 +90,11 @@ function AdminNavbar() {
                                         ITEMS
                                     </Link>
                                 </li>
-                                <li className="dropdown-item">
-                                    <Link to="/admintest">
-                                        TEST
-                                    </Link>
-                                </li>
+                                {/*<li className="dropdown-item">*/}
+                                {/*    <Link to="/admintest">*/}
+                                {/*        TEST*/}
+                                {/*    </Link>*/}
+                                {/*</li>*/}
                             </ul>
                         </li>
                         <li>

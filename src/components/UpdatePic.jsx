@@ -1,30 +1,32 @@
 import React, {useEffect, useState} from "react";
 import "./UpdatePic.css";
 
+export const PlaceholderImage = () => (
+    <div className="w-24 h-24 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center mx-auto">
+        <svg
+            className="block w-12 h-12"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="gray"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M22 7L12 3 2 7l10 4 10-4z" />
+            <path d="M6 10v6c4 2.5 8 2.5 12 0v-6" />
+            <path d="M12 12v8" />
+        </svg>
+    </div>
+);
+
 export default function UpdatePic(image) {
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [status] = useState("");
 
-    const PlaceholderImage = () => (
-        <div className="w-24 h-24 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center mx-auto">
-            <svg
-                className="block w-12 h-12"
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="gray"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            >
-                <path d="M22 7L12 3 2 7l10 4 10-4z" />
-                <path d="M6 10v6c4 2.5 8 2.5 12 0v-6" />
-                <path d="M12 12v8" />
-            </svg>
-        </div>
-    );
+
 
     useEffect(() => {
         console.log('image=', image['image']);
