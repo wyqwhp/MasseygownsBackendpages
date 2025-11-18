@@ -2,21 +2,42 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144"
 
-export default function CeremonyEditor() {
-    const [ceremonies, setCeremonies] = useState([]);
+export default function ItemsEditor() {
+    const [items, setItems] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [form, setForm] = useState({ name: "", dueDate: "", visible: ""});
+    const [form, setForm] = useState({ name: "", dueDate: ""});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const PlaceholderImage = () => (
+        <div className="w-24 h-24 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center mx-auto">
+            <svg
+                className="block w-12 h-12"
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="gray"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <path d="M22 7L12 3 2 7l10 4 10-4z" />
+                <path d="M6 10v6c4 2.5 8 2.5 12 0v-6" />
+                <path d="M12 12v8" />
+            </svg>
+        </div>
+    );
 
     // Fetch ceremonies on mount
     useEffect(() => {
         axios
-            .get(`${API_URL}/ceremonies?all=true`)
+            .get(`${API_URL}/admin/items`)
             .then((res) => {
-                setCeremonies(res.data);
+                setItems(res.data);
                 setLoading(false);
             })
             .catch((err) => {
@@ -32,35 +53,27 @@ export default function CeremonyEditor() {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    // Handle field change
-    const handleToggle = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.checked });
-    };
-
     // Start editing
-    const handleEdit = (ceremony) => {
-        setEditingId(ceremony.id);
+    const handleEdit = (item) => {
+        setEditingId(item.id);
         setForm({
-            id: ceremony.id,
-            name: ceremony.name,
-            dueDate: ceremony.dueDate,
-            visible: ceremony.visible,
+            id: item.id,
+            name: item.name
         });
     };
 
     // Cancel editing
     const handleCancel = () => {
         setEditingId(null);
-        setForm({ name: "", dueDate: "", visible: ""});
+        setForm({ name: "", dueDate: ""});
     };
 
     // Save update
     const handleSave = async () => {
         try {
-            console.log(form)
-            const res = await axios.put(`${API_URL}/ceremonies/${editingId}`, form);
-            setCeremonies(
-                ceremonies.map((c) => (c.id === editingId ? res.data : c))
+            const res = await axios.put(`${API_URL}/admin/items/${editingId}`, form);
+            setItems(
+                items.map((c) => (c.id === editingId ? res.data : c))
             );
             handleCancel();
         } catch (err) {
@@ -73,20 +86,24 @@ export default function CeremonyEditor() {
 
     return (
         <div className="p-6">
-            <h1 className="text-xl font-bold mb-4 text-black">Edit Ceremonies</h1>
+            <h1 className="text-xl font-bold mb-4 text-black">Edit Items</h1>
             <table className="min-w-full border !border-gray-300 bg-white rounded">
                 <thead>
                 <tr className="bg-gray-200 text-left">
                     <th className="p-2 border">Name</th>
-                    <th className="p-2 border">Due date</th>
-                    <th className="p-2 border text-center">Visible</th>
+                    <th className="p-2 border">Image</th>
+                    <th className="p-2 border">Category</th>
+                    <th className="p-2 border">Description</th>
+                    <th className="p-2 border">Hire Price</th>
+                    <th className="p-2 border">Buy Price</th>
+                    <th className="p-2 border">For Hire</th>
                     <th className="p-2 border">Actions</th>
                 </tr>
                 </thead>
                 <tbody>
-                {ceremonies.map((ceremony) => (
-                    <tr key={ceremony.id} className="border">
-                        {editingId === ceremony.id ? (
+                {items.map((item) => (
+                    <tr key={item.id} className="border">
+                        {editingId === item.id ? (
                             <>
                                 <td className="p-2 border">
                                     <input
@@ -99,19 +116,19 @@ export default function CeremonyEditor() {
                                 </td>
                                 <td className="p-2 border">
                                     <input
-                                        type="date"
-                                        name="dueDate"
-                                        value={form.dueDate}
+                                        type="text"
+                                        name="category"
+                                        value={form.category}
                                         onChange={handleChange}
                                         className="border rounded p-1 w-full"
                                     />
                                 </td>
                                 <td className="p-2 border">
                                     <input
-                                        type="checkbox"
-                                        name="visible"
-                                        checked={form.visible}
-                                        onChange={handleToggle}
+                                        type="text"
+                                        name="description"
+                                        value={form.description}
+                                        onChange={handleChange}
                                         className="border rounded p-1 w-full"
                                     />
                                 </td>
@@ -132,19 +149,33 @@ export default function CeremonyEditor() {
                             </>
                         ) : (
                             <>
-                                <td className="p-2 border">{ceremony.name}</td>
-                                <td className="p-2 border">{ceremony.dueDate}</td>
+                                <td className="p-2 border">{item.name}</td>
+                                <td className="p-2 border">
+                                    {item.pictureBase64 ? (
+                                        <img
+                                            src={`data:image/jpeg;base64,${item.pictureBase64}`}
+                                            alt="Item"
+                                            className="w-16 h-auto rounded-lg mx-auto"
+                                        />
+                                    ) : (
+                                        <PlaceholderImage />
+                                    )}
+                                </td>
+                                <td className="p-2 border">{item.category}</td>
+                                <td className="p-2 border">{item.description}</td>
+                                <td className="p-2 border">{item.hirePrice}</td>
+                                <td className="p-2 border">{item.buyPrice}</td>
                                 <td className="p-2 border">
                                     <input
                                         type="checkbox"
                                         name="visible"
-                                        checked={ceremony.visible}
+                                        checked={item.isHiring}
                                         className="border rounded p-1 w-full"
                                     />
                                 </td>
                                 <td className="p-2 border">
                                     <button
-                                        onClick={() => handleEdit(ceremony)}
+                                        onClick={() => handleEdit(item)}
                                         className="!bg-blue-600 text-white px-3 py-1 rounded hover:!bg-blue-700"
                                     >
                                         Edit
