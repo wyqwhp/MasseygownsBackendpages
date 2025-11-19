@@ -21,19 +21,18 @@ export const PlaceholderImage = () => (
     </div>
 );
 
-export default function UpdatePic(image) {
+export default function UpdatePic({image, onChange}) {
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [status] = useState("");
 
-
-
     useEffect(() => {
-        console.log('image=', image['image']);
-        if (image['image'] != null) {
-            const dataUrl = image['image'].startsWith("data:")
-                ? image['image']
-                : `data:image/jpeg;base64,${image['image']}`;
+        // console.log("image=", image);
+        if (image != null) {
+            // console.log('image=', image['image']);
+            const dataUrl = image.startsWith("data:")
+                ? image
+                : `data:image/jpeg;base64,${image}`;
 
             setPreview(dataUrl);
         }
@@ -44,7 +43,20 @@ export default function UpdatePic(image) {
         setFile(selectedFile);
 
         if (selectedFile) {
-            setPreview(URL.createObjectURL(selectedFile));
+            const reader = new FileReader();
+
+            reader.onloadend = () => {
+                const base64 = reader.result;
+                setPreview(base64);
+                // console.log("Base64=", base64);
+                onChange(base64.split(",")[1]);
+            };
+
+            reader.readAsDataURL(selectedFile);
+
+            // const image = URL.createObjectURL(selectedFile);
+            // setPreview(image);
+            // onChange(image)
         }
     };
 
@@ -76,7 +88,7 @@ export default function UpdatePic(image) {
 
     return (
         <div className="upload-container">
-            <h3 className="upload-title">Upload Image</h3>
+            {/*<h3 className="upload-title">Upload Image</h3>*/}
 
             <label className="custom-file-upload">
                 Select Image
