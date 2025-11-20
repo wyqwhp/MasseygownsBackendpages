@@ -66,7 +66,7 @@ function Authentication({ children }) {
         );
     }
 
-    console.log(isAuthenticated);
+    // console.log(isAuthenticated);
     // ✅ If logged in, show the protected page
     return children;
 }

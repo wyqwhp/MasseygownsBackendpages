@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 
@@ -59,7 +60,7 @@ export default function DegreesEditor() {
         }
     };
 
-    if (loading) return <p>Loading degrees...</p>;
+    if (loading) return <FullscreenSpinner />;
     if (error) return <p className="text-red-600">Error: {error}</p>;
 
     return (

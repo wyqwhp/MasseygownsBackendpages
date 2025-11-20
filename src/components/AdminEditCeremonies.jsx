@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 
@@ -13,7 +14,7 @@ export default function CeremonyEditor() {
     // Fetch ceremonies on mount
     useEffect(() => {
         axios
-            .get(`${API_URL}/ceremonies`)
+            .get(`${API_URL}/ceremonies?all=true`)
             .then((res) => {
                 setCeremonies(res.data);
                 setLoading(false);
@@ -67,7 +68,7 @@ export default function CeremonyEditor() {
         }
     };
 
-    if (loading) return <p>Loading ceremonies...</p>;
+    if (loading) return <FullscreenSpinner />;
     if (error) return <p className="text-red-600">Error: {error}</p>;
 
     return (
