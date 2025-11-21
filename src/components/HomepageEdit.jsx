@@ -6,7 +6,7 @@ const SEED_ITEMS = [
     id: 1,
     page: "Homepage",
     section: "Hero Section",
-    key: "home.heroImage", // special key: wired to real API
+    key: "home.heroImage", // wired to POST /api/HomePage/hero-image
     type: "image",
     label: "Homepage hero image",
     updatedAt: "2025-11-19",
@@ -16,36 +16,26 @@ const SEED_ITEMS = [
   {
     id: 2,
     page: "Homepage",
-    section: "Hero Section",
-    key: "home.heroTitle",
-    type: "text",
-    label: "Main heading",
-    updatedAt: "2025-11-19",
-    value: "Celebrate your graduation with the right regalia.",
+    section: "Graduation Ceremony",
+    key: "home.ceremonyImage", // wired to POST /api/HomePage/ceremony-image
+    type: "image",
+    label: "Ceremony section image",
+    updatedAt: "2025-11-20",
+    value: "/cere_img.png", // fallback 本地图
   },
   {
     id: 3,
     page: "Homepage",
     section: "Graduation Ceremony",
-    key: "home.ceremonyIntro",
+    key: "home.ceremonyText", // wired to POST /api/HomePage/ceremony-text
     type: "text",
     label: "Intro text for ceremony section",
-    updatedAt: "2025-11-18",
-    value: "Find your ceremony date and location before you order.",
-  },
-  {
-    id: 4,
-    page: "FAQs",
-    section: "General",
-    key: "faq.intro",
-    type: "text",
-    label: "FAQ intro text",
-    updatedAt: "2025-11-15",
-    value: "Here are the most common questions about regalia hire.",
+    updatedAt: "2025-11-20",
+    value:
+      "Your graduation ceremony is a formal celebration of your achievement, and you are encouraged to dress appropriately.\n\nAll graduands are required to wear academic regalia at the graduation ceremony.\n\nAppropriate dress is considered to be\nMen: suit and tie and applicable academic dress.\nWomen: formal clothes and applicable academic dress.",
   },
 ];
 
-// Helpers to get unique page and section lists
 function getPages(items) {
   return Array.from(new Set(items.map((i) => i.page)));
 }
@@ -59,26 +49,21 @@ function getSectionsForPage(items, page) {
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 
 export default function HomepageEdit() {
-  // Content blocks (start from seed; later can be loaded from API)
   const [items, setItems] = useState(SEED_ITEMS);
 
   const [search, setSearch] = useState("");
   const [pageFilter, setPageFilter] = useState("All");
   const [sectionFilter, setSectionFilter] = useState("All");
 
-  // Currently selected item (for the modal)
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // Local editing state
   const [editText, setEditText] = useState("");
   const [editFile, setEditFile] = useState(null);
 
-  // Status messages
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [statusError, setStatusError] = useState("");
 
-  // Track image load error to avoid showing broken images
   const [imageError, setImageError] = useState(false);
 
   const pages = useMemo(() => getPages(items), [items]);
@@ -88,23 +73,17 @@ export default function HomepageEdit() {
     [items, pageFilter]
   );
 
-  // Filter table rows based on search + filters
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      if (pageFilter !== "All" && item.page !== pageFilter) {
-        return false;
-      }
-
+      if (pageFilter !== "All" && item.page !== pageFilter) return false;
       if (
         sectionFilter !== "All" &&
         sectionFilter !== "" &&
         item.section !== sectionFilter
-      ) {
+      )
         return false;
-      }
 
       if (!search.trim()) return true;
-
       const s = search.toLowerCase();
       return (
         item.page.toLowerCase().includes(s) ||
@@ -115,7 +94,6 @@ export default function HomepageEdit() {
     });
   }, [items, search, pageFilter, sectionFilter]);
 
-  // When user clicks "Check & update" in the table
   function handleSelectItem(item) {
     setSelectedItem(item);
     setStatusMessage("");
@@ -125,7 +103,6 @@ export default function HomepageEdit() {
     setImageError(false);
   }
 
-  // Close modal and reset transient state
   function handleCloseModal() {
     setSelectedItem(null);
     setStatusMessage("");
@@ -136,7 +113,6 @@ export default function HomepageEdit() {
     setImageError(false);
   }
 
-  // Reset section filter + selection when page changes
   function handlePageChange(e) {
     const value = e.target.value;
     setPageFilter(value);
@@ -154,27 +130,68 @@ export default function HomepageEdit() {
     setStatusError("");
 
     try {
-      // Mock delay – replace with real API call later
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
       const today = new Date().toISOString().slice(0, 10);
 
-      // Update list + selected item in local state
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === selectedItem.id
-            ? { ...item, value: editText, updatedAt: today }
-            : item
-        )
-      );
+      if (selectedItem.key === "home.ceremonyText") {
+        const res = await fetch(`${API_BASE}/api/HomePage/ceremony-text`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: editText }),
+        });
 
-      setSelectedItem((prev) =>
-        prev && prev.id === selectedItem.id
-          ? { ...prev, value: editText, updatedAt: today }
-          : prev
-      );
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(
+            `Failed to save ceremony text (${res.status}): ${text}`
+          );
+        }
 
-      setStatusMessage("Text updated (mock only, no API yet).");
+        const json = await res.json();
+        const newText =
+          (json &&
+            json.data &&
+            typeof json.data.ceremonyText === "string" &&
+            json.data.ceremonyText) ||
+          editText;
+
+        setItems((prev) =>
+          prev.map((item) =>
+            item.id === selectedItem.id
+              ? { ...item, value: newText, updatedAt: today }
+              : item
+          )
+        );
+
+        setSelectedItem((prev) =>
+          prev && prev.id === selectedItem.id
+            ? { ...prev, value: newText, updatedAt: today }
+            : prev
+        );
+
+        setStatusMessage(
+          (json && json.message) || "Ceremony text updated successfully."
+        );
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        setItems((prev) =>
+          prev.map((item) =>
+            item.id === selectedItem.id
+              ? { ...item, value: editText, updatedAt: today }
+              : item
+          )
+        );
+
+        setSelectedItem((prev) =>
+          prev && prev.id === selectedItem.id
+            ? { ...prev, value: editText, updatedAt: today }
+            : prev
+        );
+
+        setStatusMessage("Text updated (mock only, no API yet).");
+      }
     } catch (err) {
       setStatusError(
         err instanceof Error ? err.message : "Failed to save text."
@@ -184,13 +201,7 @@ export default function HomepageEdit() {
     }
   }
 
-  /**
-   * Upload an image for the selected block.
-   * Currently only the Homepage hero image is wired to the real API:
-   *   POST /api/HomePage/hero-image  (multipart/form-data)
-   *
-   * Other image blocks will still show a mock message.
-   */
+  // ---------- 上传图片：Hero & Ceremony 都走真实 API ----------
   async function handleUploadImage() {
     if (!selectedItem || !editFile) return;
 
@@ -199,83 +210,75 @@ export default function HomepageEdit() {
     setStatusError("");
 
     try {
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(editFile.type)) {
+        throw new Error("Only JPG, PNG, and WEBP images are allowed.");
+      }
+      const maxSize = 5 * 1024 * 1024;
+      if (editFile.size > maxSize) {
+        throw new Error("File is too large. Maximum size is 5MB.");
+      }
+
+      const formData = new FormData();
+      formData.append("file", editFile);
+
+      let endpoint = "";
+      let fieldName = "";
+
       if (selectedItem.key === "home.heroImage") {
-        // 1. Validate file type and size
-        const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-        if (!allowedTypes.includes(editFile.type)) {
-          throw new Error("Only JPG, PNG, and WEBP images are allowed.");
-        }
-        const maxSize = 5 * 1024 * 1024; // 5 MB
-        if (editFile.size > maxSize) {
-          throw new Error("File is too large. Maximum size is 5MB.");
-        }
-
-        // 2. Build form-data body
-        const formData = new FormData();
-        formData.append("file", editFile);
-
-        // 3. Call real API: POST /api/HomePage/hero-image
-        const response = await fetch(`${API_BASE}/api/HomePage/hero-image`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(`Upload failed (${response.status}): ${text}`);
-        }
-
-        const json = await response.json();
-
-        // Expected API response shape:
-        // {
-        //   success: true,
-        //   message: "...",
-        //   data: { heroImageUrl: "https://..." },
-        //   statusCode: 200
-        // }
-        const newUrl =
-          (json && json.data && json.data.heroImageUrl) ||
-          json.heroImageUrl ||
-          "";
-
-        if (!newUrl) {
-          throw new Error(
-            "Upload succeeded but response did not contain heroImageUrl."
-          );
-        }
-
-        const today = new Date().toISOString().slice(0, 10);
-
-        // ⭐ 关键：重置 imageError，让新图片可以重新尝试加载
-        setImageError(false);
-
-        // Update list + selected item
-        setItems((prev) =>
-          prev.map((item) =>
-            item.id === selectedItem.id
-              ? { ...item, value: newUrl, updatedAt: today }
-              : item
-          )
-        );
-
-        setSelectedItem((prev) =>
-          prev && prev.id === selectedItem.id
-            ? { ...prev, value: newUrl, updatedAt: today }
-            : prev
-        );
-
-        setStatusMessage(
-          (json && json.message) || "Hero image updated successfully."
-        );
+        endpoint = "hero-image";
+        fieldName = "heroImageUrl";
+      } else if (selectedItem.key === "home.ceremonyImage") {
+        endpoint = "ceremony-image";
+        fieldName = "ceremonyImageUrl";
       } else {
-        // For now, other image blocks are not wired to a real API.
         await new Promise((resolve) => setTimeout(resolve, 400));
         setStatusMessage(
           "This image block is not connected to an API yet (mock only)."
         );
+        setEditFile(null);
+        setIsSaving(false);
+        return;
       }
 
+      const response = await fetch(`${API_BASE}/api/HomePage/${endpoint}`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Upload failed (${response.status}): ${text}`);
+      }
+
+      const json = await response.json();
+      const newUrl =
+        (json && json.data && json.data[fieldName]) || json[fieldName] || "";
+
+      if (!newUrl) {
+        throw new Error(
+          "Upload succeeded but response did not contain the image URL."
+        );
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      setImageError(false);
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === selectedItem.id
+            ? { ...item, value: newUrl, updatedAt: today }
+            : item
+        )
+      );
+
+      setSelectedItem((prev) =>
+        prev && prev.id === selectedItem.id
+          ? { ...prev, value: newUrl, updatedAt: today }
+          : prev
+      );
+
+      setStatusMessage((json && json.message) || "Image updated successfully.");
       setEditFile(null);
     } catch (err) {
       setStatusError(
@@ -290,7 +293,6 @@ export default function HomepageEdit() {
     <div className="admin-content-manager">
       <h1 className="acm-title">Site Content Manager</h1>
 
-      {/* Toolbar: search + filters */}
       <div className="acm-toolbar">
         <div className="acm-search-wrapper">
           <input
@@ -332,7 +334,6 @@ export default function HomepageEdit() {
         </div>
       </div>
 
-      {/* Table with content blocks */}
       <div className="acm-table-wrapper">
         <table className="acm-table">
           <thead>
@@ -388,13 +389,11 @@ export default function HomepageEdit() {
         </table>
       </div>
 
-      {/* Centered modal for the selected item */}
       {selectedItem && (
         <div className="acm-modal-overlay" onClick={handleCloseModal}>
           <div
             className="acm-modal"
             onClick={(e) => {
-              // Prevent closing when clicking inside the modal
               e.stopPropagation();
             }}
           >
@@ -458,7 +457,6 @@ export default function HomepageEdit() {
               </div>
             ) : (
               <div className="acm-detail-body">
-                {/* IMAGE PREVIEW */}
                 <label className="acm-detail-label">Current image</label>
                 {(() => {
                   const currentUrl = selectedItem.value || "";
@@ -473,7 +471,7 @@ export default function HomepageEdit() {
                       <div className="acm-image-preview">
                         {canShowImage ? (
                           <img
-                            key={currentUrl} // URL 变更时强制重新挂载 img
+                            key={currentUrl}
                             src={currentUrl}
                             alt={selectedItem.label}
                             onError={() => setImageError(true)}
@@ -496,7 +494,6 @@ export default function HomepageEdit() {
                         </a>
                       )}
 
-                      {/* FILE INPUT ROW */}
                       <label className="acm-detail-label">
                         Upload new image
                       </label>
