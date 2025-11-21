@@ -10,57 +10,93 @@ import AdminEditItems from "./components/AdminEditItems.jsx";
 import BuyRegalia from "./pages/BuyRegalia";
 import HireRegalia from "./pages/HireRegalia";
 import UpdatePic from "@/components/UpdatePic.jsx";
+import HomepageEdit from "./components/HomepageEdit.jsx";
 
 function App() {
   return (
-      <Routes>
-        <Route path="/login" element={<Authentication />}/>
-        <Route path="/" element={
-            <Authentication>
-              <AdminNavbar />
-            </Authentication>
-        }/>
-        <Route path="/admineditceremonies" element={
-            <Authentication>
-                <AdminEditCeremonies/>
-            </Authentication>
-        }/>
-        <Route path="/admineditdegrees" element={
-            <Authentication>
-                <AdminEditDegrees/>
-            </Authentication>
-        }/>
-        <Route path="/adminedititems" element={
-            <Authentication>
-                <AdminEditItems/>
-            </Authentication>
-        }/>
-        <Route path="/admintest" element={
-            <Authentication>
-                <UpdatePic/>
-            </Authentication>
-        }/>
-        <Route path="/BuyRegalia" element={
-            <Authentication>
-                <BuyRegalia/>
-            </Authentication>
-        }/>
-        <Route path="/HireRegalia" element={
-            <Authentication>
-                <HireRegalia/>
-            </Authentication>
-        }/>
-        <Route path="/adminextractorders" element={
-            <Authentication>
-                <AdminExtractOrders/>
-            </Authentication>
-        }/>
-          <Route path="/adminqueries" element={
-              <Authentication>
-                  <Queries/>
-              </Authentication>
-          }/>
-      </Routes>
+    <Routes>
+      <Route path="/login" element={<Authentication />} />
+      <Route
+        path="/"
+        element={
+          <Authentication>
+            <AdminNavbar />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/admineditceremonies"
+        element={
+          <Authentication>
+            <AdminEditCeremonies />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/admineditdegrees"
+        element={
+          <Authentication>
+            <AdminEditDegrees />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/adminedititems"
+        element={
+          <Authentication>
+            <AdminEditItems />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/admintest"
+        element={
+          <Authentication>
+            <UpdatePic />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/BuyRegalia"
+        element={
+          <Authentication>
+            <BuyRegalia />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/HireRegalia"
+        element={
+          <Authentication>
+            <HireRegalia />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/adminextractorders"
+        element={
+          <Authentication>
+            <AdminExtractOrders />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/adminqueries"
+        element={
+          <Authentication>
+            <Queries />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/HomepageEdit"
+        element={
+          <Authentication>
+            <HomepageEdit />
+          </Authentication>
+        }
+      />
+    </Routes>
   );
 }
 
