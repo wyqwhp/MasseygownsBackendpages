@@ -6,8 +6,8 @@ import { PlaceholderImage } from "@/components/UpdatePic.jsx";
 import AdminNavbar from "@/pages/AdminNavbar.jsx";
 import "./AdminEditITems.css";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-const API_URL = "http://localhost:5144"
+const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144"
 
 export default function ItemsEditor() {
   const [items, setItems] = useState([]);
