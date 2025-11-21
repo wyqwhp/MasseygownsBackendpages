@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
+import AdminNavbar from "@/pages/AdminNavbar.jsx";
+import "./AdminEditCeremonies.css";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 
@@ -72,7 +74,9 @@ export default function CeremonyEditor() {
     if (error) return <p className="text-red-600">Error: {error}</p>;
 
     return (
-        <div className="p-6">
+        <>
+        <AdminNavbar />
+        <div className="p-6 topform">
             <h1 className="text-xl font-bold mb-4 text-black">Edit Ceremonies</h1>
             <table className="min-w-full border !border-gray-300 bg-white rounded">
                 <thead>
@@ -112,13 +116,13 @@ export default function CeremonyEditor() {
                                         name="visible"
                                         checked={form.visible}
                                         onChange={handleToggle}
-                                        className="border rounded p-1 w-full"
+                                        className="border rounded p-1 w-full accent-green-700"
                                     />
                                 </td>
                                 <td className="p-2 border">
                                     <button
                                         onClick={handleSave}
-                                        className="!bg-green-600 text-white px-3 py-1 rounded mr-2 hover:!bg-green-700"
+                                        className="!bg-green-700 text-white px-3 py-1 rounded mr-2 hover:!bg-green-800"
                                     >
                                         Save
                                     </button>
@@ -139,13 +143,13 @@ export default function CeremonyEditor() {
                                         type="checkbox"
                                         name="visible"
                                         checked={ceremony.visible}
-                                        className="border rounded p-1 w-full"
+                                        className="border rounded p-1 w-full accent-green-700"
                                     />
                                 </td>
                                 <td className="p-2 border">
                                     <button
                                         onClick={() => handleEdit(ceremony)}
-                                        className="!bg-blue-600 text-white px-3 py-1 rounded hover:!bg-blue-700"
+                                        className="!bg-green-700 text-white px-3 py-1 rounded hover:!bg-green-800"
                                     >
                                         Edit
                                     </button>
@@ -157,5 +161,6 @@ export default function CeremonyEditor() {
                 </tbody>
             </table>
         </div>
+    </>
     );
 }
