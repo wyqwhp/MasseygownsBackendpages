@@ -80,7 +80,7 @@
 
 .acm-table th,
 .acm-table td {
-  padding: 10px 14px;
+  padding: 10px 14px 10px 24px;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -107,6 +107,11 @@
   text-align: center;
   padding: 24px;
   color: #6b7280;
+}
+
+.acm-table th:last-child,
+.acm-table td:last-child {
+  width: 140px;
 }
 
 /* Cell label */
@@ -281,8 +286,6 @@
   box-shadow: 0 0 0 1px #2563eb22;
 }
 
-/* Image preview – 自适应宽度的白色卡片 */
-
 .acm-image-preview {
   width: 100%;
   border-radius: 12px;
@@ -310,8 +313,6 @@
   padding: 24px 12px;
 }
 
-/* Upload file row: 按钮 + 文件名 */
-
 .acm-file-row {
   display: flex;
   align-items: center;
@@ -319,13 +320,9 @@
   margin-top: 8px;
 }
 
-/* 真正的 input[type=file] 隐藏掉，由 label 触发 */
-
 .acm-hidden-file-input {
   display: none;
 }
-
-/* 自定义 Choose file 按钮 */
 
 .acm-file-button {
   display: inline-flex;
@@ -347,8 +344,6 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
-/* 文件名 / No file chosen 提示 */
-
 .acm-file-name {
   font-size: 13px;
   color: #6b7280;
@@ -356,8 +351,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* 旧的文件 input（现在不用了，可以保留以防万一，不会被用到） */
 
 .acm-file-input {
   margin-top: 4px;
@@ -392,6 +385,47 @@
   text-decoration: underline;
 }
 
+/* Pagination */
+
+.acm-pagination {
+  margin-top: 12px;
+  padding: 10px 12px 12px;
+  background: #fafafa;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.acm-pagination-info {
+  color: #555;
+}
+
+.acm-pagination-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.acm-pagination-page {
+  color: #444;
+  font-weight: 500;
+}
+
+.acm-pagination .acm-button.small {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+}
+
+.acm-pagination .acm-button.small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Small screen tweaks */
 
 @media (max-width: 640px) {
@@ -416,5 +450,14 @@
 
   .acm-image-preview {
     padding: 10px;
+  }
+
+  .acm-pagination {
+    padding: 8px 10px 10px;
+    gap: 4px;
+  }
+
+  .acm-pagination-buttons {
+    gap: 8px;
   }
 }
