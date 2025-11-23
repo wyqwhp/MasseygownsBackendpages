@@ -1,40 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import "./HomepageEdit.css";
 
-const SEED_ITEMS = [
-  {
-    id: 1,
-    page: "Homepage",
-    section: "Hero Section",
-    key: "home.heroImage", // wired to POST /api/HomePage/hero-image
-    type: "image",
-    label: "Homepage hero image",
-    updatedAt: "2025-11-19",
-    value:
-      "https://masseygownsblob.blob.core.windows.net/site-assets/your-hero-image.png",
-  },
-  {
-    id: 2,
-    page: "Homepage",
-    section: "Graduation Ceremony",
-    key: "home.ceremonyImage", // wired to POST /api/HomePage/ceremony-image
-    type: "image",
-    label: "Ceremony section image",
-    updatedAt: "2025-11-20",
-    value: "/cere_img.png", // fallback 本地图
-  },
-  {
-    id: 3,
-    page: "Homepage",
-    section: "Graduation Ceremony",
-    key: "home.ceremonyText", // wired to POST /api/HomePage/ceremony-text
-    type: "text",
-    label: "Intro text for ceremony section",
-    updatedAt: "2025-11-20",
-    value:
-      "Your graduation ceremony is a formal celebration of your achievement, and you are encouraged to dress appropriately.\n\nAll graduands are required to wear academic regalia at the graduation ceremony.\n\nAppropriate dress is considered to be\nMen: suit and tie and applicable academic dress.\nWomen: formal clothes and applicable academic dress.",
-  },
-];
+const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
+const PAGE_SIZE = 15;
 
 function getPages(items) {
   return Array.from(new Set(items.map((i) => i.page)));
@@ -46,11 +14,8 @@ function getSectionsForPage(items, page) {
   );
 }
 
-const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
-
 export default function HomepageEdit() {
-  const [items, setItems] = useState(SEED_ITEMS);
-
+  const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [pageFilter, setPageFilter] = useState("All");
   const [sectionFilter, setSectionFilter] = useState("All");
@@ -65,6 +30,30 @@ export default function HomepageEdit() {
   const [statusError, setStatusError] = useState("");
 
   const [imageError, setImageError] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Load CMS blocks from the API on mount
+  useEffect(() => {
+    async function loadBlocks() {
+      try {
+        const res = await fetch(`${API_BASE}/api/CmsContent`);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Failed to load CMS blocks (${res.status}): ${text}`);
+        }
+        const json = await res.json();
+        setItems(json.data || []);
+      } catch (err) {
+        console.error(err);
+        setStatusError(
+          err instanceof Error ? err.message : "Failed to load CMS content."
+        );
+      }
+    }
+
+    loadBlocks();
+  }, []);
 
   const pages = useMemo(() => getPages(items), [items]);
 
@@ -94,6 +83,26 @@ export default function HomepageEdit() {
     });
   }, [items, search, pageFilter, sectionFilter]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, pageFilter, sectionFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredItems.length / PAGE_SIZE) || 1
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const pagedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredItems.slice(start, start + PAGE_SIZE);
+  }, [filteredItems, currentPage]);
+
   function handleSelectItem(item) {
     setSelectedItem(item);
     setStatusMessage("");
@@ -122,76 +131,57 @@ export default function HomepageEdit() {
     setStatusError("");
   }
 
+  // Save text block via CMS API
   async function handleSaveText() {
-    if (!selectedItem) return;
+    if (!selectedItem || selectedItem.type !== "text") return;
 
     setIsSaving(true);
     setStatusMessage("");
     setStatusError("");
 
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(`${API_BASE}/api/CmsContent/save-text`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          key: selectedItem.key,
+          text: editText,
+        }),
+      });
 
-      if (selectedItem.key === "home.ceremonyText") {
-        const res = await fetch(`${API_BASE}/api/HomePage/ceremony-text`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ text: editText }),
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(
-            `Failed to save ceremony text (${res.status}): ${text}`
-          );
-        }
-
-        const json = await res.json();
-        const newText =
-          (json &&
-            json.data &&
-            typeof json.data.ceremonyText === "string" &&
-            json.data.ceremonyText) ||
-          editText;
-
-        setItems((prev) =>
-          prev.map((item) =>
-            item.id === selectedItem.id
-              ? { ...item, value: newText, updatedAt: today }
-              : item
-          )
-        );
-
-        setSelectedItem((prev) =>
-          prev && prev.id === selectedItem.id
-            ? { ...prev, value: newText, updatedAt: today }
-            : prev
-        );
-
-        setStatusMessage(
-          (json && json.message) || "Ceremony text updated successfully."
-        );
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        setItems((prev) =>
-          prev.map((item) =>
-            item.id === selectedItem.id
-              ? { ...item, value: editText, updatedAt: today }
-              : item
-          )
-        );
-
-        setSelectedItem((prev) =>
-          prev && prev.id === selectedItem.id
-            ? { ...prev, value: editText, updatedAt: today }
-            : prev
-        );
-
-        setStatusMessage("Text updated (mock only, no API yet).");
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed to save text (${res.status}): ${text}`);
       }
+
+      const json = await res.json();
+      const updated = json.data;
+
+      const newValue =
+        (updated && typeof updated.value === "string" && updated.value) ||
+        editText;
+
+      const updatedAt =
+        (updated && updated.updatedAt && updated.updatedAt.slice(0, 10)) ||
+        new Date().toISOString().slice(0, 10);
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === selectedItem.id
+            ? { ...item, value: newValue, updatedAt }
+            : item
+        )
+      );
+
+      setSelectedItem((prev) =>
+        prev && prev.id === selectedItem.id
+          ? { ...prev, value: newValue, updatedAt }
+          : prev
+      );
+
+      setStatusMessage(json.message || "Text updated successfully.");
     } catch (err) {
       setStatusError(
         err instanceof Error ? err.message : "Failed to save text."
@@ -201,9 +191,9 @@ export default function HomepageEdit() {
     }
   }
 
-  // ---------- 上传图片：Hero & Ceremony 都走真实 API ----------
+  // Upload image via CMS API (/api/CmsContent/upload-image)
   async function handleUploadImage() {
-    if (!selectedItem || !editFile) return;
+    if (!selectedItem || selectedItem.type !== "image" || !editFile) return;
 
     setIsSaving(true);
     setStatusMessage("");
@@ -214,34 +204,17 @@ export default function HomepageEdit() {
       if (!allowedTypes.includes(editFile.type)) {
         throw new Error("Only JPG, PNG, and WEBP images are allowed.");
       }
+
       const maxSize = 5 * 1024 * 1024;
       if (editFile.size > maxSize) {
         throw new Error("File is too large. Maximum size is 5MB.");
       }
 
       const formData = new FormData();
-      formData.append("file", editFile);
+      formData.append("Key", selectedItem.key);
+      formData.append("File", editFile);
 
-      let endpoint = "";
-      let fieldName = "";
-
-      if (selectedItem.key === "home.heroImage") {
-        endpoint = "hero-image";
-        fieldName = "heroImageUrl";
-      } else if (selectedItem.key === "home.ceremonyImage") {
-        endpoint = "ceremony-image";
-        fieldName = "ceremonyImageUrl";
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        setStatusMessage(
-          "This image block is not connected to an API yet (mock only)."
-        );
-        setEditFile(null);
-        setIsSaving(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE}/api/HomePage/${endpoint}`, {
+      const response = await fetch(`${API_BASE}/api/CmsContent/upload-image`, {
         method: "POST",
         body: formData,
       });
@@ -252,8 +225,8 @@ export default function HomepageEdit() {
       }
 
       const json = await response.json();
-      const newUrl =
-        (json && json.data && json.data[fieldName]) || json[fieldName] || "";
+      const data = json.data || {};
+      const newUrl = data.url || (data.block && data.block.value) || "";
 
       if (!newUrl) {
         throw new Error(
@@ -261,24 +234,29 @@ export default function HomepageEdit() {
         );
       }
 
-      const today = new Date().toISOString().slice(0, 10);
+      const updatedAt =
+        (data.block &&
+          data.block.updatedAt &&
+          data.block.updatedAt.slice(0, 10)) ||
+        new Date().toISOString().slice(0, 10);
+
       setImageError(false);
 
       setItems((prev) =>
         prev.map((item) =>
           item.id === selectedItem.id
-            ? { ...item, value: newUrl, updatedAt: today }
+            ? { ...item, value: newUrl, updatedAt }
             : item
         )
       );
 
       setSelectedItem((prev) =>
         prev && prev.id === selectedItem.id
-          ? { ...prev, value: newUrl, updatedAt: today }
+          ? { ...prev, value: newUrl, updatedAt }
           : prev
       );
 
-      setStatusMessage((json && json.message) || "Image updated successfully.");
+      setStatusMessage(json.message || "Image updated successfully.");
       setEditFile(null);
     } catch (err) {
       setStatusError(
@@ -291,7 +269,7 @@ export default function HomepageEdit() {
 
   return (
     <div className="admin-content-manager">
-      <h1 className="acm-title">Site Content Manager</h1>
+      <h1 className="acm-title">Website Text & Image Editor</h1>
 
       <div className="acm-toolbar">
         <div className="acm-search-wrapper">
@@ -353,7 +331,7 @@ export default function HomepageEdit() {
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => (
+              pagedItems.map((item) => (
                 <tr
                   key={item.id}
                   className={
@@ -372,7 +350,7 @@ export default function HomepageEdit() {
                       </div>
                     </div>
                   </td>
-                  <td>{item.updatedAt}</td>
+                  <td>{item.updatedAt && item.updatedAt.slice(0, 10)}</td>
                   <td>
                     <button
                       type="button"
@@ -387,6 +365,39 @@ export default function HomepageEdit() {
             )}
           </tbody>
         </table>
+
+        {filteredItems.length > 0 && (
+          <div className="acm-pagination">
+            <span className="acm-pagination-info">
+              Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+              {Math.min(currentPage * PAGE_SIZE, filteredItems.length)} of{" "}
+              {filteredItems.length}
+            </span>
+            <div className="acm-pagination-buttons">
+              <button
+                type="button"
+                className="acm-button small"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <span className="acm-pagination-page">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="acm-button small"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedItem && (
