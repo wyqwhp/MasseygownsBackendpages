@@ -269,7 +269,7 @@ export default function HomepageEdit() {
 
   return (
     <div className="admin-content-manager">
-      <h1 className="acm-title">Site Content Manager</h1>
+      <h1 className="acm-title">Website Text & Image Editor</h1>
 
       <div className="acm-toolbar">
         <div className="acm-search-wrapper">
