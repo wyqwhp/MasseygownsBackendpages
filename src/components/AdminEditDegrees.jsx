@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
+import AdminNavbar from "@/pages/AdminNavbar.jsx";
+import "./AdminEditDegrees.css";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
 
 export default function DegreesEditor() {
     const [degrees, setDegrees] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [form, setForm] = useState({ name: "", dueDate: ""});
+    const [form, setForm] = useState({ name: ""});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -27,8 +30,8 @@ export default function DegreesEditor() {
 
     // Handle field change
     const handleChange = (e) => {
-        console.log(e.target.name);
-        console.log(e.target.value);
+        // console.log(e.target.name);
+        // console.log(e.target.value);
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
@@ -43,28 +46,51 @@ export default function DegreesEditor() {
 
     // Cancel editing
     const handleCancel = () => {
+        if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+            setDegrees(degrees.filter(d => d.id !== editingId));
+        }
         setEditingId(null);
-        setForm({ name: "", dueDate: ""});
+        setForm({ name: ""});
     };
 
     // Save update
     const handleSave = async () => {
+        setLoading(true);
+
         try {
-            const res = await axios.put(`${API_URL}/degrees/${editingId}`, form);
-            setDegrees(
-                degrees.map((c) => (c.id === editingId ? res.data : c))
-            );
-            handleCancel();
+            let res;
+            if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+                res = await axios.post(`${API_URL}/admin/degrees`, form);
+            } else {
+                res = await axios.put(`${API_URL}/admin/degrees/${editingId}`, form);
+            }
+            setDegrees(prev =>
+                prev.map((c) => c.id === editingId ? res.data : c));
+            setEditingId(null);
+            setForm({ name: ""});
         } catch (err) {
-            setError("Update failed: " + err.message);
+            setError("Update or Add degree failed: " + err.message);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const addDegree = () => {
+        const tempId = "temp-" + crypto.randomUUID();
+        setDegrees([...degrees, { id: tempId, name: "" }]);
+        setEditingId(tempId);
+        setForm({
+            name: ""
+        });
     };
 
     if (loading) return <FullscreenSpinner />;
     if (error) return <p className="text-red-600">Error: {error}</p>;
 
     return (
-        <div className="p-6">
+        <>
+        <AdminNavbar />
+        <div className="p-6 topform">
             <h1 className="text-xl font-bold mb-4 text-black">Edit Degrees</h1>
             <table className="min-w-full border !border-gray-300 bg-white rounded">
                 <thead>
@@ -101,7 +127,7 @@ export default function DegreesEditor() {
                                 <td className="p-2 border">
                                     <button
                                         onClick={handleSave}
-                                        className="!bg-green-600 text-white px-3 py-1 rounded mr-2 hover:!bg-green-700"
+                                        className="!bg-green-700 text-white px-3 py-1 rounded mr-2 hover:!bg-green-800"
                                     >
                                         Save
                                     </button>
@@ -119,7 +145,7 @@ export default function DegreesEditor() {
                                 <td className="p-2 border">
                                     <button
                                         onClick={() => handleEdit(degree)}
-                                        className="!bg-blue-600 text-white px-3 py-1 rounded hover:!bg-blue-700"
+                                        className="!bg-green-700 text-white px-3 py-1 rounded hover:!bg-green-800"
                                     >
                                         Edit
                                     </button>
@@ -130,6 +156,13 @@ export default function DegreesEditor() {
                 ))}
                 </tbody>
             </table>
+            <button
+                onClick={() => addDegree()}
+                className="!bg-green-700 text-white px-3 py-2 rounded hover:!bg-green-800 button_new"
+            >
+                New Degree
+            </button>
         </div>
+    </>
     );
 }
