@@ -52,22 +52,43 @@ export default function CeremonyEditor() {
 
     // Cancel editing
     const handleCancel = () => {
+        if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+            setCeremonies(ceremonies.filter(d => d.id !== editingId));
+        }
         setEditingId(null);
         setForm({ name: "", dueDate: "", visible: ""});
     };
 
     // Save update
     const handleSave = async () => {
+        setLoading(true);
         try {
+            let res;
             console.log(form)
-            const res = await axios.put(`${API_URL}/ceremonies/${editingId}`, form);
+            if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+                res = await axios.post(`${API_URL}/admin/ceremonies`, form);
+            } else {
+                res = await axios.put(`${API_URL}/ceremonies/${editingId}`, form);
+            }
             setCeremonies(
                 ceremonies.map((c) => (c.id === editingId ? res.data : c))
             );
-            handleCancel();
+            setEditingId(null);
+            setForm({ name: "", dueDate: "", visible: ""});
         } catch (err) {
             setError("Update failed: " + err.message);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const addCeremony = () => {
+        const tempId = "temp-" + crypto.randomUUID();
+        setCeremonies([...ceremonies, { id: tempId, name: "", dueDate: "", visible: "" }]);
+        setEditingId(tempId);
+        setForm({
+            name: "", dueDate: "", visible: ""
+        });
     };
 
     if (loading) return <FullscreenSpinner />;
@@ -160,6 +181,12 @@ export default function CeremonyEditor() {
                 ))}
                 </tbody>
             </table>
+            <button
+                onClick={() => addCeremony()}
+                className="!bg-green-700 text-white px-3 py-2 rounded hover:!bg-green-800 button_new"
+            >
+                New Ceremony
+            </button>
         </div>
     </>
     );
