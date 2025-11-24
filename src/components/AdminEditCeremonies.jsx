@@ -5,11 +5,12 @@ import AdminNavbar from "@/pages/AdminNavbar.jsx";
 import "./AdminEditCeremonies.css";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144"
 
 export default function CeremonyEditor() {
     const [ceremonies, setCeremonies] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [form, setForm] = useState({ name: "", dueDate: "", visible: ""});
+    const [form, setForm] = useState({ name: "", dueDate: "", visible: false});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -56,7 +57,7 @@ export default function CeremonyEditor() {
             setCeremonies(ceremonies.filter(d => d.id !== editingId));
         }
         setEditingId(null);
-        setForm({ name: "", dueDate: "", visible: ""});
+        setForm({ name: "", dueDate: "", visible: false});
     };
 
     // Save update
@@ -68,13 +69,13 @@ export default function CeremonyEditor() {
             if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
                 res = await axios.post(`${API_URL}/admin/ceremonies`, form);
             } else {
-                res = await axios.put(`${API_URL}/ceremonies/${editingId}`, form);
+                res = await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, form);
             }
             setCeremonies(
                 ceremonies.map((c) => (c.id === editingId ? res.data : c))
             );
             setEditingId(null);
-            setForm({ name: "", dueDate: "", visible: ""});
+            setForm({ name: "", dueDate: "", visible: false});
         } catch (err) {
             setError("Update failed: " + err.message);
         } finally {
@@ -84,10 +85,10 @@ export default function CeremonyEditor() {
 
     const addCeremony = () => {
         const tempId = "temp-" + crypto.randomUUID();
-        setCeremonies([...ceremonies, { id: tempId, name: "", dueDate: "", visible: "" }]);
+        setCeremonies([...ceremonies, { id: tempId, name: "", dueDate: "", visible: false }]);
         setEditingId(tempId);
         setForm({
-            name: "", dueDate: "", visible: ""
+            name: "", dueDate: "", visible: false
         });
     };
 
