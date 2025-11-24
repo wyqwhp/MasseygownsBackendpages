@@ -104,7 +104,7 @@ export default function CeremonyEditor() {
                 <tr className="bg-gray-200 text-left">
                     <th className="p-2 border">Name</th>
                     <th className="p-2 border">Due date</th>
-                    <th className="p-2 border text-center">Visible</th>
+                    <th className="p-2 border text-center">Active</th>
                     <th className="p-2 border">Actions</th>
                 </tr>
                 </thead>
