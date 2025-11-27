@@ -83,18 +83,70 @@ export default function ItemsEditor() {
 
       console.log("Sending to server:", form); // Check what you're sending
       // console.log("Form.pictureBase64=", form.pictureBase64);
-      const res = await axios.put(`${API_URL}/admin/items/${editingId}`, form);
+      let res;
+      const isNew = editingId && typeof editingId === 'string' && editingId.startsWith("temp-");
+      if (isNew) {
+        res = await axios.post(`${API_URL}/admin/items`, form);
+      } else {
+        res = await axios.put(`${API_URL}/admin/items/${editingId}`, form);
+      }
       console.log("Server response:", res.data); // Check what comes back
-      console.log("pictureBase64 in response:", res.data.pictureBase64); // Specifically check the image
+      // console.log("pictureBase64 in response:", res.data.pictureBase64); // Specifically check the image
+      console.log("EditingId=", editingId);
 
-      setItems(items.map((c) => (c.id === editingId ? res.data : c)));
-      handleCancel();
+      setItems(prev => {
+        if (isNew) {
+          // ADD NEW ITEM
+          return [
+            ...prev.filter(c => c.id !== editingId),  // remove temp item
+            res.data                                   // add real item
+          ];
+        } else {
+          // UPDATE EXISTING ITEM
+          return prev.map(c => (c.id === editingId ? res.data : c));
+        }
+      });
+
+      // console.log(items);
+
+      setEditingId(null);
+      setForm({ name: "",
+        category: "",
+        description: "",
+        hirePrice: 0,
+        buyPrice: 0,
+        isHiring: false,
+        pictureBase64: null,
+      });
     } catch (err) {
-      console.error("Save error:", err);
-      setError("Update failed: " + err.message);
+        console.error("Save error:", err);
+        setError("Update failed: " + err.message);
     } finally {
-      setLoading(false);
+       setLoading(false);
     }
+  };
+
+  const addItem = () => {
+    const tempId = "temp-" + crypto.randomUUID();
+    setItems([...items, { id: tempId,
+      name: "",
+      category: "",
+      description: "",
+      hirePrice: 0,
+      buyPrice: 0,
+      isHiring: false,
+      pictureBase64: null,
+    }]);
+    setEditingId(tempId);
+    setForm({
+      name: "",
+      category: "",
+      description: "",
+      hirePrice: 0,
+      buyPrice: 0,
+      isHiring: false,
+      pictureBase64: null,
+    });
   };
 
   if (loading) return <FullscreenSpinner />;
@@ -255,6 +307,12 @@ export default function ItemsEditor() {
             ))}
           </tbody>
         </table>
+        <button
+            onClick={() => addItem()}
+            className="!bg-green-700 text-white px-3 py-2 rounded hover:!bg-green-800 button_new"
+        >
+          New Item
+        </button>
       </div>
     </>
   );
