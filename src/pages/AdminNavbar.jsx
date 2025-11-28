@@ -90,6 +90,9 @@ function AdminNavbar() {
               <li className="dropdown-item">
                 <Link to="/HomepageEdit">HOMEPAGE</Link>
               </li>
+              <li className="dropdown-item">
+                <Link to="/adminusers">USERS</Link>
+              </li>
               {/*<li className="dropdown-item">*/}
               {/*    <Link to="/admintest">*/}
               {/*        TEST*/}

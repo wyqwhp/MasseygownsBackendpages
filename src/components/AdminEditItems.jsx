@@ -81,8 +81,6 @@ export default function ItemsEditor() {
     try {
       setLoading(true);
 
-      console.log("Sending to server:", form); // Check what you're sending
-      // console.log("Form.pictureBase64=", form.pictureBase64);
       let res;
       const isNew = editingId && typeof editingId === 'string' && editingId.startsWith("temp-");
       if (isNew) {
@@ -90,24 +88,17 @@ export default function ItemsEditor() {
       } else {
         res = await axios.put(`${API_URL}/admin/items/${editingId}`, form);
       }
-      console.log("Server response:", res.data); // Check what comes back
-      // console.log("pictureBase64 in response:", res.data.pictureBase64); // Specifically check the image
-      console.log("EditingId=", editingId);
 
       setItems(prev => {
         if (isNew) {
-          // ADD NEW ITEM
           return [
             ...prev.filter(c => c.id !== editingId),  // remove temp item
             res.data                                   // add real item
           ];
         } else {
-          // UPDATE EXISTING ITEM
           return prev.map(c => (c.id === editingId ? res.data : c));
         }
       });
-
-      // console.log(items);
 
       setEditingId(null);
       setForm({ name: "",
