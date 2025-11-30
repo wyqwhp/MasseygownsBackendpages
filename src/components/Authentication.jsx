@@ -13,6 +13,9 @@ function Authentication({ children }) {
     const { isAuthenticated, login } = useAuth();
 
     useEffect(() => {
+        setUsername(null);
+        setPassword(null);
+        setError(null);
         if (!isAuthenticated) {
             navigate("/login");
         }
@@ -20,12 +23,14 @@ function Authentication({ children }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log(username, password);
         try {
             const res = await axios.post(`${API_URL}/api/auth/check-password`, {
                 username,
                 password,
             });
+            if (res.status !== 200 || !res.data.valid) {
+                throw Error("Wrong username or password");
+            }
             login(res.data.token); // ✅ Update context and redirect
             // eslint-disable-next-line no-unused-vars
         } catch (err) {
@@ -65,9 +70,6 @@ function Authentication({ children }) {
             </form>
         );
     }
-
-    // console.log(isAuthenticated);
-    // ✅ If logged in, show the protected page
     return children;
 }
 
