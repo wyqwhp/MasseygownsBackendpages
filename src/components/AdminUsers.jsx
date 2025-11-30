@@ -277,17 +277,15 @@ export default function UserManagement() {
                                     key={user.id}
                                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
                                 >
-                                    <div className="flex gap-25">
+                                    <div className="grid grid-cols-[80px_200px_40px_100px] gap-4 py-1 items-center">
                                         <p className="font-medium text-gray-900">{user.name}</p>
                                         <p className="font-small text-gray-500">{user.email}</p>
-                                        <div className="flex items-center space-x-8">
-                                            <Label htmlFor="active">Active</Label>
-                                            <Switch checked={user.active} onCheckedChange={(checked) => toggleUserActive(user.id, checked)}
-                                              className="
-                                              data-[state=checked]:bg-green-700
-                                              data-[state=unchecked]:bg-gray-400
-                                            "/>
-                                        </div>
+                                        <Label htmlFor="active">Active</Label>
+                                        <Switch checked={user.active} onCheckedChange={(checked) => toggleUserActive(user.id, checked)}
+                                          className="
+                                          data-[state=checked]:bg-green-700
+                                          data-[state=unchecked]:bg-gray-400
+                                        "/>
                                     </div>
                                     <div className="flex gap-4">
                                         <Button
