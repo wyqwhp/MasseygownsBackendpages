@@ -284,8 +284,9 @@ export default function UserManagement() {
                                         <Switch checked={user.active} onCheckedChange={(checked) => toggleUserActive(user.id, checked)}
                                           className="
                                           data-[state=checked]:bg-green-700
-                                          data-[state=unchecked]:bg-gray-400
-                                        "/>
+                                          data-[state=unchecked]:bg-gray-400"
+                                          disabled={user.name === 'user'}
+                                        />
                                     </div>
                                     <div className="flex gap-4">
                                         <Button
@@ -301,6 +302,7 @@ export default function UserManagement() {
                                             variant="destructive"
                                             size="sm"
                                             onClick={() => openDeleteDialog(user.id)}
+                                            disabled={user.name === 'user'}
                                             className="flex items-center gap-2 hover:bg-red-700"
                                         >
                                             <Trash2 className="w-4 h-4" />

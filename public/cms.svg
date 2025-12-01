@@ -1,0 +1,16 @@
+<!-- cms-wordmark-icon.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120" role="img" aria-label="CMS logo">
+    <!-- icon -->
+    <rect x="8" y="8" width="96" height="96" rx="14" fill="#16A34A"/>
+    <g transform="translate(22,24)" fill="#022c3a">
+        <rect x="6" y="6" width="64" height="12" rx="3"/>
+        <rect x="6" y="28" width="44" height="10" rx="3"/>
+        <rect x="6" y="48" width="52" height="10" rx="3"/>
+    </g>
+
+    <!-- wordmark -->
+    <g transform="translate(124,76)" fill="#022c3a" font-family="Inter, Roboto, Arial, sans-serif" font-weight="700">
+        <text x="0" y="-8" font-size="36">CMS</text>
+        <text x="0" y="28" font-size="14" fill="#475569" font-weight="500">Content Management System</text>
+    </g>
+</svg>

@@ -12,6 +12,7 @@ import BuyRegalia from "./pages/BuyRegalia";
 import HireRegalia from "./pages/HireRegalia";
 import UpdatePic from "@/components/UpdatePic.jsx";
 import HomepageEdit from "./components/HomepageEdit.jsx";
+import HomePage from "@/pages/HomePage.jsx";
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
         path="/"
         element={
           <Authentication>
-            <AdminNavbar />
+            <HomePage />
           </Authentication>
         }
       />

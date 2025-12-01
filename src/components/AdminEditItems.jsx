@@ -64,6 +64,9 @@ export default function ItemsEditor() {
 
   // Cancel editing
   const handleCancel = () => {
+    if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+      setItems(items.filter(d => d.id !== editingId));
+    }
     setEditingId(null);
     setForm({
       name: "",
