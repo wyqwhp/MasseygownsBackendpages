@@ -4,7 +4,7 @@ import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import UpdatePic from "@/components/UpdatePic.jsx";
 import { PlaceholderImage } from "@/components/UpdatePic.jsx";
 import AdminNavbar from "@/pages/AdminNavbar.jsx";
-import "./AdminEditITems.css";
+import "./AdminEditItems.css";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -64,6 +64,9 @@ export default function ItemsEditor() {
 
   // Cancel editing
   const handleCancel = () => {
+    if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+      setItems(items.filter(d => d.id !== editingId));
+    }
     setEditingId(null);
     setForm({
       name: "",
@@ -81,20 +84,63 @@ export default function ItemsEditor() {
     try {
       setLoading(true);
 
-      console.log("Sending to server:", form); // Check what you're sending
-      // console.log("Form.pictureBase64=", form.pictureBase64);
-      const res = await axios.put(`${API_URL}/admin/items/${editingId}`, form);
-      console.log("Server response:", res.data); // Check what comes back
-      console.log("pictureBase64 in response:", res.data.pictureBase64); // Specifically check the image
+      let res;
+      const isNew = editingId && typeof editingId === 'string' && editingId.startsWith("temp-");
+      if (isNew) {
+        res = await axios.post(`${API_URL}/admin/items`, form);
+      } else {
+        res = await axios.put(`${API_URL}/admin/items/${editingId}`, form);
+      }
 
-      setItems(items.map((c) => (c.id === editingId ? res.data : c)));
-      handleCancel();
+      setItems(prev => {
+        if (isNew) {
+          return [
+            ...prev.filter(c => c.id !== editingId),  // remove temp item
+            res.data                                   // add real item
+          ];
+        } else {
+          return prev.map(c => (c.id === editingId ? res.data : c));
+        }
+      });
+
+      setEditingId(null);
+      setForm({ name: "",
+        category: "",
+        description: "",
+        hirePrice: 0,
+        buyPrice: 0,
+        isHiring: false,
+        pictureBase64: null,
+      });
     } catch (err) {
-      console.error("Save error:", err);
-      setError("Update failed: " + err.message);
+        console.error("Save error:", err);
+        setError("Update failed: " + err.message);
     } finally {
-      setLoading(false);
+       setLoading(false);
     }
+  };
+
+  const addItem = () => {
+    const tempId = "temp-" + crypto.randomUUID();
+    setItems([...items, { id: tempId,
+      name: "",
+      category: "",
+      description: "",
+      hirePrice: 0,
+      buyPrice: 0,
+      isHiring: false,
+      pictureBase64: null,
+    }]);
+    setEditingId(tempId);
+    setForm({
+      name: "",
+      category: "",
+      description: "",
+      hirePrice: 0,
+      buyPrice: 0,
+      isHiring: false,
+      pictureBase64: null,
+    });
   };
 
   if (loading) return <FullscreenSpinner />;
@@ -255,6 +301,12 @@ export default function ItemsEditor() {
             ))}
           </tbody>
         </table>
+        <button
+            onClick={() => addItem()}
+            className="!bg-green-700 text-white px-3 py-2 rounded hover:!bg-green-800 button_new"
+        >
+          New Item
+        </button>
       </div>
     </>
   );

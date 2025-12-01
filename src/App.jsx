@@ -7,10 +7,12 @@ import AdminEditCeremonies from "./components/AdminEditCeremonies.jsx";
 import AdminExtractOrders from "./components/AdminExtractOrders.jsx";
 import AdminEditDegrees from "./components/AdminEditDegrees.jsx";
 import AdminEditItems from "./components/AdminEditItems.jsx";
+import AdminUsers from "./components/AdminUsers.jsx";
 import BuyRegalia from "./pages/BuyRegalia";
 import HireRegalia from "./pages/HireRegalia";
 import UpdatePic from "@/components/UpdatePic.jsx";
 import HomepageEdit from "./components/HomepageEdit.jsx";
+import HomePage from "@/pages/HomePage.jsx";
 
 function App() {
   return (
@@ -20,7 +22,7 @@ function App() {
         path="/"
         element={
           <Authentication>
-            <AdminNavbar />
+            <HomePage />
           </Authentication>
         }
       />
@@ -93,6 +95,14 @@ function App() {
         element={
           <Authentication>
             <HomepageEdit />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/adminusers"
+        element={
+          <Authentication>
+            <AdminUsers />
           </Authentication>
         }
       />

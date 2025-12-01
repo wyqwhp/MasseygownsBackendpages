@@ -1,0 +1,8 @@
+.top_container {
+    display: flex;
+}
+
+.cms-logo {
+    justify-content: center;
+    align-items: center;
+}

@@ -5,11 +5,12 @@ import AdminNavbar from "@/pages/AdminNavbar.jsx";
 import "./AdminEditCeremonies.css";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144"
 
 export default function CeremonyEditor() {
     const [ceremonies, setCeremonies] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [form, setForm] = useState({ name: "", dueDate: "", visible: ""});
+    const [form, setForm] = useState({ name: "", dueDate: "", visible: false});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -52,22 +53,43 @@ export default function CeremonyEditor() {
 
     // Cancel editing
     const handleCancel = () => {
+        if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+            setCeremonies(ceremonies.filter(d => d.id !== editingId));
+        }
         setEditingId(null);
-        setForm({ name: "", dueDate: "", visible: ""});
+        setForm({ name: "", dueDate: "", visible: false});
     };
 
     // Save update
     const handleSave = async () => {
+        setLoading(true);
         try {
+            let res;
             console.log(form)
-            const res = await axios.put(`${API_URL}/ceremonies/${editingId}`, form);
+            if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+                res = await axios.post(`${API_URL}/admin/ceremonies`, form);
+            } else {
+                res = await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, form);
+            }
             setCeremonies(
                 ceremonies.map((c) => (c.id === editingId ? res.data : c))
             );
-            handleCancel();
+            setEditingId(null);
+            setForm({ name: "", dueDate: "", visible: false});
         } catch (err) {
             setError("Update failed: " + err.message);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const addCeremony = () => {
+        const tempId = "temp-" + crypto.randomUUID();
+        setCeremonies([...ceremonies, { id: tempId, name: "", dueDate: "", visible: false }]);
+        setEditingId(tempId);
+        setForm({
+            name: "", dueDate: "", visible: false
+        });
     };
 
     if (loading) return <FullscreenSpinner />;
@@ -83,7 +105,7 @@ export default function CeremonyEditor() {
                 <tr className="bg-gray-200 text-left">
                     <th className="p-2 border">Name</th>
                     <th className="p-2 border">Due date</th>
-                    <th className="p-2 border text-center">Visible</th>
+                    <th className="p-2 border text-center">Active</th>
                     <th className="p-2 border">Actions</th>
                 </tr>
                 </thead>
@@ -160,6 +182,12 @@ export default function CeremonyEditor() {
                 ))}
                 </tbody>
             </table>
+            <button
+                onClick={() => addCeremony()}
+                className="!bg-green-700 text-white px-3 py-2 rounded hover:!bg-green-800 button_new"
+            >
+                New Ceremony
+            </button>
         </div>
     </>
     );
