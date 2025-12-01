@@ -3,6 +3,7 @@ import "./HomepageEdit.css";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 const PAGE_SIZE = 15;
+//console.log(API_BASE);
 
 function getPages(items) {
   return Array.from(new Set(items.map((i) => i.page)));
