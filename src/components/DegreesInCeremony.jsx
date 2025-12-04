@@ -4,8 +4,8 @@ import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import "./AdminEditDegrees.css";
 import {Switch} from "@/components/ui/switch.jsx";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
+const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
 const ORIGIN_DEGREES = 2;
 
 export default function DegreesEditor({ceremonyId, onDegreesUpdated}) {
