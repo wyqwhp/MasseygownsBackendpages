@@ -79,19 +79,19 @@ function AdminNavbar() {
             <a>EDIT CONTENT</a>
             <ul className="dropdown-panel">
               <li className="dropdown-item">
-                <Link to="/admineditceremonies">CEREMONIES</Link>
+                <Link to="/admineditceremonies">Ceremonies</Link>
               </li>
               <li className="dropdown-item">
-                <Link to="/admineditdegrees">DEGREES</Link>
+                <Link to="/admineditdegrees">Degrees</Link>
               </li>
               <li className="dropdown-item">
-                <Link to="/adminedititems">ITEMS</Link>
+                <Link to="/adminedititems">Items</Link>
               </li>
               <li className="dropdown-item">
                 <Link to="/HomepageEdit">Text & Image</Link>
               </li>
               <li className="dropdown-item">
-                <Link to="/adminusers">USERS</Link>
+                <Link to="/adminusers">Users</Link>
               </li>
               {/*<li className="dropdown-item">*/}
               {/*    <Link to="/admintest">*/}
