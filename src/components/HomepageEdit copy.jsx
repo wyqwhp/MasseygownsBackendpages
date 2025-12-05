@@ -159,30 +159,27 @@ export default function HomepageEdit() {
 
   // Save text block via CMS API
   async function handleSaveText() {
-    if (!selectedItem || !["text", "list"].includes(selectedItem.type)) return;
+    if (!selectedItem || selectedItem.type !== "text") return;
 
     setIsSaving(true);
     setStatusMessage("");
     setStatusError("");
 
     try {
-      const res = await fetch(
-        `${API_BASE}/api/CmsContent/save-${selectedItem.type}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            key: selectedItem.key,
-            [selectedItem.type === "list" ? "list" : "text"]: editText,
-          }),
-        }
-      );
+      const res = await fetch(`${API_BASE}/api/CmsContent/save-text`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          key: selectedItem.key,
+          text: editText,
+        }),
+      });
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Failed to save (${res.status}): ${text}`);
+        throw new Error(`Failed to save text (${res.status}): ${text}`);
       }
 
       const json = await res.json();
@@ -210,9 +207,11 @@ export default function HomepageEdit() {
           : prev
       );
 
-      setStatusMessage(json.message || "Updated successfully.");
+      setStatusMessage(json.message || "Text updated successfully.");
     } catch (err) {
-      setStatusError(err instanceof Error ? err.message : "Failed to save.");
+      setStatusError(
+        err instanceof Error ? err.message : "Failed to save text."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -367,12 +366,10 @@ export default function HomepageEdit() {
   function renderDetailBody() {
     if (!selectedItem) return null;
 
-    if (["text", "list"].includes(selectedItem.type)) {
+    if (selectedItem.type === "text") {
       return (
         <div className="acm-detail-body">
-          <label className="acm-detail-label">
-            Current / new {selectedItem.type}
-          </label>
+          <label className="acm-detail-label">Current / new text</label>
           <textarea
             className="acm-textarea"
             rows={6}
