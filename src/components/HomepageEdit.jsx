@@ -19,21 +19,15 @@ export default function HomepageEdit() {
   const [search, setSearch] = useState("");
   const [pageFilter, setPageFilter] = useState("All");
   const [sectionFilter, setSectionFilter] = useState("All");
-
   const [selectedItem, setSelectedItem] = useState(null);
-
   const [editText, setEditText] = useState("");
   const [editFile, setEditFile] = useState(null);
-
   const [editLinkName, setEditLinkName] = useState("");
   const [editLinkUrl, setEditLinkUrl] = useState("");
-
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [statusError, setStatusError] = useState("");
-
   const [imageError, setImageError] = useState(false);
-
   const [currentPage, setCurrentPage] = useState(1);
 
   // Load CMS blocks from the API on mount
@@ -129,7 +123,7 @@ export default function HomepageEdit() {
       }
       setEditText("");
     } else {
-      // image
+      // image, file
       setEditText("");
       setEditLinkName("");
       setEditLinkUrl("");
@@ -363,6 +357,84 @@ export default function HomepageEdit() {
     }
   }
 
+  // Upload file (Excel / CSV) via CMS API (/api/CmsContent/upload-file)
+  async function handleUploadFile() {
+    if (!selectedItem || selectedItem.type !== "file" || !editFile) return;
+
+    setIsSaving(true);
+    setStatusMessage("");
+    setStatusError("");
+
+    try {
+      const fileName = (editFile.name || "").toLowerCase();
+      const allowedExtensions = [".csv", ".xls", ".xlsx"];
+      const isAllowed = allowedExtensions.some((ext) => fileName.endsWith(ext));
+      if (!isAllowed) {
+        throw new Error(
+          "Only CSV or Excel files (.csv, .xls, .xlsx) are allowed."
+        );
+      }
+
+      const maxSize = 20 * 1024 * 1024;
+      if (editFile.size > maxSize) {
+        throw new Error("File is too large. Maximum size is 20MB.");
+      }
+
+      const formData = new FormData();
+      formData.append("Key", selectedItem.key);
+      formData.append("File", editFile);
+
+      const response = await fetch(`${API_BASE}/api/CmsContent/upload-file`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Upload failed (${response.status}): ${text}`);
+      }
+
+      const json = await response.json();
+      const data = json.data || {};
+      const newUrl = data.url || (data.block && data.block.value) || "";
+
+      if (!newUrl) {
+        throw new Error(
+          "Upload succeeded but response did not contain the file URL."
+        );
+      }
+
+      const updatedAt =
+        (data.block &&
+          data.block.updatedAt &&
+          data.block.updatedAt.slice(0, 10)) ||
+        new Date().toISOString().slice(0, 10);
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === selectedItem.id
+            ? { ...item, value: newUrl, updatedAt }
+            : item
+        )
+      );
+
+      setSelectedItem((prev) =>
+        prev && prev.id === selectedItem.id
+          ? { ...prev, value: newUrl, updatedAt }
+          : prev
+      );
+
+      setStatusMessage(json.message || "File uploaded successfully.");
+      setEditFile(null);
+    } catch (err) {
+      setStatusError(
+        err instanceof Error ? err.message : "Failed to upload file."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   // Render by type
   function renderDetailBody() {
     if (!selectedItem) return null;
@@ -442,6 +514,82 @@ export default function HomepageEdit() {
               disabled={isSaving}
             >
               {isSaving ? "Saving..." : "Save link"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedItem.type === "file") {
+      const currentUrl = selectedItem.value || "";
+      const hasUrl =
+        currentUrl.startsWith("http://") || currentUrl.startsWith("https://");
+      const currentFileName = hasUrl
+        ? currentUrl.split("/").pop()
+        : "No file uploaded";
+      const fileInputId = `acm-file-input-${selectedItem.id}`;
+
+      return (
+        <div className="acm-detail-body">
+          <label className="acm-detail-label">Current file</label>
+          {hasUrl ? (
+            <a
+              href={currentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="acm-link"
+            >
+              {currentFileName}
+            </a>
+          ) : (
+            <div className="acm-file-placeholder">No file uploaded yet.</div>
+          )}
+
+          <label className="acm-detail-label">Upload new file</label>
+          <div className="acm-file-row">
+            <input
+              id={fileInputId}
+              type="file"
+              accept=".csv,.xls,.xlsx"
+              className="acm-hidden-file-input"
+              onChange={(e) => {
+                const file =
+                  e.target.files && e.target.files[0]
+                    ? e.target.files[0]
+                    : null;
+                setEditFile(file);
+                setStatusMessage("");
+                setStatusError("");
+              }}
+            />
+            <label htmlFor={fileInputId} className="acm-file-button">
+              Choose file
+            </label>
+            <span className="acm-file-name">
+              {editFile ? editFile.name : "No file chosen"}
+            </span>
+          </div>
+
+          <p className="acm-detail-help">
+            Allowed formats: CSV, XLS, XLSX. Max size: 20MB.
+          </p>
+
+          <div className="acm-detail-actions">
+            <button
+              type="button"
+              className="acm-button secondary"
+              onClick={handleCloseModal}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="acm-button primary"
+              disabled={isSaving || !editFile}
+              onClick={handleUploadFile}
+            >
+              {isSaving ? "Uploading..." : "Upload & replace"}
             </button>
           </div>
         </div>
