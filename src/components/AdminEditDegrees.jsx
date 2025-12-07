@@ -3,16 +3,22 @@ import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import AdminNavbar from "@/pages/AdminNavbar.jsx";
 import "./AdminEditDegrees.css";
+import ItemsInDegrees from "@/components/ItemsInDegrees.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
 
 export default function DegreesEditor() {
     const [degrees, setDegrees] = useState([]);
+    const [items, setItems] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState({ name: ""});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const handleItemsUpdated = (updatedItems) => {
+        setItems(updatedItems);
+    };
 
     // Fetch ceremonies on mount
     useEffect(() => {
@@ -30,8 +36,6 @@ export default function DegreesEditor() {
 
     // Handle field change
     const handleChange = (e) => {
-        // console.log(e.target.name);
-        // console.log(e.target.value);
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
@@ -56,13 +60,15 @@ export default function DegreesEditor() {
     // Save update
     const handleSave = async () => {
         setLoading(true);
-
         try {
             let res;
             if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
                 res = await axios.post(`${API_URL}/admin/degrees`, form);
+                await axios.post(`${API_URL}/admin/degrees/${res.data.id}/items`, items);
             } else {
                 res = await axios.put(`${API_URL}/admin/degrees/${editingId}`, form);
+                console.log("Items=", items);
+                await axios.post(`${API_URL}/admin/degrees/${editingId}/items`, items);
             }
             setDegrees(prev =>
                 prev.map((c) => c.id === editingId ? res.data : c));
@@ -96,13 +102,12 @@ export default function DegreesEditor() {
                 <thead>
                 <tr className="bg-gray-200 text-left">
                     <th className="p-2 border">Name</th>
-                    {/*<th className="p-2 border">Due date</th>*/}
-                    {/*<th className="p-2 border">Location</th>*/}
                     <th className="p-2 border">Actions</th>
                 </tr>
                 </thead>
                 <tbody>
                 {degrees.map((degree) => (
+                    <>
                     <tr key={degree.id} className="border">
                         {editingId === degree.id ? (
                             <>
@@ -115,15 +120,6 @@ export default function DegreesEditor() {
                                         className="border rounded p-1 w-full"
                                     />
                                 </td>
-                                {/*<td className="p-2 border">*/}
-                                {/*    <input*/}
-                                {/*        type="date"*/}
-                                {/*        name="dueDate"*/}
-                                {/*        value={form.dueDate}*/}
-                                {/*        onChange={handleChange}*/}
-                                {/*        className="border rounded p-1 w-full"*/}
-                                {/*    />*/}
-                                {/*</td>*/}
                                 <td className="p-2 border">
                                     <button
                                         onClick={handleSave}
@@ -153,6 +149,18 @@ export default function DegreesEditor() {
                             </>
                         )}
                     </tr>
+                        {editingId === degree.id && (
+                            <tr className="bg-gray-50">
+                                <td colSpan={5}>
+                                    <div className="flex justify-center items-center">
+                                        <ItemsInDegrees degreeId={degree.id}
+                                        onItemsUpdated={handleItemsUpdated}
+                                        />
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </>
                 ))}
                 </tbody>
             </table>

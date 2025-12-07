@@ -1,0 +1,8 @@
+input:invalid,
+input:valid,
+input:invalid:focus,
+input:valid:focus {
+    background-color: white !important;
+    box-shadow: none !important;
+    outline: none !important;
+}

@@ -2,7 +2,6 @@ import Queries from "./components/AdminQueries.jsx";
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Authentication from "@/components/Authentication.jsx";
-import AdminNavbar from "@/pages/AdminNavbar.jsx";
 import AdminEditCeremonies from "./components/AdminEditCeremonies.jsx";
 import AdminExtractOrders from "./components/AdminExtractOrders.jsx";
 import AdminEditDegrees from "./components/AdminEditDegrees.jsx";
@@ -13,6 +12,7 @@ import HireRegalia from "./pages/HireRegalia";
 import UpdatePic from "@/components/UpdatePic.jsx";
 import HomepageEdit from "./components/HomepageEdit.jsx";
 import HomePage from "@/pages/HomePage.jsx";
+import AdminIndOrder from "@/components/AdminIndOrder.jsx";
 
 function App() {
   return (
@@ -106,6 +106,14 @@ function App() {
           </Authentication>
         }
       />
+        <Route
+            path="/IndOrder"
+            element={
+                <Authentication>
+                    <AdminIndOrder />
+                </Authentication>
+            }
+        />
     </Routes>
   );
 }

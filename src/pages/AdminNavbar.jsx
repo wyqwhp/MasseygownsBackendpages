@@ -110,8 +110,11 @@ function AdminNavbar() {
             <Link to="/HireRegalia">SHOW HIRE ORDERS</Link>
           </li>
           <li className="has-dropdown">
-            <a>PRINT</a>
+            <a>DATABASE</a>
             <ul className="dropdown-panel">
+              <Link to="/IndOrder">
+                Individual Orders
+              </Link>
               {loading && <FullscreenSpinner />}
               <a onClick={printLabels} style={{ cursor: "pointer" }}>
                 PRINT LABELS
