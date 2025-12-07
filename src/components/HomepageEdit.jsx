@@ -3,7 +3,6 @@ import "./HomepageEdit.css";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 const PAGE_SIZE = 15;
-//console.log(API_BASE);
 
 function getPages(items) {
   return Array.from(new Set(items.map((i) => i.page)));
@@ -15,26 +14,37 @@ function getSectionsForPage(items, page) {
   );
 }
 
+// Hide internal rows like *.tableData – editors don’t need to see these
+const isHiddenTechnicalItem = (item) => {
+  return (
+    typeof item.key === "string" &&
+    item.key.toLowerCase().endsWith(".tabledata")
+  );
+};
+
+// Turn "Ordering and Payment.7" into "Ordering and Payment"
+const cleanSectionName = (section) =>
+  String(section || "")
+    .replace(/\.\d+$/, "")
+    .trim();
+
 export default function HomepageEdit() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [pageFilter, setPageFilter] = useState("All");
   const [sectionFilter, setSectionFilter] = useState("All");
-
   const [selectedItem, setSelectedItem] = useState(null);
-
   const [editText, setEditText] = useState("");
   const [editFile, setEditFile] = useState(null);
-
+  const [editLinkName, setEditLinkName] = useState("");
+  const [editLinkUrl, setEditLinkUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [statusError, setStatusError] = useState("");
-
   const [imageError, setImageError] = useState(false);
-
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Load CMS blocks from the API on mount
+  // Initial load of CMS blocks
   useEffect(() => {
     async function loadBlocks() {
       try {
@@ -44,7 +54,13 @@ export default function HomepageEdit() {
           throw new Error(`Failed to load CMS blocks (${res.status}): ${text}`);
         }
         const json = await res.json();
-        setItems(json.data || []);
+
+        const rawItems = json.data || [];
+        const visibleItems = rawItems.filter(
+          (item) => !isHiddenTechnicalItem(item)
+        );
+
+        setItems(visibleItems);
       } catch (err) {
         console.error(err);
         setStatusError(
@@ -58,31 +74,53 @@ export default function HomepageEdit() {
 
   const pages = useMemo(() => getPages(items), [items]);
 
-  const sections = useMemo(
-    () => (pageFilter === "All" ? [] : getSectionsForPage(items, pageFilter)),
-    [items, pageFilter]
-  );
+  // Build section list for the dropdown: clean names and dedupe
+  const sections = useMemo(() => {
+    if (pageFilter === "All") return [];
+    const raw = getSectionsForPage(items, pageFilter);
+    const cleaned = raw.map(cleanSectionName);
+    return Array.from(new Set(cleaned));
+  }, [items, pageFilter]);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      if (pageFilter !== "All" && item.page !== pageFilter) return false;
-      if (
-        sectionFilter !== "All" &&
-        sectionFilter !== "" &&
-        item.section !== sectionFilter
-      )
-        return false;
+    return items
+      .filter((item) => !isHiddenTechnicalItem(item))
+      .filter((item) => {
+        if (pageFilter !== "All" && item.page !== pageFilter) return false;
 
-      if (!search.trim()) return true;
-      const s = search.toLowerCase();
-      return (
-        item.page.toLowerCase().includes(s) ||
-        item.section.toLowerCase().includes(s) ||
-        item.label.toLowerCase().includes(s) ||
-        item.key.toLowerCase().includes(s)
-      );
-    });
+        if (
+          sectionFilter !== "All" &&
+          sectionFilter !== "" &&
+          cleanSectionName(item.section) !== sectionFilter
+        ) {
+          return false;
+        }
+
+        if (!search.trim()) return true;
+        const s = search.toLowerCase();
+        return (
+          item.page.toLowerCase().includes(s) ||
+          item.section.toLowerCase().includes(s) ||
+          item.label.toLowerCase().includes(s) ||
+          item.key.toLowerCase().includes(s)
+        );
+      });
   }, [items, search, pageFilter, sectionFilter]);
+
+  const formatSectionLabel = (section) => cleanSectionName(section);
+
+  // If label is empty, fall back to the last piece of the key
+  const getDisplayLabel = (item) => {
+    const rawLabel = (item?.label || "").trim();
+    if (rawLabel) return rawLabel;
+
+    const key = String(item?.key || "");
+    if (!key) return "(no label)";
+
+    const parts = key.split(".");
+    const last = parts[parts.length - 1];
+    return last || key;
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -109,8 +147,29 @@ export default function HomepageEdit() {
     setStatusMessage("");
     setStatusError("");
     setEditFile(null);
-    setEditText(item.type === "text" ? item.value || "" : "");
     setImageError(false);
+
+    if (item.type === "text" || item.type === "list") {
+      setEditText(item.value || "");
+      setEditLinkName("");
+      setEditLinkUrl("");
+    } else if (item.type === "link") {
+      try {
+        const parsed = JSON.parse(item.value || "{}");
+        setEditLinkName(parsed.name || "");
+        setEditLinkUrl(parsed.url || "");
+      } catch {
+        const [name, url] = (item.value || "").split("|");
+        setEditLinkName(name || "");
+        setEditLinkUrl(url || "");
+      }
+      setEditText("");
+    } else {
+      // image / file
+      setEditText("");
+      setEditLinkName("");
+      setEditLinkUrl("");
+    }
   }
 
   function handleCloseModal() {
@@ -119,6 +178,8 @@ export default function HomepageEdit() {
     setStatusError("");
     setEditFile(null);
     setEditText("");
+    setEditLinkName("");
+    setEditLinkUrl("");
     setIsSaving(false);
     setImageError(false);
   }
@@ -132,29 +193,32 @@ export default function HomepageEdit() {
     setStatusError("");
   }
 
-  // Save text block via CMS API
+  // Save text / list blocks
   async function handleSaveText() {
-    if (!selectedItem || selectedItem.type !== "text") return;
+    if (!selectedItem || !["text", "list"].includes(selectedItem.type)) return;
 
     setIsSaving(true);
     setStatusMessage("");
     setStatusError("");
 
     try {
-      const res = await fetch(`${API_BASE}/api/CmsContent/save-text`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          key: selectedItem.key,
-          text: editText,
-        }),
-      });
+      const res = await fetch(
+        `${API_BASE}/api/CmsContent/save-${selectedItem.type}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            key: selectedItem.key,
+            [selectedItem.type === "list" ? "list" : "text"]: editText,
+          }),
+        }
+      );
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Failed to save text (${res.status}): ${text}`);
+        throw new Error(`Failed to save (${res.status}): ${text}`);
       }
 
       const json = await res.json();
@@ -182,17 +246,84 @@ export default function HomepageEdit() {
           : prev
       );
 
-      setStatusMessage(json.message || "Text updated successfully.");
+      setStatusMessage(json.message || "Updated successfully.");
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Failed to save.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  // Save link (name + URL)
+  async function handleSaveLink() {
+    if (!selectedItem || selectedItem.type !== "link") return;
+
+    const name = editLinkName.trim();
+    const url = editLinkUrl.trim();
+
+    if (!name || !url) {
+      setStatusError("Please enter both link name and URL.");
+      return;
+    }
+
+    setIsSaving(true);
+    setStatusMessage("");
+    setStatusError("");
+
+    try {
+      const res = await fetch(`${API_BASE}/api/CmsContent/save-link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          key: selectedItem.key,
+          name,
+          url,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed to save link (${res.status}): ${text}`);
+      }
+
+      const json = await res.json();
+      const updated = json.data;
+
+      const newValue =
+        (updated && typeof updated.value === "string" && updated.value) ||
+        JSON.stringify({ name, url });
+
+      const updatedAt =
+        (updated && updated.updatedAt && updated.updatedAt.slice(0, 10)) ||
+        new Date().toISOString().slice(0, 10);
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === selectedItem.id
+            ? { ...item, value: newValue, updatedAt }
+            : item
+        )
+      );
+
+      setSelectedItem((prev) =>
+        prev && prev.id === selectedItem.id
+          ? { ...prev, value: newValue, updatedAt }
+          : prev
+      );
+
+      setStatusMessage(json.message || "Link updated successfully.");
     } catch (err) {
       setStatusError(
-        err instanceof Error ? err.message : "Failed to save text."
+        err instanceof Error ? err.message : "Failed to save link."
       );
     } finally {
       setIsSaving(false);
     }
   }
 
-  // Upload image via CMS API (/api/CmsContent/upload-image)
+  // Image upload handler
   async function handleUploadImage() {
     if (!selectedItem || selectedItem.type !== "image" || !editFile) return;
 
@@ -266,6 +397,338 @@ export default function HomepageEdit() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  // File upload handler (CSV / Excel)
+  async function handleUploadFile() {
+    if (!selectedItem || selectedItem.type !== "file" || !editFile) return;
+
+    setIsSaving(true);
+    setStatusMessage("");
+    setStatusError("");
+
+    try {
+      const fileName = (editFile.name || "").toLowerCase();
+      const allowedExtensions = [".csv", ".xls", ".xlsx"];
+      const isAllowed = allowedExtensions.some((ext) => fileName.endsWith(ext));
+      if (!isAllowed) {
+        throw new Error(
+          "Only CSV or Excel files (.csv, .xls, .xlsx) are allowed."
+        );
+      }
+
+      const maxSize = 20 * 1024 * 1024;
+      if (editFile.size > maxSize) {
+        throw new Error("File is too large. Maximum size is 20MB.");
+      }
+
+      const formData = new FormData();
+      formData.append("Key", selectedItem.key);
+      formData.append("File", editFile);
+
+      const response = await fetch(`${API_BASE}/api/CmsContent/upload-file`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Upload failed (${response.status}): ${text}`);
+      }
+
+      const json = await response.json();
+      const data = json.data || {};
+      const newUrl = data.url || (data.block && data.block.value) || "";
+
+      if (!newUrl) {
+        throw new Error(
+          "Upload succeeded but response did not contain the file URL."
+        );
+      }
+
+      const updatedAt =
+        (data.block &&
+          data.block.updatedAt &&
+          data.block.updatedAt.slice(0, 10)) ||
+        new Date().toISOString().slice(0, 10);
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === selectedItem.id
+            ? { ...item, value: newUrl, updatedAt }
+            : item
+        )
+      );
+
+      setSelectedItem((prev) =>
+        prev && prev.id === selectedItem.id
+          ? { ...prev, value: newUrl, updatedAt }
+          : prev
+      );
+
+      setStatusMessage(json.message || "File uploaded successfully.");
+      setEditFile(null);
+    } catch (err) {
+      setStatusError(
+        err instanceof Error ? err.message : "Failed to upload file."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function renderDetailBody() {
+    if (!selectedItem) return null;
+
+    if (["text", "list"].includes(selectedItem.type)) {
+      return (
+        <div className="acm-detail-body">
+          <label className="acm-detail-label">
+            Current / new {selectedItem.type}
+          </label>
+          <textarea
+            className="acm-textarea"
+            rows={6}
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+          />
+          <div className="acm-detail-actions">
+            <button
+              type="button"
+              className="acm-button secondary"
+              onClick={handleCloseModal}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="acm-button primary"
+              onClick={handleSaveText}
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save changes"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedItem.type === "link") {
+      return (
+        <div className="acm-detail-body">
+          <label className="acm-detail-label">Link name</label>
+          <input
+            className="acm-input"
+            type="text"
+            value={editLinkName}
+            onChange={(e) => setEditLinkName(e.target.value)}
+          />
+
+          <label className="acm-detail-label">Link URL</label>
+          <input
+            className="acm-input"
+            type="text"
+            value={editLinkUrl}
+            onChange={(e) => setEditLinkUrl(e.target.value)}
+            placeholder="https://example.com/page"
+          />
+
+          <p className="acm-detail-help">
+            Please enter the display text and a full URL starting with http://
+            or https://.
+          </p>
+
+          <div className="acm-detail-actions">
+            <button
+              type="button"
+              className="acm-button secondary"
+              onClick={handleCloseModal}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="acm-button primary"
+              onClick={handleSaveLink}
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save link"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedItem.type === "file") {
+      const currentUrl = selectedItem.value || "";
+      const hasUrl =
+        currentUrl.startsWith("http://") || currentUrl.startsWith("https://");
+      const currentFileName = hasUrl
+        ? currentUrl.split("/").pop()
+        : "No file uploaded";
+      const fileInputId = `acm-file-input-${selectedItem.id}`;
+
+      return (
+        <div className="acm-detail-body">
+          <label className="acm-detail-label">Current file</label>
+          {hasUrl ? (
+            <a
+              href={currentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="acm-link"
+            >
+              {currentFileName}
+            </a>
+          ) : (
+            <div className="acm-file-placeholder">No file uploaded yet.</div>
+          )}
+
+          <label className="acm-detail-label">Upload new file</label>
+          <div className="acm-file-row">
+            <input
+              id={fileInputId}
+              type="file"
+              accept=".csv,.xls,.xlsx"
+              className="acm-hidden-file-input"
+              onChange={(e) => {
+                const file =
+                  e.target.files && e.target.files[0]
+                    ? e.target.files[0]
+                    : null;
+                setEditFile(file);
+                setStatusMessage("");
+                setStatusError("");
+              }}
+            />
+            <label htmlFor={fileInputId} className="acm-file-button">
+              Choose file
+            </label>
+            <span className="acm-file-name">
+              {editFile ? editFile.name : "No file chosen"}
+            </span>
+          </div>
+
+          <p className="acm-detail-help">
+            Allowed formats: CSV, XLS, XLSX. Max size: 20MB.
+          </p>
+
+          <div className="acm-detail-actions">
+            <button
+              type="button"
+              className="acm-button secondary"
+              onClick={handleCloseModal}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="acm-button primary"
+              disabled={isSaving || !editFile}
+              onClick={handleUploadFile}
+            >
+              {isSaving ? "Uploading..." : "Upload & replace"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Image block
+    return (
+      <div className="acm-detail-body">
+        <label className="acm-detail-label">Current image</label>
+        {(() => {
+          const currentUrl = selectedItem.value || "";
+          const hasHttpUrl =
+            currentUrl.startsWith("http://") ||
+            currentUrl.startsWith("https://");
+          const canShowImage = hasHttpUrl && !imageError;
+          const fileInputId = `acm-file-input-${selectedItem.id}`;
+
+          return (
+            <>
+              <div className="acm-image-preview">
+                {canShowImage ? (
+                  <img
+                    key={currentUrl}
+                    src={currentUrl}
+                    alt={selectedItem.label}
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="acm-image-placeholder">
+                    Image will appear here after it is uploaded.
+                  </div>
+                )}
+              </div>
+
+              {hasHttpUrl && (
+                <a
+                  href={currentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="acm-link"
+                >
+                  Open full image
+                </a>
+              )}
+
+              <label className="acm-detail-label">Upload new image</label>
+              <div className="acm-file-row">
+                <input
+                  id={fileInputId}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="acm-hidden-file-input"
+                  onChange={(e) => {
+                    const file =
+                      e.target.files && e.target.files[0]
+                        ? e.target.files[0]
+                        : null;
+                    setEditFile(file);
+                    setStatusMessage("");
+                    setStatusError("");
+                  }}
+                />
+                <label htmlFor={fileInputId} className="acm-file-button">
+                  Choose file
+                </label>
+                <span className="acm-file-name">
+                  {editFile ? editFile.name : "No file chosen"}
+                </span>
+              </div>
+
+              <p className="acm-detail-help">
+                Allowed formats: JPG, PNG, WEBP. Max size: 5MB.
+              </p>
+
+              <div className="acm-detail-actions">
+                <button
+                  type="button"
+                  className="acm-button secondary"
+                  onClick={handleCloseModal}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="acm-button primary"
+                  disabled={isSaving || !editFile}
+                  onClick={handleUploadImage}
+                >
+                  {isSaving ? "Uploading..." : "Upload & replace"}
+                </button>
+              </div>
+            </>
+          );
+        })()}
+      </div>
+    );
   }
 
   return (
@@ -342,10 +805,12 @@ export default function HomepageEdit() {
                   }
                 >
                   <td>{item.page}</td>
-                  <td>{item.section}</td>
+                  <td>{formatSectionLabel(item.section)}</td>
                   <td>
                     <div className="acm-cell-label">
-                      <div className="acm-cell-label-main">{item.label}</div>
+                      <div className="acm-cell-label-main">
+                        {getDisplayLabel(item)}
+                      </div>
                       <div className="acm-cell-label-key">
                         {item.type.toUpperCase()} · {item.key}
                       </div>
@@ -411,7 +876,7 @@ export default function HomepageEdit() {
           >
             <div className="acm-modal-header">
               <h2 className="acm-detail-title">
-                {selectedItem.page} · {selectedItem.section}
+                {selectedItem.page} · {formatSectionLabel(selectedItem.section)}
               </h2>
               <button
                 type="button"
@@ -423,8 +888,8 @@ export default function HomepageEdit() {
             </div>
 
             <p className="acm-detail-subtitle">
-              {selectedItem.label} ({selectedItem.type.toUpperCase()} ·{" "}
-              {selectedItem.key})
+              {getDisplayLabel(selectedItem)} ({selectedItem.type.toUpperCase()}{" "}
+              · {selectedItem.key})
             </p>
 
             {(statusMessage || statusError) && (
@@ -439,130 +904,7 @@ export default function HomepageEdit() {
               </div>
             )}
 
-            {selectedItem.type === "text" ? (
-              <div className="acm-detail-body">
-                <label className="acm-detail-label">Current / new text</label>
-                <textarea
-                  className="acm-textarea"
-                  rows={6}
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                />
-                <div className="acm-detail-actions">
-                  <button
-                    type="button"
-                    className="acm-button secondary"
-                    onClick={handleCloseModal}
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="acm-button primary"
-                    onClick={handleSaveText}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? "Saving..." : "Save changes"}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="acm-detail-body">
-                <label className="acm-detail-label">Current image</label>
-                {(() => {
-                  const currentUrl = selectedItem.value || "";
-                  const hasHttpUrl =
-                    currentUrl.startsWith("http://") ||
-                    currentUrl.startsWith("https://");
-                  const canShowImage = hasHttpUrl && !imageError;
-                  const fileInputId = `acm-file-input-${selectedItem.id}`;
-
-                  return (
-                    <>
-                      <div className="acm-image-preview">
-                        {canShowImage ? (
-                          <img
-                            key={currentUrl}
-                            src={currentUrl}
-                            alt={selectedItem.label}
-                            onError={() => setImageError(true)}
-                          />
-                        ) : (
-                          <div className="acm-image-placeholder">
-                            Image will appear here after it is uploaded.
-                          </div>
-                        )}
-                      </div>
-
-                      {hasHttpUrl && (
-                        <a
-                          href={currentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="acm-link"
-                        >
-                          Open full image
-                        </a>
-                      )}
-
-                      <label className="acm-detail-label">
-                        Upload new image
-                      </label>
-                      <div className="acm-file-row">
-                        <input
-                          id={fileInputId}
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="acm-hidden-file-input"
-                          onChange={(e) => {
-                            const file =
-                              e.target.files && e.target.files[0]
-                                ? e.target.files[0]
-                                : null;
-                            setEditFile(file);
-                            setStatusMessage("");
-                            setStatusError("");
-                          }}
-                        />
-                        <label
-                          htmlFor={fileInputId}
-                          className="acm-file-button"
-                        >
-                          Choose file
-                        </label>
-                        <span className="acm-file-name">
-                          {editFile ? editFile.name : "No file chosen"}
-                        </span>
-                      </div>
-
-                      <p className="acm-detail-help">
-                        Allowed formats: JPG, PNG, WEBP. Max size: 5MB.
-                      </p>
-
-                      <div className="acm-detail-actions">
-                        <button
-                          type="button"
-                          className="acm-button secondary"
-                          onClick={handleCloseModal}
-                          disabled={isSaving}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          className="acm-button primary"
-                          disabled={isSaving || !editFile}
-                          onClick={handleUploadImage}
-                        >
-                          {isSaving ? "Uploading..." : "Upload & replace"}
-                        </button>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            )}
+            {renderDetailBody()}
           </div>
         </div>
       )}

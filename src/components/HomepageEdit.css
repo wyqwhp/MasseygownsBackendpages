@@ -426,6 +426,22 @@
   cursor: not-allowed;
 }
 
+.acm-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+.acm-input:focus {
+  border-color: #497a39;
+  box-shadow: 0 0 0 1px #2563eb22;
+}
+
 /* Small screen tweaks */
 
 @media (max-width: 640px) {
