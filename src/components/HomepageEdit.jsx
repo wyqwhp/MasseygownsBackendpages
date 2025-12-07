@@ -149,7 +149,7 @@ export default function HomepageEdit() {
     setEditFile(null);
     setImageError(false);
 
-    if (item.type === "text") {
+    if (item.type === "text" || item.type === "list") {
       setEditText(item.value || "");
       setEditLinkName("");
       setEditLinkUrl("");
