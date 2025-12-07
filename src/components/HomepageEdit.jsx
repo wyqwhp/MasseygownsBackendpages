@@ -14,6 +14,20 @@ function getSectionsForPage(items, page) {
   );
 }
 
+// Hide internal rows like *.tableData – editors don’t need to see these
+const isHiddenTechnicalItem = (item) => {
+  return (
+    typeof item.key === "string" &&
+    item.key.toLowerCase().endsWith(".tabledata")
+  );
+};
+
+// Turn "Ordering and Payment.7" into "Ordering and Payment"
+const cleanSectionName = (section) =>
+  String(section || "")
+    .replace(/\.\d+$/, "")
+    .trim();
+
 export default function HomepageEdit() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
@@ -30,7 +44,7 @@ export default function HomepageEdit() {
   const [imageError, setImageError] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Load CMS blocks from the API on mount
+  // Initial load of CMS blocks
   useEffect(() => {
     async function loadBlocks() {
       try {
@@ -40,7 +54,13 @@ export default function HomepageEdit() {
           throw new Error(`Failed to load CMS blocks (${res.status}): ${text}`);
         }
         const json = await res.json();
-        setItems(json.data || []);
+
+        const rawItems = json.data || [];
+        const visibleItems = rawItems.filter(
+          (item) => !isHiddenTechnicalItem(item)
+        );
+
+        setItems(visibleItems);
       } catch (err) {
         console.error(err);
         setStatusError(
@@ -54,31 +74,53 @@ export default function HomepageEdit() {
 
   const pages = useMemo(() => getPages(items), [items]);
 
-  const sections = useMemo(
-    () => (pageFilter === "All" ? [] : getSectionsForPage(items, pageFilter)),
-    [items, pageFilter]
-  );
+  // Build section list for the dropdown: clean names and dedupe
+  const sections = useMemo(() => {
+    if (pageFilter === "All") return [];
+    const raw = getSectionsForPage(items, pageFilter);
+    const cleaned = raw.map(cleanSectionName);
+    return Array.from(new Set(cleaned));
+  }, [items, pageFilter]);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      if (pageFilter !== "All" && item.page !== pageFilter) return false;
-      if (
-        sectionFilter !== "All" &&
-        sectionFilter !== "" &&
-        item.section !== sectionFilter
-      )
-        return false;
+    return items
+      .filter((item) => !isHiddenTechnicalItem(item))
+      .filter((item) => {
+        if (pageFilter !== "All" && item.page !== pageFilter) return false;
 
-      if (!search.trim()) return true;
-      const s = search.toLowerCase();
-      return (
-        item.page.toLowerCase().includes(s) ||
-        item.section.toLowerCase().includes(s) ||
-        item.label.toLowerCase().includes(s) ||
-        item.key.toLowerCase().includes(s)
-      );
-    });
+        if (
+          sectionFilter !== "All" &&
+          sectionFilter !== "" &&
+          cleanSectionName(item.section) !== sectionFilter
+        ) {
+          return false;
+        }
+
+        if (!search.trim()) return true;
+        const s = search.toLowerCase();
+        return (
+          item.page.toLowerCase().includes(s) ||
+          item.section.toLowerCase().includes(s) ||
+          item.label.toLowerCase().includes(s) ||
+          item.key.toLowerCase().includes(s)
+        );
+      });
   }, [items, search, pageFilter, sectionFilter]);
+
+  const formatSectionLabel = (section) => cleanSectionName(section);
+
+  // If label is empty, fall back to the last piece of the key
+  const getDisplayLabel = (item) => {
+    const rawLabel = (item?.label || "").trim();
+    if (rawLabel) return rawLabel;
+
+    const key = String(item?.key || "");
+    if (!key) return "(no label)";
+
+    const parts = key.split(".");
+    const last = parts[parts.length - 1];
+    return last || key;
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -123,7 +165,7 @@ export default function HomepageEdit() {
       }
       setEditText("");
     } else {
-      // image, file
+      // image / file
       setEditText("");
       setEditLinkName("");
       setEditLinkUrl("");
@@ -151,7 +193,7 @@ export default function HomepageEdit() {
     setStatusError("");
   }
 
-  // Save text block via CMS API
+  // Save text / list blocks
   async function handleSaveText() {
     if (!selectedItem || !["text", "list"].includes(selectedItem.type)) return;
 
@@ -212,7 +254,7 @@ export default function HomepageEdit() {
     }
   }
 
-  // Save link block (name + url) via CMS API
+  // Save link (name + URL)
   async function handleSaveLink() {
     if (!selectedItem || selectedItem.type !== "link") return;
 
@@ -281,7 +323,7 @@ export default function HomepageEdit() {
     }
   }
 
-  // Upload image via CMS API (/api/CmsContent/upload-image)
+  // Image upload handler
   async function handleUploadImage() {
     if (!selectedItem || selectedItem.type !== "image" || !editFile) return;
 
@@ -357,7 +399,7 @@ export default function HomepageEdit() {
     }
   }
 
-  // Upload file (Excel / CSV) via CMS API (/api/CmsContent/upload-file)
+  // File upload handler (CSV / Excel)
   async function handleUploadFile() {
     if (!selectedItem || selectedItem.type !== "file" || !editFile) return;
 
@@ -435,7 +477,6 @@ export default function HomepageEdit() {
     }
   }
 
-  // Render by type
   function renderDetailBody() {
     if (!selectedItem) return null;
 
@@ -596,7 +637,7 @@ export default function HomepageEdit() {
       );
     }
 
-    // image
+    // Image block
     return (
       <div className="acm-detail-body">
         <label className="acm-detail-label">Current image</label>
@@ -764,10 +805,12 @@ export default function HomepageEdit() {
                   }
                 >
                   <td>{item.page}</td>
-                  <td>{item.section}</td>
+                  <td>{formatSectionLabel(item.section)}</td>
                   <td>
                     <div className="acm-cell-label">
-                      <div className="acm-cell-label-main">{item.label}</div>
+                      <div className="acm-cell-label-main">
+                        {getDisplayLabel(item)}
+                      </div>
                       <div className="acm-cell-label-key">
                         {item.type.toUpperCase()} · {item.key}
                       </div>
@@ -833,7 +876,7 @@ export default function HomepageEdit() {
           >
             <div className="acm-modal-header">
               <h2 className="acm-detail-title">
-                {selectedItem.page} · {selectedItem.section}
+                {selectedItem.page} · {formatSectionLabel(selectedItem.section)}
               </h2>
               <button
                 type="button"
@@ -845,8 +888,8 @@ export default function HomepageEdit() {
             </div>
 
             <p className="acm-detail-subtitle">
-              {selectedItem.label} ({selectedItem.type.toUpperCase()} ·{" "}
-              {selectedItem.key})
+              {getDisplayLabel(selectedItem)} ({selectedItem.type.toUpperCase()}{" "}
+              · {selectedItem.key})
             </p>
 
             {(statusMessage || statusError) && (
