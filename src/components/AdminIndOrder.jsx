@@ -14,6 +14,13 @@
         CardHeader,
         CardTitle
     } from "@/components/ui/card";
+    import {
+        Select,
+        SelectTrigger,
+        SelectValue,
+        SelectContent,
+        SelectItem
+    } from "@/components/ui/select"
     import { ChevronsLeft, ChevronsRight } from "lucide-react";
     import AdminNavbar from "@/pages/AdminNavbar.jsx";
     import axios from "axios";
@@ -59,9 +66,18 @@
         const [loading, setLoading] = useState();
         const [error, setError] = useState(null);
         const [changed, setChanged] = useState(false);
+        const [items, setItems] = useState([]);
+        const [sizes, setSizes] = useState([]);
+        const [hoods, setHoods] = useState([]);
+        const [gownId, setGownId] = useState(null);
+        const [hatId, setHatId] = useState(null);
+
+        const getLabel = (name) => name.split("-")[1]?.trim() || name;
 
         const retrieveItems = (order) => {
             if (order.items.length === 0) {
+                setHatId(0);
+                setGownId(0);
                 setFormData(prev => ({
                     ...prev,
                     gownType: "",
@@ -82,11 +98,18 @@
             for (let i of order.items) {
                 if (i.itemName?.startsWith("Gown")) {
                     gownType = i.itemName;
+                    setGownId(i.itemId);
+                    console.log('Degree=', i.itemName)
                     gownSize = i.sizeName;
+                    console.log('Size=', i.sizeName)
                 }
 
                 if (i.itemName?.startsWith("Trencher") || i.itemName?.startsWith("Tudor")) {
                     hatType = i.itemName;
+
+                    setHatId(i.itemId);
+                    // setHatId(3);
+                    console.log('HatType=', i.itemId);
                     hatSize = i.sizeName;
                 }
 
@@ -121,6 +144,24 @@
             retrieveItems(order);
         }
 
+        useEffect(() => {
+            axios.get(`${API_URL}/itemsonly`).then(res => {
+                setItems(res.data);
+            });
+        }, []);
+
+        useEffect(() => {
+            axios.get(`${API_URL}/sizesonly`).then(res => {
+                setSizes(res.data);
+            });
+        }, []);
+
+        useEffect(() => {
+            axios.get(`${API_URL}/hoodsonly`).then(res => {
+                setHoods(res.data);
+            });
+        }, []);
+
         // Fetch orders on mount
         useEffect(() => {
             const cached = localStorage.getItem("orders");
@@ -138,7 +179,7 @@
                 .then((res) => {
                     setOrders(res.data);
                     localStorage.setItem("orders", JSON.stringify(res.data));
-                    updateForm(res.data[0]);
+                    if (!cached) updateForm(res.data[0]);
                     setLoading(false);
                 })
                 .catch((err) => {
@@ -177,6 +218,7 @@
             });
         };
 
+        if (items.length === 0 || sizes.length === 0 || hoods.length === 0) return <FullscreenSpinner />;
         if (loading) return <FullscreenSpinner />;
         if (error) return <p className="text-red-600">Error: {error}</p>;
 
@@ -185,15 +227,11 @@
             <AdminNavbar />
                 <div className="max-w-6xl mx-auto pt-24 shadow-lg">
                     <Card className="bg-green-50 pt-4">
-                    {/*<CardHeader>*/}
-                    {/*    <CardTitle>Order Form</CardTitle>*/}
-                    {/*</CardHeader>*/}
                     <CardContent>
                         <form onSubmit={handleSubmit} className="grid grid-cols-4 md:grid-cols-4 gap-3 w-275 text-xs">
                             <div>
                                 <Label htmlFor="surname">Surname</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="surname"
                                     name="surname"
                                     value={formData.surname}
@@ -205,7 +243,6 @@
                             <div>
                                 <Label htmlFor="firstName">Forename</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="firstName"
                                     name="firstName"
                                     value={formData.foreName}
@@ -217,19 +254,17 @@
                             <div>
                                 <Label htmlFor="orderNumber">Order Number</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="orderNumber"
                                     name="orderNumber"
                                     value={formData.orderNumber}
                                     onChange={handleChange}
-                                    required
+                                    readOnly
                                 />
                             </div>
 
                             <div>
                                 <Label htmlFor="address">Address</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="address"
                                     name="address"
                                     value={formData.address}
@@ -241,7 +276,6 @@
                             <div>
                                 <Label htmlFor="email">Email</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="email"
                                     name="email"
                                     type="email"
@@ -255,7 +289,6 @@
                             <div>
                                 <Label htmlFor="phone">Phone</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="phone"
                                     name="phone"
                                     value={formData.phone}
@@ -267,7 +300,6 @@
                             <div>
                                 <Label htmlFor="clientId">Client Id</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="clientId"
                                     name="clientId"
                                     value={formData.clientId}
@@ -279,7 +311,6 @@
                             <div>
                                 <Label htmlFor="ceremonyId">Ceremony Id</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="ceremonyId"
                                     name="ceremonyId"
                                     value={formData.ceremonyId}
@@ -291,64 +322,156 @@
                             <hr className="col-span-full border-t border-gray-300 my-4" />
 
                             <div className="row-start-4">
-                                <Label htmlFor="gowntype">Gown Type</Label>
-                                <Input
-                                    // className="bg-white"
-                                    id="gowntype"
-                                    name="gowntype"
-                                    value={formData.gownType}
-                                    onChange={handleChange}
-                                />
+                            <Label htmlFor="gowntype">Gown Type</Label>
+                            <Select
+                                value={String(gownId)}
+                                onValueChange={(id) =>
+                                {   const gown = items.find(g => g.id === Number(id));
+                                    console.log('GownId ext=', gownId);
+                                    console.log('GownId=', typeof id);
+                                    console.log('Gown=', gown);
+                                    console.log('Items=', items);
+                                    if (gown) {
+                                        console.log('GownId Inside=', gown.id);
+                                        setGownId(Number(gown.id));
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            gownType: getLabel(gown.name),
+                                            gownSize: ""
+                                        }));
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="!bg-white">
+                                    <SelectValue placeholder="Select a gown type" />
+                                </SelectTrigger>
+
+                                <SelectContent>
+                                    {items
+                                        .filter(g => g.category === "Academic Gown")
+                                        .map(g => (
+                                            <SelectItem key={g.id} value={String(g.id)}>
+                                                {getLabel(g.name)}
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
                             </div>
 
                             <div className="row-start-4">
                                 <Label htmlFor="gownsize">Gown Size</Label>
-                                <Input
-                                    // className="bg-white"
-                                    id="gownsize"
-                                    name="gownsize"
+                                <Select
                                     value={formData.gownSize}
-                                    onChange={handleChange}
-                                />
+                                    onValueChange={(value) =>
+                                        setFormData(prev => ({ ...prev, gownSize: value }))
+                                    }
+                                >
+                                    <SelectTrigger className="!bg-white">
+                                        <SelectValue placeholder="Select a gown size" />
+                                    </SelectTrigger>
+
+                                    <SelectContent>
+                                        {sizes
+                                            .filter(g => g.itemId === gownId && g.fitId === 1)
+                                            .map(g => (
+                                                <SelectItem key={g.id} value={g.size}>
+                                                    {g.size}
+                                                </SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="row-start-4">
                                 <Label htmlFor="hattype">Hat Type</Label>
-                                <Input
-                                    // className="bg-white"
-                                    id="hattype"
-                                    name="hattype"
-                                    value={formData.hatType}
-                                    onChange={handleChange}
-                                />
+                                <Select
+                                    // value={formData.hatType}
+                                    value={String(hatId)}
+                                    onValueChange={(id) =>
+                                    {   const hat = items.find(g => g.id === Number(id));
+                                        console.log('Hat=', hat);
+                                        console.log('Id=', id);
+                                        if (hat) {
+                                            setHatId(hat.id);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                hatType: hat.name,
+                                                hatSize: ""
+                                            }));
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="!bg-white">
+                                        <SelectValue placeholder="Select a hat type" />
+                                    </SelectTrigger>
+
+                                    <SelectContent>
+                                        {items
+                                            .filter(g => g.category === "Headwear")
+                                            .map(g => (
+                                                <SelectItem key={g.id} value={String(g.id)}>
+                                                    {g.name}
+                                                </SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="row-start-4">
                                 <Label htmlFor="hatsize">Hat Size</Label>
-                                <Input
-                                    // className="bg-white"
-                                    id="hatsize"
-                                    name="hatsize"
+                                <Select
                                     value={formData.hatSize}
-                                    onChange={handleChange}
-                                />
+                                    onValueChange={(value) =>
+                                        setFormData(prev => ({ ...prev, hatSize: value }))
+                                    }
+                                >
+                                    <SelectTrigger className="!bg-white">
+                                        <SelectValue placeholder="Select a hat size" />
+                                    </SelectTrigger>
+
+                                    <SelectContent>
+                                        {
+                                            sizes
+                                            .filter(g => g.itemId === hatId)
+                                            .map(g => (
+                                                <SelectItem key={g.id} value={g.size}>
+                                                    {g.size}
+                                                </SelectItem>
+                                            ))
+
+                                        }
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="row-start-5">
-                                <Label htmlFor="hoodType">Hood Type</Label>
-                                <Input
-                                    // className="bg-white"
-                                    id="hoodType"
-                                    name="hoodType"
+                                <Label htmlFor="hoodtype">Hood Type</Label>
+                                <Select
                                     value={formData.hoodType}
-                                    onChange={handleChange}
-                                />
+                                    onValueChange={(value) =>
+                                        setFormData(prev => ({ ...prev, hoodType: value }))
+                                    }
+                                >
+                                    <SelectTrigger className="!bg-white">
+                                        <SelectValue placeholder="Select a hood type" />
+                                    </SelectTrigger>
+
+                                    <SelectContent>
+                                        {
+                                            hoods
+                                                .map(g => (
+                                                    <SelectItem key={g.id} value={g.name}>
+                                                        {g.name}
+                                                    </SelectItem>
+                                                ))
+                                        }
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="row-start-5">
                                 <Label htmlFor="height">Height</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="height"
                                     name="height"
                                     value={formData.height}
@@ -359,7 +482,6 @@
                             <div className="row-start-5">
                                 <Label htmlFor="headSize">Head Size</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="headSize"
                                     name="headSize"
                                     value={formData.headSize}
@@ -372,7 +494,6 @@
                             <div className="row-start-7">
                                 <Label htmlFor="orderType">Order Type</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="orderType"
                                     name="orderType"
                                     value={formData.orderType}
@@ -383,7 +504,6 @@
                             <div className="row-start-7">
                                 <Label htmlFor="note">Note</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="note"
                                     name="note"
                                     value={formData.note}
@@ -394,7 +514,6 @@
                             <div className="row-start-7">
                                 <Label htmlFor="changes">Changes</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="changes"
                                     name="changes"
                                     value={formData.changes}
@@ -405,7 +524,6 @@
                             <div>
                                 <Label htmlFor="packNote">Pack Note</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="packNote"
                                     name="packNote"
                                     value={formData.packNote}
@@ -416,7 +534,6 @@
                             <div className="row-start-8">
                                 <Label htmlFor="amountPaid">Amount Paid</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="amountPaid"
                                     name="amountPaid"
                                     type="number"
@@ -430,7 +547,6 @@
                             <div className="row-start-8">
                                 <Label htmlFor="amountOwing">Amount Owing</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="amountOwing"
                                     name="amountOwing"
                                     value={formData.amountOwing}
@@ -441,7 +557,6 @@
                             <div className="row-start-8">
                                 <Label htmlFor="donation">Donation</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="donation"
                                     name="donation"
                                     value={formData.donation}
@@ -452,7 +567,6 @@
                             <div className="row-start-8">
                                 <Label htmlFor="freight">Freight</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="freight"
                                     name="freight"
                                     value={formData.freight}
@@ -463,7 +577,6 @@
                             <div className="row-start-9">
                                 <Label htmlFor="refund">Refund</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="refund"
                                     name="refund"
                                     value={formData.refund}
@@ -474,7 +587,6 @@
                             <div className="row-start-9">
                                 <Label htmlFor="adminChgs">Admin Charges</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="adminChgs"
                                     name="adminChgs"
                                     value={formData.adminChgs}
@@ -485,7 +597,6 @@
                             <div className="row-start-9">
                                 <Label htmlFor="pOrder">Purchase Order #</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="pOrder"
                                     name="pOrder"
                                     value={formData.pOrder}
@@ -496,7 +607,6 @@
                             <div className="row-start-9">
                                 <Label htmlFor="payBy">Pay By</Label>
                                 <Input
-                                    // className="bg-white"
                                     id="payBy"
                                     name="payBy"
                                     value={formData.payBy}

@@ -115,6 +115,9 @@ function AdminNavbar() {
               <Link to="/IndOrder">
                 Individual Orders
               </Link>
+              <Link to="/BulkOrder">
+                Bulk Orders
+              </Link>
               {loading && <FullscreenSpinner />}
               <a onClick={printLabels} style={{ cursor: "pointer" }}>
                 PRINT LABELS

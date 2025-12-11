@@ -13,6 +13,7 @@ import UpdatePic from "@/components/UpdatePic.jsx";
 import HomepageEdit from "./components/HomepageEdit.jsx";
 import HomePage from "@/pages/HomePage.jsx";
 import AdminIndOrder from "@/components/AdminIndOrder.jsx";
+import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
 
 function App() {
   return (
@@ -111,6 +112,14 @@ function App() {
             element={
                 <Authentication>
                     <AdminIndOrder />
+                </Authentication>
+            }
+        />
+        <Route
+            path="/BulkOrder"
+            element={
+                <Authentication>
+                    <AdminBulkOrder />
                 </Authentication>
             }
         />
