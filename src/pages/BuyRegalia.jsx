@@ -376,10 +376,6 @@ function BuyRegalia() {
     <>
       <div className="nav-bar">
         <AdminNavbar />
-
-        <br />
-        <br />
-        <br />
       </div>
       <div className="buy-regalia-container">
         <div className="buy-regalia-wrapper">
@@ -390,7 +386,6 @@ function BuyRegalia() {
             </p>
 
             <button
-              disabled={csvData}
               onClick={generateCSV}
               className="!bg-green-700 text-white px-4 py-2 rounded hover:!bg-green-800 disabled:!bg-gray-400 disabled:!cursor-not-allowed"
             >
@@ -440,7 +435,7 @@ function BuyRegalia() {
           {/* Search and Filter */}
           <div className="search-filter-container">
             <div className="search-filter-wrapper">
-              <div className="search-input-wrapper">
+              <div className="filter-wrapper">
                 <Search className="search-icon" />
                 <input
                   type="text"

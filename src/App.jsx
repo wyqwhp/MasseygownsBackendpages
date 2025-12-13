@@ -15,6 +15,7 @@ import HomePage from "@/pages/HomePage.jsx";
 import EmailEdit from "./components/EmailEdit.jsx";
 import AdminIndOrder from "@/components/AdminIndOrder.jsx";
 import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
+import EmailContent from "./components/EmailContent.jsx";
 
 function App() {
   return (
@@ -132,6 +133,14 @@ function App() {
           </Authentication>
         }
       />
+        <Route
+            path="/EmailContent"
+            element={
+                <Authentication>
+                    <EmailContent />
+                </Authentication>
+            }
+        />
     </Routes>
   );
 }

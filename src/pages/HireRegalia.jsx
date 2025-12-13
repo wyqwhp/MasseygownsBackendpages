@@ -354,10 +354,6 @@ const generateCSV = () => {
     <>
     <div className="nav-bar">
         <AdminNavbar />
-
-        <br />
-        <br />
-        <br />
       </div>
     <div className="hire-regalia-container">
       <div className="hire-regalia-wrapper">
@@ -417,7 +413,7 @@ const generateCSV = () => {
         {/* Search and Filter */}
         <div className="search-filter-container">
           <div className="search-filter-wrapper">
-            <div className="search-input-wrapper">
+            <div className="filter-wrapper">
               <Search className="search-icon" />
               <input
                 type="text"
