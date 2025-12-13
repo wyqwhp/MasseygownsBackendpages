@@ -91,6 +91,9 @@ function AdminNavbar() {
                 <Link to="/HomepageEdit">Text & Image</Link>
               </li>
               <li className="dropdown-item">
+                <Link to="/EmailEdit">Email</Link>
+              </li>
+              <li className="dropdown-item">
                 <Link to="/adminusers">Users</Link>
               </li>
               {/*<li className="dropdown-item">*/}

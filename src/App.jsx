@@ -13,6 +13,7 @@ import HireRegalia from "./pages/HireRegalia";
 import UpdatePic from "@/components/UpdatePic.jsx";
 import HomepageEdit from "./components/HomepageEdit.jsx";
 import HomePage from "@/pages/HomePage.jsx";
+import EmailEdit from "./components/EmailEdit.jsx";
 
 function App() {
   return (
@@ -95,6 +96,14 @@ function App() {
         element={
           <Authentication>
             <HomepageEdit />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/EmailEdit"
+        element={
+          <Authentication>
+            <EmailEdit />
           </Authentication>
         }
       />
