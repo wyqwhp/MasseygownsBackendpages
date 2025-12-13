@@ -29,7 +29,6 @@ function parseBodyHtml(html) {
       result.main = ps[1].textContent.trim();
     }
     if (ps[2]) {
-      // For closing we want to preserve line breaks from <br> tags
       const inner = ps[2].innerHTML || "";
       const withNewlines = inner.replace(/<br\s*\/?>/gi, "\n");
       const textOnly = withNewlines.replace(/<[^>]+>/g, "");
@@ -45,13 +44,15 @@ function parseBodyHtml(html) {
 /**
  * Parse taxReceiptHtml into:
  *  - eventTitle
- *  - fromBlock (Invoice From block, as multiline text)
+ *  - headerFromBlock (top-right block in the header)
+ *  - invoiceFromBlock (the “Invoice From” column)
  *  - notes: up to 4 bullet points
  */
 function parseTaxReceiptHtml(html) {
   const result = {
     eventTitle: "",
-    fromBlock: "",
+    headerFromBlock: "",
+    invoiceFromBlock: "",
     notes: ["", "", "", ""],
   };
 
@@ -67,16 +68,43 @@ function parseTaxReceiptHtml(html) {
       result.eventTitle = eventTd.textContent.trim();
     }
 
-    // Invoice From block: <h3>Invoice From:</h3> followed by <p>
-    const allH3 = Array.from(div.querySelectorAll("h3"));
-    const invoiceFromH3 = allH3.find((h) =>
-      h.textContent.toLowerCase().includes("invoice from")
-    );
-    if (invoiceFromH3) {
-      const p = invoiceFromH3.nextElementSibling;
-      if (p && p.tagName === "P") {
-        result.fromBlock = p.textContent.replace(/\r?\n\s*/g, "\n").trim();
+    // Preferred: use data-adh markers we generate in buildTaxReceiptHtml
+    const headerTd = div.querySelector('td[data-adh="header-address"]');
+    if (headerTd) {
+      result.headerFromBlock = headerTd.textContent
+        .replace(/\r?\n\s*/g, "\n")
+        .trim();
+    }
+
+    const invoiceFromTd = div.querySelector('td[data-adh="invoice-from"]');
+    if (invoiceFromTd) {
+      result.invoiceFromBlock = invoiceFromTd.textContent
+        .replace(/\r?\n\s*/g, "\n")
+        .trim();
+    }
+
+    // Fallback for older HTML without data-adh: use the "Invoice From" <h3> block
+    if (!result.invoiceFromBlock) {
+      const allH3 = Array.from(div.querySelectorAll("h3"));
+      const invoiceFromH3 = allH3.find((h) =>
+        h.textContent.toLowerCase().includes("invoice from")
+      );
+      if (invoiceFromH3) {
+        const p = invoiceFromH3.nextElementSibling;
+        if (p && p.tagName === "P") {
+          result.invoiceFromBlock = p.textContent
+            .replace(/\r?\n\s*/g, "\n")
+            .trim();
+        }
       }
+    }
+
+    // If only one side exists, mirror it so the form is still populated nicely
+    if (!result.headerFromBlock && result.invoiceFromBlock) {
+      result.headerFromBlock = result.invoiceFromBlock;
+    }
+    if (!result.invoiceFromBlock && result.headerFromBlock) {
+      result.invoiceFromBlock = result.headerFromBlock;
     }
 
     // Notes: first <ul> list items
@@ -123,10 +151,16 @@ function buildBodyHtml(greeting, main, closing) {
 
 /**
  * Build taxReceiptHtml from:
- *   eventTitle, fromBlock (multiline), notes[4]
- * This keeps the layout in HTML but lets business users edit text only.
+ *   eventTitle, headerFromBlock (top right), invoiceFromBlock (column),
+ *   notes[4].
+ * Both header and invoice-from address are editable independently.
  */
-function buildTaxReceiptHtml(eventTitle, fromBlock, notes) {
+function buildTaxReceiptHtml(
+  eventTitle,
+  headerFromBlock,
+  invoiceFromBlock,
+  notes
+) {
   const escape = (str) =>
     (str || "")
       .replace(/&/g, "&amp;")
@@ -146,7 +180,11 @@ function buildTaxReceiptHtml(eventTitle, fromBlock, notes) {
     .map((n) => `<li>${escape(n.trim())}</li>`)
     .join("\n              ");
 
-  const fromBlockHtml = formatLinesToHtml(fromBlock);
+  // Allow either field to be left empty and fall back to the other
+  const headerFromHtml = formatLinesToHtml(headerFromBlock || invoiceFromBlock);
+  const invoiceFromHtml = formatLinesToHtml(
+    invoiceFromBlock || headerFromBlock
+  );
 
   return `
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px;">
@@ -155,17 +193,39 @@ function buildTaxReceiptHtml(eventTitle, fromBlock, notes) {
 
       <table width="650" cellpadding="0" cellspacing="0" style="background:white; border-radius:8px; padding:30px;">
 
+        <!-- Row 1: centered title, slightly higher than the address -->
         <tr>
-          <td style="border-bottom:2px solid #333; padding-bottom:15px;">
-            <h1 style="margin:0; font-size:26px; color:#333;">Tax Receipt</h1>
+          <td colspan="2" style="padding-bottom:5px; text-align:center;">
+            <h1
+              style="margin:0; font-size:26px; color:#333; text-align:center;"
+            >
+              Tax Receipt
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Row 2: left = GST / invoice details, right = header address -->
+        <tr>
+          <td width="50%" valign="top" style="border-bottom:2px solid #333; padding-bottom:15px;">
             <p style="margin:4px 0; font-size:14px; color:#555;">GST Number: <strong>{{GstNumber}}</strong></p>
             <p style="margin:4px 0; font-size:14px; color:#555;">Invoice Number: <strong>{{InvoiceNumber}}</strong></p>
             <p style="margin:4px 0; font-size:14px; color:#555;">Invoice Date: <strong>{{InvoiceDate}}</strong></p>
           </td>
+          <td
+            width="50%"
+            valign="top"
+            data-adh="header-address"
+            style="border-bottom:2px solid #333; padding-bottom:15px; text-align:right;"
+          >
+            <p style="margin:0; line-height:1.6; text-align:right;">
+              ${headerFromHtml}
+            </p>
+          </td>
         </tr>
 
+        <!-- Invoice to/from row -->
         <tr>
-          <td style="padding-top:25px;">
+          <td style="padding-top:25px;" colspan="2">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
 
@@ -181,10 +241,14 @@ function buildTaxReceiptHtml(eventTitle, fromBlock, notes) {
                   </p>
                 </td>
 
-                <td width="50%" valign="top">
+                <td
+                  width="50%"
+                  valign="top"
+                  data-adh="invoice-from"
+                >
                   <h3 style="margin:0 0 8px 0; font-size:16px;">Invoice From:</h3>
                   <p style="margin:0; line-height:1.6;">
-                    ${fromBlockHtml}
+                    ${invoiceFromHtml}
                   </p>
                 </td>
 
@@ -194,13 +258,13 @@ function buildTaxReceiptHtml(eventTitle, fromBlock, notes) {
         </tr>
 
         <tr>
-          <td style="margin-top:30px; background:#eef3ff; padding:12px; border-left:4px solid #1e40af; font-weight:bold;">
+          <td style="margin-top:30px; background:#eef3ff; padding:12px; border-left:4px solid #1e40af; font-weight:bold;" colspan="2">
             ${escape(eventTitle || "")}
           </td>
         </tr>
 
         <tr>
-          <td style="padding-top:25px;">
+          <td style="padding-top:25px;" colspan="2">
             <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
 
               <thead>
@@ -222,27 +286,27 @@ function buildTaxReceiptHtml(eventTitle, fromBlock, notes) {
         </tr>
 
         <tr>
-          <td style="padding-top:30px;">
+          <td style="padding-top:30px;" colspan="2">
             <table width="100%" cellpadding="8" cellspacing="0">
 
               <tr>
                 <td align="right" style="font-size:16px;">Grand Total:</td>
                 <td align="right" style="font-size:18px; font-weight:bold; width:150px;">
-                  {{ Total }}
+                  {{Total}}
                 </td>
               </tr>
 
               <tr style="background:#e8f4e8;">
                 <td align="right" style="font-size:16px; color:#2d7a2d;">Amount Paid:</td>
                 <td align="right" style="font-size:18px; font-weight:bold; color:#2d7a2d; width:150px;">
-                  {{ AmountPaid }}
+                  {{AmountPaid}}
                 </td>
               </tr>
 
               <tr style="background:#f7f7f7;">
                 <td align="right" style="font-size:16px;">Balance Owing:</td>
                 <td align="right" style="font-size:18px; font-weight:bold; width:150px;">
-                  {{ BalanceOwing }}
+                  {{BalanceOwing}}
                 </td>
               </tr>
 
@@ -251,7 +315,7 @@ function buildTaxReceiptHtml(eventTitle, fromBlock, notes) {
         </tr>
 
         <tr>
-          <td style="margin-top:20px; background:#fff8e1; padding:15px; border:1px solid #ffe28a;">
+          <td style="margin-top:20px; background:#fff8e1; padding:15px; border:1px solid #ffe28a;" colspan="2">
             <strong style="font-size:15px;">Important Notes:</strong>
             <ul style="padding-left:18px; line-height:1.7; font-size:14px;">
               ${notesHtml}
@@ -260,7 +324,7 @@ function buildTaxReceiptHtml(eventTitle, fromBlock, notes) {
         </tr>
 
         <tr>
-          <td align="center" style="padding-top:25px; font-size:12px; color:#888;">
+          <td align="center" style="padding-top:25px; font-size:12px; color:#888;" colspan="2">
             Academic Dress Hire | Massey University
           </td>
         </tr>
@@ -285,6 +349,7 @@ export default function EmailEdit() {
 
   // Tax receipt text blocks
   const [eventTitle, setEventTitle] = useState("");
+  const [headerFromBlock, setHeaderFromBlock] = useState("");
   const [fromBlock, setFromBlock] = useState("");
   const [note1, setNote1] = useState("");
   const [note2, setNote2] = useState("");
@@ -327,10 +392,7 @@ export default function EmailEdit() {
     loadTemplates();
   }, []);
 
-  /**
-   * Apply a template object to all local state:
-   * subject, body parts, receipt parts.
-   */
+  // Apply a template object to all local state
   const applyTemplateToState = (tpl) => {
     setSelected(tpl);
     setSubject(tpl.subjectTemplate || "");
@@ -346,10 +408,21 @@ export default function EmailEdit() {
     setEventTitle(
       receiptParts.eventTitle || "Massey University Graduation Event"
     );
-    setFromBlock(
-      receiptParts.fromBlock ||
-        "Academic Dress Hire\nRefectory Rd, University Ave,\nMassey University, Tennent Drive\nPalmerston North\nTel: +64 6 350 4166"
+
+    const defaultFrom =
+      "Academic Dress Hire\n3 Refectory Rd,\nMassey University,\nPalmerston North 4472\nTel: +64 6 350 4166";
+
+    setHeaderFromBlock(
+      receiptParts.headerFromBlock ||
+        receiptParts.invoiceFromBlock ||
+        defaultFrom
     );
+    setFromBlock(
+      receiptParts.invoiceFromBlock ||
+        receiptParts.headerFromBlock ||
+        defaultFrom
+    );
+
     setNote1(
       receiptParts.notes[0] ||
         "Please bring this receipt when collecting regalia."
@@ -382,12 +455,12 @@ export default function EmailEdit() {
 
     try {
       const newBodyHtml = buildBodyHtml(bodyGreeting, bodyMain, bodyClosing);
-      const newTaxReceiptHtml = buildTaxReceiptHtml(eventTitle, fromBlock, [
-        note1,
-        note2,
-        note3,
-        note4,
-      ]);
+      const newTaxReceiptHtml = buildTaxReceiptHtml(
+        eventTitle,
+        headerFromBlock,
+        fromBlock,
+        [note1, note2, note3, note4]
+      );
 
       const payload = {
         subjectTemplate: subject,
@@ -515,13 +588,27 @@ export default function EmailEdit() {
                 </div>
 
                 <div className="email-field">
+                  <label className="email-label">
+                    Header address (top right)
+                  </label>
+                  <textarea
+                    className="email-textarea"
+                    value={headerFromBlock}
+                    onChange={(e) => setHeaderFromBlock(e.target.value)}
+                    placeholder={
+                      "Academic Dress Hire\n3 Refectory Rd,\nMassey University,\nPalmerston North 4472\nTel: +64 6 350 4166"
+                    }
+                  />
+                </div>
+
+                <div className="email-field">
                   <label className="email-label">Invoice From block</label>
                   <textarea
                     className="email-textarea"
                     value={fromBlock}
                     onChange={(e) => setFromBlock(e.target.value)}
                     placeholder={
-                      "Academic Dress Hire\nRefectory Rd, University Ave,\nMassey University, Tennent Drive\nPalmerston North\nTel: +64 6 350 4166"
+                      "Academic Dress Hire\n3 Refectory Rd,\nMassey University,\nPalmerston North 4472\nTel: +64 6 350 4166"
                     }
                   />
                 </div>
