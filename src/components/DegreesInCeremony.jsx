@@ -6,7 +6,6 @@ import {Switch} from "@/components/ui/switch.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
-const ORIGIN_DEGREES = 2;
 
 export default function DegreesEditor({ceremonyId, onDegreesUpdated}) {
     const [degrees, setDegrees] = useState([]);
@@ -15,30 +14,30 @@ export default function DegreesEditor({ceremonyId, onDegreesUpdated}) {
 
     // Fetch ceremonies on mount
     useEffect(() => {
-        let localCeremonyId;
         if (ceremonyId && typeof ceremonyId === 'string' && ceremonyId.startsWith("temp-")) {
-            localCeremonyId = ORIGIN_DEGREES;
-        } else {
-            localCeremonyId = ceremonyId;
-        }
-        axios
-            .get(`${API_URL}/admin/degreesbyceremony/${localCeremonyId}`)
-            .then((res) => {
-                if (ceremonyId && typeof ceremonyId === 'string' && ceremonyId.startsWith("temp-")) {
-                    const updated = res.data.map(d => ({ ...d, active: true }));
-                    setDegrees(updated);
-                } else {
+            axios.get(`${API_URL}/admin/degreesbyceremony/0`)
+                .then((res) => {
+                    console.log('Res=', res.data)
                     setDegrees(res.data);
-                }
-                setLoading(false);
-            })
-            .catch((err) => {
-                setError(err.message);
-                setLoading(false);
-            });
-        setDegrees(prev =>
-            prev.map(d => ({ ...d, active: true }))
-        );
+                    onDegreesUpdated(res.data);
+                    setLoading(false);
+                })
+                .catch((err) => {
+                    setError(err.message);
+                    setLoading(false);
+                });
+        } else {
+            axios.get(`${API_URL}/admin/degreesbyceremony/${ceremonyId}`)
+                .then((res) => {
+                    setDegrees(res.data);
+                    onDegreesUpdated(res.data);
+                    setLoading(false);
+                })
+                .catch((err) => {
+                    setError(err.message);
+                    setLoading(false);
+                });
+        }
     }, []);
 
     const toggleDegreeActive = (id, newValue) => {

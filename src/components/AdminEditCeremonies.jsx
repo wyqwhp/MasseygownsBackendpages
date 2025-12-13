@@ -72,15 +72,11 @@ export default function CeremonyEditor() {
         setLoading(true);
         try {
             let res;
-            console.log(form)
             if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
                 res = await axios.post(`${API_URL}/admin/ceremonies`, form);
-                console.log("Degrees=", degrees);
-                console.log("Res=", res.data);
                 await axios.post(`${API_URL}/admin/ceremonies/${res.data.id}/degrees`, degrees);
             } else {
                 res = await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, form);
-                console.log("Degrees=", degrees);
                 await axios.post(`${API_URL}/admin/ceremonies/${editingId}/degrees`, degrees);
             }
             setCeremonies(
@@ -206,7 +202,7 @@ export default function CeremonyEditor() {
                     </tr>
                         {editingId === ceremony.id && (
                            <tr className="bg-gray-50">
-                               <td colSpan={4}>
+                               <td colSpan={5}>
                                    <div className="flex justify-center items-center">
                                       <DegreesInCeremony ceremonyId={ceremony.id}
                                                          onDegreesUpdated={handleDegreesUpdated}
