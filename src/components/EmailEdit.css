@@ -1,0 +1,204 @@
+.email-admin-page {
+  padding: 24px 32px;
+  min-height: 100vh;
+  background-color: #f9fafb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #111827;
+}
+
+.email-page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.email-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* 左侧列表卡片 */
+.email-list-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1),
+    0 4px 6px -2px rgba(15, 23, 42, 0.05);
+}
+
+.email-list-header {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.email-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.email-list-item {
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 6px;
+  transition: background-color 0.12s ease, transform 0.08s ease;
+}
+
+.email-list-item:hover {
+  background-color: #e5e7eb;
+}
+
+.email-list-item.is-active {
+  background-color: #111827;
+  color: #f9fafb;
+  transform: translateY(-1px);
+}
+
+.email-list-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 右侧编辑卡片 */
+.email-editor-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08),
+    0 4px 6px -2px rgba(15, 23, 42, 0.04);
+}
+
+.email-editor-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* 字段样式 */
+.email-field {
+  margin-bottom: 10px;
+}
+
+.email-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #37513c;
+}
+
+.email-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.email-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb22;
+}
+
+/* 文本区域 */
+.email-hint {
+  font-size: 18px;
+  color: #397350;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.email-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 11px;
+  background-color: #f3f4f6;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.email-textarea {
+  width: 100%;
+  min-height: 160px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.email-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb22;
+}
+
+/* 税务 receipt 那块稍微高一点 */
+.email-textarea-receipt {
+  min-height: 220px;
+}
+
+/* 保存按钮和状态 */
+.email-save-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.email-save-button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: #059669;
+  color: #ecfdf5;
+  box-shadow: 0 8px 10px -4px rgba(16, 185, 129, 0.5);
+  transition: background-color 0.12s ease, transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+
+.email-save-button:hover {
+  background-color: #047857;
+  transform: translateY(-0.5px);
+}
+
+.email-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.email-status {
+  font-size: 13px;
+  color: #059669;
+}
+
+.email-status-error {
+  color: #b91c1c;
+}
+
+.email-empty {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 8px;
+}

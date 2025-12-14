@@ -1,0 +1,25 @@
+.email-save-button {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: #059669;
+  color: #ecfdf5;
+  box-shadow: 0 8px 10px -4px rgba(16, 185, 129, 0.5);
+  transition: background-color 0.12s ease, transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+
+.email-save-button:hover {
+  background-color: #047857;
+  transform: translateY(-0.5px);
+}
+
+.email-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}

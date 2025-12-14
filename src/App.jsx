@@ -15,6 +15,7 @@ import HomePage from "@/pages/HomePage.jsx";
 import AdminIndOrder from "@/components/AdminIndOrder.jsx";
 import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
 import AdminImportBulk from "@/components/AdminImportBulk.jsx";
+import EmailTemplatesPage from "@/pages/EmailTemplatesPage.jsx";
 
 function App() {
   return (
@@ -97,6 +98,14 @@ function App() {
         element={
           <Authentication>
             <HomepageEdit />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/EmailEdit"
+        element={
+          <Authentication>
+            <EmailTemplatesPage />
           </Authentication>
         }
       />

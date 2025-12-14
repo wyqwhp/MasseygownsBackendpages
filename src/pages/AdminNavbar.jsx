@@ -90,6 +90,9 @@ function AdminNavbar() {
                 <Link to="/HomepageEdit">Text & Image</Link>
               </li>
               <li className="dropdown-item">
+                <Link to="/EmailEdit">Email Template</Link>
+              </li>
+              <li className="dropdown-item">
                 <Link to="/adminusers">Users</Link>
               </li>
               {/*<li className="dropdown-item">*/}
@@ -111,12 +114,8 @@ function AdminNavbar() {
           <li className="has-dropdown">
             <a>DATABASE</a>
             <ul className="dropdown-panel">
-              <Link to="/IndOrder">
-                Individual Orders
-              </Link>
-              <Link to="/BulkOrder">
-                Bulk Orders
-              </Link>
+              <Link to="/IndOrder">Individual Orders</Link>
+              <Link to="/BulkOrder">Bulk Orders</Link>
               <Link to="/ImportBulk">
                 Import Bulk Hire
               </Link>
