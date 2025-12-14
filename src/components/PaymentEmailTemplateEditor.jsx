@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 
-/* --------- Helpers: parse bodyHtml ---------- */
-
 function parseBodyHtml(html) {
   const result = {
     greeting: "",
@@ -14,17 +12,13 @@ function parseBodyHtml(html) {
     const wrapper = document.createElement("div");
     wrapper.innerHTML = html;
 
-    // 就当整个 body 只有一段正文，取第一个 <p> 的内容；
-    // 如果连 <p> 都没有，就用整个 wrapper 的 HTML。
     const p = wrapper.querySelector("p");
     const raw = (p ? p.innerHTML : wrapper.innerHTML) || "";
 
-    // 1. 所有 <br> / <br/> 还原成换行符
     const withNewlines = raw.replace(/<br\s*\/?>/gi, "\n");
-    // 2. 去掉其他 HTML 标签，只留纯文本
+
     const textOnly = withNewlines.replace(/<[^>]+>/g, "");
 
-    // 只用 main。greeting / closing 留空
     result.main = textOnly.trim();
   } catch (e) {
     console.warn("Failed to parse body html", e);
@@ -33,14 +27,12 @@ function parseBodyHtml(html) {
   return result;
 }
 
-/* --------- Helpers: parse taxReceiptHtml ---------- */
-
 function parseTaxReceiptHtml(html) {
   const result = {
     eventTitle: "",
     headerFromBlock: "",
     invoiceFromBlock: "",
-    notes: ["", "", "", ""],
+    footerText: "",
   };
 
   if (!html) return result;
@@ -49,13 +41,11 @@ function parseTaxReceiptHtml(html) {
     const div = document.createElement("div");
     div.innerHTML = html;
 
-    // Event title
     const eventTd = div.querySelector('td[style*="border-left"]');
     if (eventTd) {
       result.eventTitle = eventTd.textContent.trim();
     }
 
-    // Header (top-right)
     const headerTd = div.querySelector('td[data-adh="header-address"]');
     if (headerTd) {
       result.headerFromBlock = headerTd.textContent
@@ -63,13 +53,13 @@ function parseTaxReceiptHtml(html) {
         .trim();
     }
 
-    // Invoice From 块
+    // Invoice From
     const invoiceFromTd = div.querySelector('td[data-adh="invoice-from"]');
     if (invoiceFromTd) {
       let text = invoiceFromTd.textContent.replace(/\r?\n\s*/g, "\n").trim();
 
       const lines = text.split(/\r?\n/);
-      // 去掉最前面的 "Invoice From:" 行（如果有）
+      // strip leading "Invoice From:" line if it exists
       if (lines.length && /^invoice from:/i.test(lines[0].trim())) {
         lines.shift();
       }
@@ -77,7 +67,7 @@ function parseTaxReceiptHtml(html) {
       result.invoiceFromBlock = lines.join("\n").trim();
     }
 
-    // 兼容老版本：没有 data-adh 的情况
+    // Fallback for older HTML without data-adh
     if (!result.invoiceFromBlock) {
       const allH3 = Array.from(div.querySelectorAll("h3"));
       const invoiceFromH3 = allH3.find((h) =>
@@ -93,7 +83,6 @@ function parseTaxReceiptHtml(html) {
       }
     }
 
-    // 互相兜底
     if (!result.headerFromBlock && result.invoiceFromBlock) {
       result.headerFromBlock = result.invoiceFromBlock;
     }
@@ -101,15 +90,13 @@ function parseTaxReceiptHtml(html) {
       result.invoiceFromBlock = result.headerFromBlock;
     }
 
-    // Notes（最多 4 条）
     const ul = div.querySelector("ul");
     if (ul) {
       const lis = Array.from(ul.querySelectorAll("li"));
-      lis.forEach((li, idx) => {
-        if (idx < 4) {
-          result.notes[idx] = li.textContent.trim();
-        }
-      });
+      const lines = lis
+        .map((li) => li.textContent.trim())
+        .filter((t) => t.length > 0);
+      result.footerText = lines.join("\n");
     }
   } catch (e) {
     console.warn("Failed to parse tax receipt html", e);
@@ -118,9 +105,6 @@ function parseTaxReceiptHtml(html) {
   return result;
 }
 
-/* --------- Helpers: build bodyHtml ---------- */
-
-// greeting 参数仍然忽略，只用 main / closing
 function buildBodyHtml(_greetingIgnored, main, closing) {
   const escape = (str) =>
     (str || "")
@@ -128,7 +112,6 @@ function buildBodyHtml(_greetingIgnored, main, closing) {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-  // 保留所有换行（包括空行），每个 \n 变成一个 <br/>
   const toHtmlPreserveNewlines = (str) => {
     if (!str) return "";
     const escaped = escape(str);
@@ -149,13 +132,12 @@ function buildBodyHtml(_greetingIgnored, main, closing) {
   return parts.join("\n");
 }
 
-/* --------- Helpers: build taxReceiptHtml ---------- */
-
+// --------- taxReceiptHtml footerText  ----------
 function buildTaxReceiptHtml(
-  eventTitle, // 目前没直接用，{{EventTitle}} 用占位符
+  eventTitle,
   headerFromBlock,
   invoiceFromBlock,
-  notes
+  footerText
 ) {
   const escape = (str) =>
     (str || "")
@@ -171,9 +153,13 @@ function buildTaxReceiptHtml(
       .map((l) => escape(l))
       .join("<br/>\n                ");
 
-  const notesHtml = (notes || [])
-    .filter((n) => n && n.trim())
-    .map((n) => `<li>${escape(n.trim())}</li>`)
+  const footerLines = (footerText || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const notesHtml = footerLines
+    .map((line) => `<li>${escape(line)}</li>`)
     .join("\n              ");
 
   const headerFromHtml = formatLinesToHtml(headerFromBlock || invoiceFromBlock);
@@ -332,7 +318,7 @@ function buildTaxReceiptHtml(
 `.trim();
 }
 
-/* --------- Component ---------- */
+// ---- component ---------------------------------------------------
 
 export default function PaymentEmailTemplateEditor({
   apiBase,
@@ -342,7 +328,7 @@ export default function PaymentEmailTemplateEditor({
   const [subject, setSubject] = useState("");
 
   // body text
-  const [bodyGreeting, setBodyGreeting] = useState(""); // 不再输出
+  const [bodyGreeting, setBodyGreeting] = useState(""); // no longer used
   const [bodyMain, setBodyMain] = useState("");
   const [bodyClosing, setBodyClosing] = useState("");
 
@@ -350,10 +336,7 @@ export default function PaymentEmailTemplateEditor({
   const [eventTitle, setEventTitle] = useState("");
   const [headerFromBlock, setHeaderFromBlock] = useState("");
   const [fromBlock, setFromBlock] = useState("");
-  const [note1, setNote1] = useState("");
-  const [note2, setNote2] = useState("");
-  const [note3, setNote3] = useState("");
-  const [note4, setNote4] = useState("");
+  const [footerText, setFooterText] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
@@ -366,10 +349,9 @@ export default function PaymentEmailTemplateEditor({
     setSubject(template.subjectTemplate || "");
 
     const bodyParts = parseBodyHtml(template.bodyHtml || "");
-    // 忽略旧的 greeting（如 "dear customer"）
+    // ignore old greeting like "dear customer"
     setBodyGreeting("");
     setBodyMain(bodyParts.main || "");
-    // closing 默认空，让 “Regards, ADH” 消失
     setBodyClosing("");
 
     const receiptParts = parseTaxReceiptHtml(template.taxReceiptHtml || "");
@@ -389,22 +371,16 @@ export default function PaymentEmailTemplateEditor({
         defaultFrom
     );
 
-    setNote1(
-      receiptParts.notes[0] ||
-        "Please bring this receipt when collecting regalia."
-    );
-    setNote2(
-      receiptParts.notes[1] ||
-        "Regalia must be returned by the due date to avoid extra fees."
-    );
-    setNote3(
-      receiptParts.notes[2] ||
-        "You will be invoiced for unreturned or damaged regalia."
-    );
-    setNote4(
-      receiptParts.notes[3] ||
-        "If couriering regalia back, include your contact details."
-    );
+    const defaultFooter =
+      receiptParts.footerText ||
+      [
+        "Please bring this receipt when collecting regalia.",
+        "Regalia must be returned by the due date to avoid extra fees.",
+        "You will be invoiced for unreturned or damaged regalia.",
+        "If couriering regalia back, include your contact details.",
+      ].join("\n");
+
+    setFooterText(defaultFooter);
   }, [template]);
 
   const handleSave = async () => {
@@ -419,7 +395,7 @@ export default function PaymentEmailTemplateEditor({
         eventTitle,
         headerFromBlock,
         fromBlock,
-        [note1, note2, note3, note4]
+        footerText
       );
 
       const payload = {
@@ -439,7 +415,10 @@ export default function PaymentEmailTemplateEditor({
       }
 
       const updated = await res.json();
-      onSaved?.(updated);
+
+      if (onSaved) {
+        onSaved(updated);
+      }
 
       setStatus({ type: "success", message: "Changes saved." });
     } catch (err) {
@@ -517,35 +496,14 @@ export default function PaymentEmailTemplateEditor({
           </div>
 
           <div className="email-field">
-            <label className="email-label">Note 1</label>
-            <input
-              className="email-input"
-              value={note1}
-              onChange={(e) => setNote1(e.target.value)}
-            />
-          </div>
-          <div className="email-field">
-            <label className="email-label">Note 2</label>
-            <input
-              className="email-input"
-              value={note2}
-              onChange={(e) => setNote2(e.target.value)}
-            />
-          </div>
-          <div className="email-field">
-            <label className="email-label">Note 3</label>
-            <input
-              className="email-input"
-              value={note3}
-              onChange={(e) => setNote3(e.target.value)}
-            />
-          </div>
-          <div className="email-field">
-            <label className="email-label">Note 4</label>
-            <input
-              className="email-input"
-              value={note4}
-              onChange={(e) => setNote4(e.target.value)}
+            <label className="email-label">Footer</label>
+            <textarea
+              className="email-textarea"
+              value={footerText}
+              onChange={(e) => setFooterText(e.target.value)}
+              placeholder={
+                "Each line here will appear as a bullet point in the receipt footer."
+              }
             />
           </div>
 
