@@ -1,19 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import JoditEditor from "jodit-react";
-import AdminNavbar from "../pages/AdminNavbar";
+import "./PurchaseOrderEmailTemplate.css";
 import { sendOrderCompleteTemplate } from "../api/TemplateApi.js";
 
-export default function EmailContent() {
+export default function PurchaseOrderEmailTemplate() {
   const editor = useRef(null);
-
   const LOCAL_KEY = "email_template_order_receipt";
 
   const [html, setHtml] = useState("");
   const [previewHtml, setPreviewHtml] = useState("");
 
-  // --------------------------------------------------
-  // VARIABLE LIST (must match placeholders in template)
-  // --------------------------------------------------
+  // ----------------------------
+  // VARIABLE LIST
+  // ----------------------------
   const variableList = [
     "gstNumber",
     "invoiceNumber",
@@ -31,12 +30,12 @@ export default function EmailContent() {
     "cartRows",
     "total",
     "amountPaid",
-    "balanceOwing"
+    "balanceOwing",
   ];
 
-  // --------------------------------------------------
-  // DEFAULT TEMPLATE (FULLY FIXED)
-  // --------------------------------------------------
+  // ----------------------------
+  // DEFAULT TEMPLATE
+  // ----------------------------
   const defaultTemplate = `
 <!DOCTYPE html>
 <html>
@@ -48,11 +47,7 @@ export default function EmailContent() {
 
 <body style="margin:0; padding:0; background:#f4f4f4; font-family:Arial, sans-serif;">
 
-<table width="100%" cellpadding="0" cellspacing="0" style="padding:20px;">
-<tr>
-<td align="center">
-
-<table width="750" cellpadding="0" cellspacing="0" style="background:white; border-radius:8px; padding:25px;">
+<table width="750" cellpadding="0" cellspacing="0" style="margin:20px auto; background:white; border-radius:8px; padding:25px; border:1px solid #ddd;">
 
   <!-- HEADER -->
   <tr>
@@ -60,6 +55,9 @@ export default function EmailContent() {
       <h1 style="margin:0; font-size:24px; color:#111;">Order Confirmation</h1>
       <div style="font-size:12px; color:#777; margin-top:3px;">
         GST No: {{gstNumber}}
+      </div>
+      <div style="font-size:11px; color:#777;">
+        Order No: {{invoiceNumber}}
       </div>
     </td>
 
@@ -199,17 +197,13 @@ export default function EmailContent() {
 
 </table>
 
-</td>
-</tr>
-</table>
-
 </body>
 </html>
 `;
 
-  // --------------------------------------------------
-  // SAMPLE PREVIEW VALUES (CLEAN + MATCHES VARIABLES)
-  // --------------------------------------------------
+  // ----------------------------
+  // SAMPLE DATA FOR PREVIEW
+  // ----------------------------
   const sampleData = {
     firstName: "John",
     lastName: "Doe",
@@ -233,74 +227,66 @@ export default function EmailContent() {
     `,
   };
 
-  // --------------------------------------------------
-  // LOAD TEMPLATE
-  // --------------------------------------------------
-  useEffect(() => {
-    const saved = localStorage.getItem(LOCAL_KEY);
-    const initial = saved || defaultTemplate;
-    setHtml(initial);
-    updatePreview(initial);
-  }, []);
+  // ----------------------------
+  // LOAD TEMPLATE ON MOUNT
+  // ----------------------------
+useEffect(() => {
+  const saved = localStorage.getItem(LOCAL_KEY);
+  const initial = saved ?? defaultTemplate;
+  setHtml(initial);
+  updatePreview(initial);
+}, []);
 
-  // --------------------------------------------------
-  // ENABLE DRAG & DROP IN JODIT
-  // --------------------------------------------------
-  useEffect(() => {
-    if (!editor.current) return;
 
-    const jodit = editor.current;
-
-    jodit.events?.on("ready", () => {
-      const editable = jodit.editor?.editor;
-
-      if (!editable) return;
-
-      const handleDrop = (event) => {
-        event.preventDefault();
-        const data = event.dataTransfer.getData("text/plain");
-        if (data) jodit.editor.selection.insertHTML(data);
-      };
-
-      const handleDragOver = (event) => event.preventDefault();
-
-      editable.addEventListener("drop", handleDrop);
-      editable.addEventListener("dragover", handleDragOver);
-
-      return () => {
-        editable.removeEventListener("drop", handleDrop);
-        editable.removeEventListener("dragover", handleDragOver);
-      };
-    });
-  }, []);
-
-  // --------------------------------------------------
+  // ----------------------------
   // PREVIEW UPDATE
-  // --------------------------------------------------
+  // ----------------------------
   const updatePreview = (value) => {
     let output = value;
-
     Object.keys(sampleData).forEach((key) => {
       output = output.replaceAll(`{{${key}}}`, sampleData[key]);
     });
-
     setPreviewHtml(output);
   };
 
-  // --------------------------------------------------
+  // Helper: get the actual Jodit instance
+  const getJodit = () => editor.current?.editor;
+
+  // ----------------------------
   // INSERT VARIABLE
-  // --------------------------------------------------
+  // ----------------------------
   const insertVariable = (key) => {
-    const placeholder = `{{${key}}}`;
-    editor.current?.editor?.selection.insertHTML(placeholder);
+    const j = editor.current?.editor;
+    if (!j) return;
+
+    j.selection.focus();
+    j.execCommand("insertHTML", false, `{{${key}}}`);
   };
 
-  // --------------------------------------------------
+  // ----------------------------
+  // JODIT CONFIG
+  // ----------------------------
+  const config = {
+    height: 1000,
+    enableDragAndDropFileToEditor: false,
+    events: {
+      drop: (event) => {
+        event.preventDefault();
+        const data = event.dataTransfer.getData("text/plain");
+        const j = editor.current?.editor;
+        if (j && data) {
+          j.execCommand("insertHTML", false, data);
+        }
+      },
+      dragover: (event) => event.preventDefault(),
+    },
+  };
+
+  // ----------------------------
   // SAVE TEMPLATE
-  // --------------------------------------------------
+  // ----------------------------
   const saveTemplate = async () => {
     localStorage.setItem(LOCAL_KEY, html);
-
     try {
       await sendOrderCompleteTemplate({
         key: "OCTemplate",
@@ -311,20 +297,12 @@ export default function EmailContent() {
     }
   };
 
-  const config = {
-    height: 1000,
-    enableDragAndDropFileToEditor: false,
-  };
-
   return (
     <div style={{ display: "flex", width: "100%" }}>
-      <AdminNavbar />
-
       <div style={{ flex: 1, padding: "30px" }}>
-        <h2>Email Template Editor (Drag & Drop)</h2>
-
+        {/* VARIABLE BUTTONS */}
         <div style={{ marginBottom: "15px" }}>
-          <strong>Variables (Drag or Click):</strong>
+          <strong>Variables (Drag or Drop):</strong>
           <div style={{ marginTop: "8px" }}>
             {variableList.map((key) => (
               <button
@@ -350,29 +328,19 @@ export default function EmailContent() {
           </div>
         </div>
 
+        {/* EDITOR */}
         <JoditEditor
           ref={editor}
           value={html}
           config={config}
-          style={{ height: "1000px" }}
-          onChange={(content) => {
-            setHtml(content);
-            updatePreview(content);
+          onBlur={(newContent) => {
+            setHtml(newContent);
+            localStorage.setItem(LOCAL_KEY, newContent);
           }}
         />
 
-        <button
-          onClick={saveTemplate}
-          style={{
-            marginTop: "15px",
-            padding: "10px 20px",
-            background: "#1e40af",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
+        {/* SAVE */}
+        <button onClick={saveTemplate} className="email-save-button">
           Save Template
         </button>
       </div>

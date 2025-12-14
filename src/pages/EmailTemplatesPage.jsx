@@ -1,9 +1,9 @@
 // src/pages/EmailTemplatesPage.jsx
 import React, { useEffect, useState } from "react";
 import "../components/EmailEdit.css";
-
 import PaymentEmailTemplateEditor from "../components/PaymentEmailTemplateEditor";
 import OrderCompletedEditor from "../components/OrderCompletedEditor";
+import PurchaseOrderEmailTemplate from "../components/PurchaseOrderEmailTemplate";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 
@@ -67,11 +67,7 @@ export default function EmailTemplatesPage() {
 
     if (selected.name === "OrderCompleted") {
       return (
-        <OrderCompletedEditor
-          apiBase={API_BASE}
-          template={selected}
-          onSaved={handleTemplateSaved}
-        />
+        <PurchaseOrderEmailTemplate/>
       );
     }
 
