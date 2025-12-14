@@ -5,7 +5,6 @@ import ReactDOM from "react-dom";
 import "./AdminNavbar.css";
 import "./Spinner.css";
 import { useAuth } from "@/components/AuthContext.jsx";
-// import printOrdersWrapper from "@/components/PrintLabels.jsx"
 import {
   generateLabelsPDF,
   generateManifestPDF,
@@ -96,9 +95,6 @@ function AdminNavbar() {
               <li className="dropdown-item">
                 <Link to="/adminusers">Users</Link>
               </li>
-              <li className="dropdown-item">
-                <Link to="/emailcontent">Order Completion Emails</Link>
-              </li>
               {/*<li className="dropdown-item">*/}
               {/*    <Link to="/admintest">*/}
               {/*        TEST*/}
@@ -120,6 +116,9 @@ function AdminNavbar() {
             <ul className="dropdown-panel">
               <Link to="/IndOrder">Individual Orders</Link>
               <Link to="/BulkOrder">Bulk Orders</Link>
+              <Link to="/ImportBulk">
+                Import Bulk Hire
+              </Link>
               {loading && <FullscreenSpinner />}
               <a onClick={printLabels} style={{ cursor: "pointer" }}>
                 PRINT LABELS

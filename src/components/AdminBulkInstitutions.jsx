@@ -60,10 +60,12 @@ export default function AdminBulkOrder() {
     const [changed, setChanged] = useState(false);
 
     const updateForm = (ceremony) => {
+        console.log("Updating form");
         setFormData({
             id: ceremony.id,
+            visible: ceremony.visible,
             name: ceremony.name,
-            idCode: ceremony.idCode || "",
+            idCode: ceremony.idCode,
             orderNumber: ceremony.orderNumber || "",
             institutionName: ceremony.institutionName || "",
             courierAddress: ceremony.courierAddress || "",
@@ -112,6 +114,7 @@ export default function AdminBulkOrder() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        console.log(name, value);
         setFormData((prev) => ({ ...prev, [name]: value }));
         setChanged(true);
     };
@@ -190,10 +193,9 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="idcode">Id Code</Label>
                                 <Input
                                     id="idcode"
-                                    name="idcode"
+                                    name="idCode"
                                     value={formData.idCode}
                                     onChange={handleChange}
-                                    required
                                 />
                             </div>
 
@@ -222,7 +224,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="courieraddress">Courier Address</Label>
                                 <Input
                                     id="courieraddress"
-                                    name="courieraddress"
+                                    name="courierAddress"
                                     value={formData.courierAddress}
                                     onChange={handleChange}
                                     required
@@ -233,7 +235,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="postaladdress">Postal Address</Label>
                                 <Input
                                     id="postaladdress"
-                                    name="postaladdress"
+                                    name="postalAddress"
                                     value={formData.postalAddress}
                                     onChange={handleChange}
                                     required
@@ -257,7 +259,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="invoiceemail">Invoice Email</Label>
                                 <Input
                                     id="invoiceemail"
-                                    name="invoiceemail"
+                                    name="invoiceEmail"
                                     type="invoiceemail"
                                     value={formData.invoiceEmail}
                                     onChange={handleChange}
@@ -283,7 +285,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="ceremonydate">Ceremony Date</Label>
                                 <Input
                                     id="ceremonydate"
-                                    name="ceremonydate"
+                                    name="ceremonyDate"
                                     type="date"
                                     value={formData.ceremonyDate}
                                     onChange={handleChange}
@@ -295,7 +297,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="duedate">Due Date</Label>
                                 <Input
                                     id="duedate"
-                                    name="duedate"
+                                    name="dueDate"
                                     type="date"
                                     value={formData.dueDate}
                                     onChange={handleChange}
@@ -307,7 +309,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="despatchdate">Despatch Date</Label>
                                 <Input
                                     id="despatchdate"
-                                    name="despatchdate"
+                                    name="despatchDate"
                                     type="date"
                                     value={formData.despatchDate}
                                     onChange={handleChange}
@@ -319,7 +321,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="datesent">Date Sent</Label>
                                 <Input
                                     id="datesent"
-                                    name="datesent"
+                                    name="dateSent"
                                     type="date"
                                     value={formData.dateSent}
                                     onChange={handleChange}
@@ -331,7 +333,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="despatchdate">Return Date</Label>
                                 <Input
                                     id="returndate"
-                                    name="returndate"
+                                    name="returnDate"
                                     type="date"
                                     value={formData.returnDate}
                                     onChange={handleChange}
@@ -343,7 +345,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="datereturned">Date Returned</Label>
                                 <Input
                                     id="datereturned"
-                                    name="datereturned"
+                                    name="dateReturned"
                                     type="date"
                                     value={formData.dateReturned}
                                     onChange={handleChange}
@@ -368,7 +370,7 @@ export default function AdminBulkOrder() {
                                 <Label htmlFor="pricecode">Price Code</Label>
                                 <Input
                                     id="pricecode"
-                                    name="pricecode"
+                                    name="priceCode"
                                     value={formData.priceCode}
                                     onChange={handleChange}
                                     required

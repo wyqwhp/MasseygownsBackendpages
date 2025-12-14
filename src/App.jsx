@@ -14,7 +14,7 @@ import HomepageEdit from "./components/HomepageEdit.jsx";
 import HomePage from "@/pages/HomePage.jsx";
 import AdminIndOrder from "@/components/AdminIndOrder.jsx";
 import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
-import EmailContent from "./components/EmailContent.jsx";
+import AdminImportBulk from "@/components/AdminImportBulk.jsx";
 import EmailTemplatesPage from "@/pages/EmailTemplatesPage.jsx";
 
 function App() {
@@ -117,30 +117,30 @@ function App() {
           </Authentication>
         }
       />
-      <Route
-        path="/IndOrder"
-        element={
-          <Authentication>
-            <AdminIndOrder />
-          </Authentication>
-        }
-      />
-      <Route
-        path="/BulkOrder"
-        element={
-          <Authentication>
-            <AdminBulkOrder />
-          </Authentication>
-        }
-      />
-      <Route
-        path="/EmailContent"
-        element={
-          <Authentication>
-            <EmailContent />
-          </Authentication>
-        }
-      />
+        <Route
+            path="/IndOrder"
+            element={
+                <Authentication>
+                    <AdminIndOrder />
+                </Authentication>
+            }
+        />
+        <Route
+            path="/BulkOrder"
+            element={
+                <Authentication>
+                    <AdminBulkOrder />
+                </Authentication>
+            }
+        />
+        <Route
+            path="/ImportBulk"
+            element={
+                <Authentication>
+                    <AdminImportBulk />
+                </Authentication>
+            }
+        />
     </Routes>
   );
 }
