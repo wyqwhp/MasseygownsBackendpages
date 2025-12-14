@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 
+/* --------- Helpers: parse bodyHtml ---------- */
+
 function parseBodyHtml(html) {
   const result = {
     greeting: "",
@@ -11,20 +13,19 @@ function parseBodyHtml(html) {
   try {
     const wrapper = document.createElement("div");
     wrapper.innerHTML = html;
-    const ps = Array.from(wrapper.querySelectorAll("p"));
 
-    if (ps[0]) {
-      result.greeting = ps[0].textContent.trim();
-    }
-    if (ps[1]) {
-      result.main = ps[1].textContent.trim();
-    }
-    if (ps[2]) {
-      const inner = ps[2].innerHTML || "";
-      const withNewlines = inner.replace(/<br\s*\/?>/gi, "\n");
-      const textOnly = withNewlines.replace(/<[^>]+>/g, "");
-      result.closing = textOnly.trim();
-    }
+    // 就当整个 body 只有一段正文，取第一个 <p> 的内容；
+    // 如果连 <p> 都没有，就用整个 wrapper 的 HTML。
+    const p = wrapper.querySelector("p");
+    const raw = (p ? p.innerHTML : wrapper.innerHTML) || "";
+
+    // 1. 所有 <br> / <br/> 还原成换行符
+    const withNewlines = raw.replace(/<br\s*\/?>/gi, "\n");
+    // 2. 去掉其他 HTML 标签，只留纯文本
+    const textOnly = withNewlines.replace(/<[^>]+>/g, "");
+
+    // 只用 main。greeting / closing 留空
+    result.main = textOnly.trim();
   } catch (e) {
     console.warn("Failed to parse body html", e);
   }
@@ -32,7 +33,8 @@ function parseBodyHtml(html) {
   return result;
 }
 
-// Parse taxReceiptHtml into editable text blocks
+/* --------- Helpers: parse taxReceiptHtml ---------- */
+
 function parseTaxReceiptHtml(html) {
   const result = {
     eventTitle: "",
@@ -42,24 +44,6 @@ function parseTaxReceiptHtml(html) {
   };
 
   if (!html) return result;
-
-  // helper: strip leading blank lines and a leading “Invoice From:”
-  const stripInvoiceLabel = (text) => {
-    if (!text) return "";
-    let lines = text.split(/\r?\n/).map((l) => l.trim());
-
-    // drop leading empty lines
-    while (lines.length && !lines[0]) {
-      lines.shift();
-    }
-
-    // drop first non-empty line if it is "Invoice From:"
-    if (lines.length && /^invoice from:?\s*$/i.test(lines[0])) {
-      lines.shift();
-    }
-
-    return lines.join("\n").trim();
-  };
 
   try {
     const div = document.createElement("div");
@@ -71,6 +55,7 @@ function parseTaxReceiptHtml(html) {
       result.eventTitle = eventTd.textContent.trim();
     }
 
+    // Header (top-right)
     const headerTd = div.querySelector('td[data-adh="header-address"]');
     if (headerTd) {
       result.headerFromBlock = headerTd.textContent
@@ -78,13 +63,21 @@ function parseTaxReceiptHtml(html) {
         .trim();
     }
 
+    // Invoice From 块
     const invoiceFromTd = div.querySelector('td[data-adh="invoice-from"]');
     if (invoiceFromTd) {
-      const raw = invoiceFromTd.textContent.replace(/\r?\n\s*/g, "\n").trim();
-      result.invoiceFromBlock = stripInvoiceLabel(raw);
+      let text = invoiceFromTd.textContent.replace(/\r?\n\s*/g, "\n").trim();
+
+      const lines = text.split(/\r?\n/);
+      // 去掉最前面的 "Invoice From:" 行（如果有）
+      if (lines.length && /^invoice from:/i.test(lines[0].trim())) {
+        lines.shift();
+      }
+
+      result.invoiceFromBlock = lines.join("\n").trim();
     }
 
-    // Fallback for older HTML without data-adh
+    // 兼容老版本：没有 data-adh 的情况
     if (!result.invoiceFromBlock) {
       const allH3 = Array.from(div.querySelectorAll("h3"));
       const invoiceFromH3 = allH3.find((h) =>
@@ -93,12 +86,14 @@ function parseTaxReceiptHtml(html) {
       if (invoiceFromH3) {
         const p = invoiceFromH3.nextElementSibling;
         if (p && p.tagName === "P") {
-          const raw = p.textContent.replace(/\r?\n\s*/g, "\n").trim();
-          result.invoiceFromBlock = stripInvoiceLabel(raw);
+          result.invoiceFromBlock = p.textContent
+            .replace(/\r?\n\s*/g, "\n")
+            .trim();
         }
       }
     }
 
+    // 互相兜底
     if (!result.headerFromBlock && result.invoiceFromBlock) {
       result.headerFromBlock = result.invoiceFromBlock;
     }
@@ -106,7 +101,7 @@ function parseTaxReceiptHtml(html) {
       result.invoiceFromBlock = result.headerFromBlock;
     }
 
-    // Notes
+    // Notes（最多 4 条）
     const ul = div.querySelector("ul");
     if (ul) {
       const lis = Array.from(ul.querySelectorAll("li"));
@@ -123,31 +118,41 @@ function parseTaxReceiptHtml(html) {
   return result;
 }
 
-// Build bodyHtml from three text blocks
-function buildBodyHtml(greeting, main, closing) {
+/* --------- Helpers: build bodyHtml ---------- */
+
+// greeting 参数仍然忽略，只用 main / closing
+function buildBodyHtml(_greetingIgnored, main, closing) {
   const escape = (str) =>
     (str || "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-  const closingHtml = (closing || "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line) => escape(line))
-    .join("<br/>");
+  // 保留所有换行（包括空行），每个 \n 变成一个 <br/>
+  const toHtmlPreserveNewlines = (str) => {
+    if (!str) return "";
+    const escaped = escape(str);
+    return escaped.replace(/\r?\n/g, "<br/>");
+  };
 
-  return `
-<p>${escape(greeting)}</p>
-<p>${escape(main)}</p>
-<p>${closingHtml}</p>
-`.trim();
+  const mainHtml = toHtmlPreserveNewlines(main);
+  const closingHtml = toHtmlPreserveNewlines(closing);
+
+  const parts = [];
+  if (mainHtml) {
+    parts.push(`<p>${mainHtml}</p>`);
+  }
+  if (closingHtml) {
+    parts.push(`<p>${closingHtml}</p>`);
+  }
+
+  return parts.join("\n");
 }
 
-// Build taxReceiptHtml
+/* --------- Helpers: build taxReceiptHtml ---------- */
+
 function buildTaxReceiptHtml(
-  eventTitle, // kept in signature but not used
+  eventTitle, // 目前没直接用，{{EventTitle}} 用占位符
   headerFromBlock,
   invoiceFromBlock,
   notes
@@ -235,9 +240,10 @@ function buildTaxReceiptHtml(
                   width="50%"
                   valign="top"
                   data-adh="invoice-from"
+                  style="text-align:right;"
                 >
                   <h3 style="margin:0 0 8px 0; font-size:16px;">Invoice From:</h3>
-                  <p style="margin:0; line-height:1.6;">
+                  <p style="margin:0; line-height:1.6; text-align:right;">
                     ${invoiceFromHtml}
                   </p>
                 </td>
@@ -326,7 +332,7 @@ function buildTaxReceiptHtml(
 `.trim();
 }
 
-// ---- component ---------------------------------------------------
+/* --------- Component ---------- */
 
 export default function PaymentEmailTemplateEditor({
   apiBase,
@@ -336,7 +342,7 @@ export default function PaymentEmailTemplateEditor({
   const [subject, setSubject] = useState("");
 
   // body text
-  const [bodyGreeting, setBodyGreeting] = useState("");
+  const [bodyGreeting, setBodyGreeting] = useState(""); // 不再输出
   const [bodyMain, setBodyMain] = useState("");
   const [bodyClosing, setBodyClosing] = useState("");
 
@@ -360,9 +366,11 @@ export default function PaymentEmailTemplateEditor({
     setSubject(template.subjectTemplate || "");
 
     const bodyParts = parseBodyHtml(template.bodyHtml || "");
-    setBodyGreeting(bodyParts.greeting || "Hi {{FirstName}},");
-    setBodyMain(bodyParts.main || "Thank you for your payment...");
-    setBodyClosing(bodyParts.closing || "Regards,\nAcademic Dress Hire");
+    // 忽略旧的 greeting（如 "dear customer"）
+    setBodyGreeting("");
+    setBodyMain(bodyParts.main || "");
+    // closing 默认空，让 “Regards, ADH” 消失
+    setBodyClosing("");
 
     const receiptParts = parseTaxReceiptHtml(template.taxReceiptHtml || "");
     setEventTitle(receiptParts.eventTitle || "");
@@ -431,10 +439,7 @@ export default function PaymentEmailTemplateEditor({
       }
 
       const updated = await res.json();
-
-      if (onSaved) {
-        onSaved(updated);
-      }
+      onSaved?.(updated);
 
       setStatus({ type: "success", message: "Changes saved." });
     } catch (err) {
@@ -476,16 +481,6 @@ export default function PaymentEmailTemplateEditor({
               value={bodyMain}
               onChange={(e) => setBodyMain(e.target.value)}
               placeholder="Thank you for your payment..."
-            />
-          </div>
-
-          <div className="email-field">
-            <label className="email-label">Closing</label>
-            <textarea
-              className="email-textarea"
-              value={bodyClosing}
-              onChange={(e) => setBodyClosing(e.target.value)}
-              placeholder={"Regards,\nAcademic Dress Hire"}
             />
           </div>
 
