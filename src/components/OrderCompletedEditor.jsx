@@ -22,7 +22,7 @@ export default function OrderCompletedEditor({ apiBase, template, onSaved }) {
       const payload = {
         subjectTemplate: subject,
         bodyHtml: bodyHtml,
-        // 如果这个模板不需要 tax receipt，可以直接原样带回去
+
         taxReceiptHtml: template.taxReceiptHtml,
       };
 
