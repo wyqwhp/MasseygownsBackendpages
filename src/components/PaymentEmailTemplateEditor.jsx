@@ -43,6 +43,24 @@ function parseTaxReceiptHtml(html) {
 
   if (!html) return result;
 
+  // helper: strip leading blank lines and a leading “Invoice From:”
+  const stripInvoiceLabel = (text) => {
+    if (!text) return "";
+    let lines = text.split(/\r?\n/).map((l) => l.trim());
+
+    // drop leading empty lines
+    while (lines.length && !lines[0]) {
+      lines.shift();
+    }
+
+    // drop first non-empty line if it is "Invoice From:"
+    if (lines.length && /^invoice from:?\s*$/i.test(lines[0])) {
+      lines.shift();
+    }
+
+    return lines.join("\n").trim();
+  };
+
   try {
     const div = document.createElement("div");
     div.innerHTML = html;
@@ -62,9 +80,8 @@ function parseTaxReceiptHtml(html) {
 
     const invoiceFromTd = div.querySelector('td[data-adh="invoice-from"]');
     if (invoiceFromTd) {
-      result.invoiceFromBlock = invoiceFromTd.textContent
-        .replace(/\r?\n\s*/g, "\n")
-        .trim();
+      const raw = invoiceFromTd.textContent.replace(/\r?\n\s*/g, "\n").trim();
+      result.invoiceFromBlock = stripInvoiceLabel(raw);
     }
 
     // Fallback for older HTML without data-adh
@@ -76,9 +93,8 @@ function parseTaxReceiptHtml(html) {
       if (invoiceFromH3) {
         const p = invoiceFromH3.nextElementSibling;
         if (p && p.tagName === "P") {
-          result.invoiceFromBlock = p.textContent
-            .replace(/\r?\n\s*/g, "\n")
-            .trim();
+          const raw = p.textContent.replace(/\r?\n\s*/g, "\n").trim();
+          result.invoiceFromBlock = stripInvoiceLabel(raw);
         }
       }
     }
