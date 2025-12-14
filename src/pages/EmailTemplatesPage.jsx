@@ -1,7 +1,7 @@
 // src/pages/EmailTemplatesPage.jsx
 import React, { useEffect, useState } from "react";
 import "../components/EmailEdit.css";
-import EmailTemplateEditor from "../components/EmailTemplateEditor";
+import PaymentEmailTemplateEditor from "../components/PaymentEmailTemplateEditor";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 
@@ -95,7 +95,7 @@ export default function EmailTemplatesPage() {
           </div>
 
           {/* Right side */}
-          <EmailTemplateEditor
+          <PaymentEmailTemplateEditor
             apiBase={API_BASE}
             template={selected}
             onSaved={handleSaved}

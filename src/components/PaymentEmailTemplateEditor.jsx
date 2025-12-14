@@ -312,7 +312,11 @@ function buildTaxReceiptHtml(
 
 // ---- component ---------------------------------------------------
 
-export default function EmailTemplateEditor({ apiBase, template, onSaved }) {
+export default function PaymentEmailTemplateEditor({
+  apiBase,
+  template,
+  onSaved,
+}) {
   const [subject, setSubject] = useState("");
 
   // body text
