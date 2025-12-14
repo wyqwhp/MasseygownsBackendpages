@@ -5,7 +5,6 @@ import ReactDOM from "react-dom";
 import "./AdminNavbar.css";
 import "./Spinner.css";
 import { useAuth } from "@/components/AuthContext.jsx";
-// import printOrdersWrapper from "@/components/PrintLabels.jsx"
 import {
   generateLabelsPDF,
   generateManifestPDF,
@@ -117,6 +116,9 @@ function AdminNavbar() {
               </Link>
               <Link to="/BulkOrder">
                 Bulk Orders
+              </Link>
+              <Link to="/ImportBulk">
+                Import Bulk Hire
               </Link>
               {loading && <FullscreenSpinner />}
               <a onClick={printLabels} style={{ cursor: "pointer" }}>

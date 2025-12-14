@@ -26,6 +26,7 @@
     import axios from "axios";
     import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
     import "./AdminIndOrder.css"
+    import {SelectViewport} from "@radix-ui/react-select";
 
     const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
     // const API_URL = "http://localhost:5144"
@@ -69,15 +70,15 @@
         const [items, setItems] = useState([]);
         const [sizes, setSizes] = useState([]);
         const [hoods, setHoods] = useState([]);
-        const [gownId, setGownId] = useState(null);
-        const [hatId, setHatId] = useState(null);
+        const [gownId, setGownId] = useState("");
+        const [hatId, setHatId] = useState("");
 
         const getLabel = (name) => name.split("-")[1]?.trim() || name;
 
         const retrieveItems = (order) => {
             if (order.items.length === 0) {
-                setHatId(0);
-                setGownId(0);
+                setHatId("");
+                setGownId("");
                 setFormData(prev => ({
                     ...prev,
                     gownType: "",
@@ -86,6 +87,8 @@
                     hatSize: "",
                     hoodType: "",
                 }));
+                console.log('HatId=', hatId);
+                console.log('GownId=', gownId);
                 return [];
             }
 
@@ -94,6 +97,8 @@
             let hatType = "";
             let hatSize = "";
             let hoodType = "";
+            setHatId("");
+            setGownId("");
 
             for (let i of order.items) {
                 if (i.itemName?.startsWith("Gown")) {
@@ -457,14 +462,17 @@
                                     </SelectTrigger>
 
                                     <SelectContent>
+                                        <SelectViewport className="max-h-64">
                                         {
                                             hoods
-                                                .map(g => (
-                                                    <SelectItem key={g.id} value={g.name}>
-                                                        {g.name}
-                                                    </SelectItem>
-                                                ))
+                                                .filter(g => g.itemId === Number(4))
+                                            .map(g => (
+                                                <SelectItem key={g.id} value={g.name}>
+                                                    {g.name}
+                                                </SelectItem>
+                                            ))
                                         }
+                                        </SelectViewport>
                                     </SelectContent>
                                 </Select>
                             </div>

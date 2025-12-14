@@ -11,7 +11,8 @@ const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://local
 export default function CeremonyEditor() {
     const [ceremonies, setCeremonies] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [form, setForm] = useState({ name: "", dueDate: "", ceremonyDate: "", visible: false});
+    const [form, setForm] = useState({ name: "", dueDate: "", ceremonyDate: "", visible: false,
+                                                      collectionTime: ""});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [degrees, setDegrees] = useState([]);
@@ -55,6 +56,7 @@ export default function CeremonyEditor() {
             ceremonyDate: ceremony.ceremonyDate,
             dueDate: ceremony.dueDate,
             visible: ceremony.visible,
+            collectionTime: ceremony.collectionTime,
         });
     };
 
@@ -64,7 +66,7 @@ export default function CeremonyEditor() {
             setCeremonies(ceremonies.filter(d => d.id !== editingId));
         }
         setEditingId(null);
-        setForm({ name: "", dueDate: "", ceremonyDate: "", visible: false});
+        setForm({ name: "", dueDate: "", ceremonyDate: "", visible: false, collectionTime: "" });
     };
 
     // Save update
@@ -83,7 +85,7 @@ export default function CeremonyEditor() {
                 ceremonies.map((c) => (c.id === editingId ? res.data : c))
             );
             setEditingId(null);
-            setForm({ name: "", dueDate: "", ceremonyDate: "", visible: false});
+            setForm({ name: "", dueDate: "", ceremonyDate: "", visible: false, collectionTime: "", });
         } catch (err) {
             setError("Update failed: " + err.message);
         } finally {
@@ -93,10 +95,11 @@ export default function CeremonyEditor() {
 
     const addCeremony = () => {
         const tempId = "temp-" + crypto.randomUUID();
-        setCeremonies([...ceremonies, { id: tempId, name: "", dueDate: "", ceremonyDate: "", visible: false }]);
+        setCeremonies([...ceremonies, { id: tempId, name: "", dueDate: "", ceremonyDate: "", visible: false,
+            collectionTime: "", }]);
         setEditingId(tempId);
         setForm({
-            name: "", dueDate: null, ceremonyDate: null, visible: false
+            name: "", dueDate: null, ceremonyDate: null, visible: false, collectionTime: "",
         });
     };
 
@@ -203,10 +206,26 @@ export default function CeremonyEditor() {
                         {editingId === ceremony.id && (
                            <tr className="bg-gray-50">
                                <td colSpan={5}>
-                                   <div className="flex justify-center items-center">
-                                      <DegreesInCeremony ceremonyId={ceremony.id}
-                                                         onDegreesUpdated={handleDegreesUpdated}
-                                      />
+                                    <div className="flex flex-col items-center gap-4 p-2">
+                                        <label
+                                            htmlFor="collectionTime"
+                                            className="tracking-wide  font-medium mb-1 text-gray-700"
+                                        >
+                                            Collection time
+                                        </label>
+                                        <textarea
+                                            id="collectionTime"
+                                            type="text"
+                                            name="collectionTime"
+                                            value={form.collectionTime}
+                                            onChange={handleChange}
+                                            rows={4}
+                                            className="border rounded p-2 w-full resize-y"
+                                            placeholder="Enter collection details..."
+                                        />
+                                        <DegreesInCeremony ceremonyId={ceremony.id}
+                                                           onDegreesUpdated={handleDegreesUpdated}
+                                        />
                                    </div>
                                </td>
                             </tr>
