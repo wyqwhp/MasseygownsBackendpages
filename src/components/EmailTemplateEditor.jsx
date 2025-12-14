@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "./EmailEdit.css";
 
-const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
-
-/**
- * Parse bodyHtml into three simple text blocks:
- *  - greeting
- *  - main
- *  - closing
- */
 function parseBodyHtml(html) {
   const result = {
     greeting: "",
@@ -41,13 +32,7 @@ function parseBodyHtml(html) {
   return result;
 }
 
-/**
- * Parse taxReceiptHtml into:
- *  - eventTitle
- *  - headerFromBlock (top-right block in the header)
- *  - invoiceFromBlock (the “Invoice From” column)
- *  - notes: up to 4 bullet points
- */
+// Parse taxReceiptHtml into editable text blocks
 function parseTaxReceiptHtml(html) {
   const result = {
     eventTitle: "",
@@ -62,13 +47,12 @@ function parseTaxReceiptHtml(html) {
     const div = document.createElement("div");
     div.innerHTML = html;
 
-    // Event title: the TD with the blue left border
+    // Event title
     const eventTd = div.querySelector('td[style*="border-left"]');
     if (eventTd) {
       result.eventTitle = eventTd.textContent.trim();
     }
 
-    // Preferred: use data-adh markers we generate in buildTaxReceiptHtml
     const headerTd = div.querySelector('td[data-adh="header-address"]');
     if (headerTd) {
       result.headerFromBlock = headerTd.textContent
@@ -83,7 +67,7 @@ function parseTaxReceiptHtml(html) {
         .trim();
     }
 
-    // Fallback for older HTML without data-adh: use the "Invoice From" <h3> block
+    // Fallback for older HTML without data-adh
     if (!result.invoiceFromBlock) {
       const allH3 = Array.from(div.querySelectorAll("h3"));
       const invoiceFromH3 = allH3.find((h) =>
@@ -99,7 +83,6 @@ function parseTaxReceiptHtml(html) {
       }
     }
 
-    // If only one side exists, mirror it so the form is still populated nicely
     if (!result.headerFromBlock && result.invoiceFromBlock) {
       result.headerFromBlock = result.invoiceFromBlock;
     }
@@ -107,7 +90,7 @@ function parseTaxReceiptHtml(html) {
       result.invoiceFromBlock = result.headerFromBlock;
     }
 
-    // Notes: first <ul> list items
+    // Notes
     const ul = div.querySelector("ul");
     if (ul) {
       const lis = Array.from(ul.querySelectorAll("li"));
@@ -124,10 +107,7 @@ function parseTaxReceiptHtml(html) {
   return result;
 }
 
-/**
- * Build bodyHtml from three text blocks.
- * We escape HTML and convert newlines in the closing into <br/>.
- */
+// Build bodyHtml from three text blocks
 function buildBodyHtml(greeting, main, closing) {
   const escape = (str) =>
     (str || "")
@@ -149,14 +129,9 @@ function buildBodyHtml(greeting, main, closing) {
 `.trim();
 }
 
-/**
- * Build taxReceiptHtml from:
- *   eventTitle, headerFromBlock (top right), invoiceFromBlock (column),
- *   notes[4].
- * Both header and invoice-from address are editable independently.
- */
+// Build taxReceiptHtml
 function buildTaxReceiptHtml(
-  eventTitle,
+  eventTitle, // kept in signature but not used
   headerFromBlock,
   invoiceFromBlock,
   notes
@@ -180,7 +155,6 @@ function buildTaxReceiptHtml(
     .map((n) => `<li>${escape(n.trim())}</li>`)
     .join("\n              ");
 
-  // Allow either field to be left empty and fall back to the other
   const headerFromHtml = formatLinesToHtml(headerFromBlock || invoiceFromBlock);
   const invoiceFromHtml = formatLinesToHtml(
     invoiceFromBlock || headerFromBlock
@@ -193,7 +167,7 @@ function buildTaxReceiptHtml(
 
       <table width="650" cellpadding="0" cellspacing="0" style="background:white; border-radius:8px; padding:30px;">
 
-        <!-- Row 1: centered title, slightly higher than the address -->
+        <!-- Row 1: centered title -->
         <tr>
           <td colspan="2" style="padding-bottom:5px; text-align:center;">
             <h1
@@ -259,7 +233,7 @@ function buildTaxReceiptHtml(
 
         <tr>
           <td style="margin-top:30px; background:#eef3ff; padding:12px; border-left:4px solid #1e40af; font-weight:bold;" colspan="2">
-            ${escape(eventTitle || "")}
+            {{EventTitle}}
           </td>
         </tr>
 
@@ -336,18 +310,17 @@ function buildTaxReceiptHtml(
 `.trim();
 }
 
-export default function EmailEdit() {
-  const [templates, setTemplates] = useState([]);
-  const [selected, setSelected] = useState(null);
+// ---- component ---------------------------------------------------
 
+export default function EmailTemplateEditor({ apiBase, template, onSaved }) {
   const [subject, setSubject] = useState("");
 
-  // Body text blocks for business users
+  // body text
   const [bodyGreeting, setBodyGreeting] = useState("");
   const [bodyMain, setBodyMain] = useState("");
   const [bodyClosing, setBodyClosing] = useState("");
 
-  // Tax receipt text blocks
+  // tax receipt text
   const [eventTitle, setEventTitle] = useState("");
   const [headerFromBlock, setHeaderFromBlock] = useState("");
   const [fromBlock, setFromBlock] = useState("");
@@ -356,58 +329,23 @@ export default function EmailEdit() {
   const [note3, setNote3] = useState("");
   const [note4, setNote4] = useState("");
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState(null); // { type: "success" | "error", message }
+  const [status, setStatus] = useState(null);
 
-  // Load templates once on mount
+  // when template changes, populate state
   useEffect(() => {
-    const loadTemplates = async () => {
-      setLoading(true);
-      setStatus(null);
+    if (!template) return;
 
-      try {
-        const res = await fetch(`${API_BASE}/api/emailtemplates`);
-        if (!res.ok) {
-          throw new Error("Failed to load templates");
-        }
-        const data = await res.json();
+    setStatus(null);
+    setSubject(template.subjectTemplate || "");
 
-        setTemplates(data || []);
-
-        if (data && data.length > 0) {
-          applyTemplateToState(data[0]);
-        }
-      } catch (err) {
-        console.error(err);
-        setStatus({
-          type: "error",
-          message: "Failed to load email templates.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTemplates();
-  }, []);
-
-  // Apply a template object to all local state
-  const applyTemplateToState = (tpl) => {
-    setSelected(tpl);
-    setSubject(tpl.subjectTemplate || "");
-
-    // Body
-    const bodyParts = parseBodyHtml(tpl.bodyHtml || "");
+    const bodyParts = parseBodyHtml(template.bodyHtml || "");
     setBodyGreeting(bodyParts.greeting || "Hi {{FirstName}},");
     setBodyMain(bodyParts.main || "Thank you for your payment...");
     setBodyClosing(bodyParts.closing || "Regards,\nAcademic Dress Hire");
 
-    // Tax receipt
-    const receiptParts = parseTaxReceiptHtml(tpl.taxReceiptHtml || "");
-    setEventTitle(
-      receiptParts.eventTitle || "Massey University Graduation Event"
-    );
+    const receiptParts = parseTaxReceiptHtml(template.taxReceiptHtml || "");
+    setEventTitle(receiptParts.eventTitle || "");
 
     const defaultFrom =
       "Academic Dress Hire\n3 Refectory Rd,\nMassey University,\nPalmerston North 4472\nTel: +64 6 350 4166";
@@ -439,16 +377,10 @@ export default function EmailEdit() {
       receiptParts.notes[3] ||
         "If couriering regalia back, include your contact details."
     );
-  };
+  }, [template]);
 
-  const handleSelect = (tpl) => {
-    setStatus(null);
-    applyTemplateToState(tpl);
-  };
-
-  // Save template: build HTML from simple fields then PUT to API
   const handleSave = async () => {
-    if (!selected) return;
+    if (!template) return;
 
     setSaving(true);
     setStatus(null);
@@ -468,7 +400,7 @@ export default function EmailEdit() {
         taxReceiptHtml: newTaxReceiptHtml,
       };
 
-      const res = await fetch(`${API_BASE}/api/emailtemplates/${selected.id}`, {
+      const res = await fetch(`${apiBase}/api/emailtemplates/${template.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -480,10 +412,9 @@ export default function EmailEdit() {
 
       const updated = await res.json();
 
-      setTemplates((prev) =>
-        prev.map((t) => (t.id === updated.id ? updated : t))
-      );
-      applyTemplateToState(updated);
+      if (onSaved) {
+        onSaved(updated);
+      }
 
       setStatus({ type: "success", message: "Changes saved." });
     } catch (err) {
@@ -495,186 +426,140 @@ export default function EmailEdit() {
   };
 
   return (
-    <div className="email-admin-page">
-      <h1 className="email-page-title">Email Templates</h1>
+    <div className="email-editor-card">
+      {template ? (
+        <>
+          <h2 className="email-editor-title">
+            {template.name || "Email template"}
+          </h2>
 
-      {loading ? (
-        <p className="email-status">Loading email templates…</p>
+          {/* Subject */}
+          <div className="email-field">
+            <label className="email-label">Subject</label>
+            <input
+              className="email-input"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Subject line sent to the customer"
+            />
+          </div>
+
+          {/* Body content */}
+          <p className="email-hint">
+            <strong>Body content</strong> – text at the top of the email.
+          </p>
+
+          <div className="email-field">
+            <label className="email-label">Main message</label>
+            <textarea
+              className="email-textarea"
+              value={bodyMain}
+              onChange={(e) => setBodyMain(e.target.value)}
+              placeholder="Thank you for your payment..."
+            />
+          </div>
+
+          <div className="email-field">
+            <label className="email-label">Closing</label>
+            <textarea
+              className="email-textarea"
+              value={bodyClosing}
+              onChange={(e) => setBodyClosing(e.target.value)}
+              placeholder={"Regards,\nAcademic Dress Hire"}
+            />
+          </div>
+
+          {/* Tax receipt content */}
+          <p className="email-hint">
+            <strong>Tax receipt content</strong> – these fields control the text
+            in the tax receipt shown below the body.
+          </p>
+
+          {/* Event title field intentionally removed – comes from ceremony */}
+
+          <div className="email-field">
+            <label className="email-label">Header address (top right)</label>
+            <textarea
+              className="email-textarea"
+              value={headerFromBlock}
+              onChange={(e) => setHeaderFromBlock(e.target.value)}
+              placeholder={
+                "Academic Dress Hire\n3 Refectory Rd,\nMassey University,\nPalmerston North 4472\nTel: +64 6 350 4166"
+              }
+            />
+          </div>
+
+          <div className="email-field">
+            <label className="email-label">Invoice From block</label>
+            <textarea
+              className="email-textarea"
+              value={fromBlock}
+              onChange={(e) => setFromBlock(e.target.value)}
+              placeholder={
+                "Academic Dress Hire\n3 Refectory Rd,\nMassey University,\nPalmerston North 4472\nTel: +64 6 350 4166"
+              }
+            />
+          </div>
+
+          <div className="email-field">
+            <label className="email-label">Note 1</label>
+            <input
+              className="email-input"
+              value={note1}
+              onChange={(e) => setNote1(e.target.value)}
+            />
+          </div>
+          <div className="email-field">
+            <label className="email-label">Note 2</label>
+            <input
+              className="email-input"
+              value={note2}
+              onChange={(e) => setNote2(e.target.value)}
+            />
+          </div>
+          <div className="email-field">
+            <label className="email-label">Note 3</label>
+            <input
+              className="email-input"
+              value={note3}
+              onChange={(e) => setNote3(e.target.value)}
+            />
+          </div>
+          <div className="email-field">
+            <label className="email-label">Note 4</label>
+            <input
+              className="email-input"
+              value={note4}
+              onChange={(e) => setNote4(e.target.value)}
+            />
+          </div>
+
+          {/* Save button + status */}
+          <div className="email-save-row">
+            <button
+              className="email-save-button"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+
+            {status && (
+              <span
+                className={
+                  "email-status" +
+                  (status.type === "error" ? " email-status-error" : "")
+                }
+              >
+                {status.message}
+              </span>
+            )}
+          </div>
+        </>
       ) : (
-        <div className="email-layout">
-          {/* Left: template list */}
-          <div className="email-list-card">
-            <div className="email-list-header">Templates</div>
-            {templates.length === 0 ? (
-              <p className="email-empty">No email templates found.</p>
-            ) : (
-              <ul className="email-list">
-                {templates.map((tpl) => (
-                  <li
-                    key={tpl.id}
-                    onClick={() => handleSelect(tpl)}
-                    className={
-                      "email-list-item" +
-                      (selected && selected.id === tpl.id ? " is-active" : "")
-                    }
-                  >
-                    <div className="email-list-title">
-                      {tpl.name || "Untitled template"}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Right: editor */}
-          <div className="email-editor-card">
-            {selected ? (
-              <>
-                <h2 className="email-editor-title">
-                  {selected.name || "Email template"}
-                </h2>
-
-                {/* Subject */}
-                <div className="email-field">
-                  <label className="email-label">Subject</label>
-                  <input
-                    className="email-input"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Subject line sent to the customer"
-                  />
-                </div>
-
-                {/* Body content */}
-                <p className="email-hint">
-                  <strong>Body content</strong> – text at the top of the email.
-                </p>
-
-                <div className="email-field">
-                  <label className="email-label">Main message</label>
-                  <textarea
-                    className="email-textarea"
-                    value={bodyMain}
-                    onChange={(e) => setBodyMain(e.target.value)}
-                    placeholder="Thank you for your payment..."
-                  />
-                </div>
-
-                <div className="email-field">
-                  <label className="email-label">Closing</label>
-                  <textarea
-                    className="email-textarea"
-                    value={bodyClosing}
-                    onChange={(e) => setBodyClosing(e.target.value)}
-                    placeholder={"Regards,\nAcademic Dress Hire"}
-                  />
-                </div>
-
-                {/* Tax receipt content */}
-                <p className="email-hint">
-                  <strong>Tax receipt content</strong> – these fields control
-                  the text in the tax receipt shown below the body.
-                </p>
-
-                <div className="email-field">
-                  <label className="email-label">Event title</label>
-                  <input
-                    className="email-input"
-                    value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                    placeholder="Massey University Graduation Event"
-                  />
-                </div>
-
-                <div className="email-field">
-                  <label className="email-label">
-                    Header address (top right)
-                  </label>
-                  <textarea
-                    className="email-textarea"
-                    value={headerFromBlock}
-                    onChange={(e) => setHeaderFromBlock(e.target.value)}
-                    placeholder={
-                      "Academic Dress Hire\n3 Refectory Rd,\nMassey University,\nPalmerston North 4472\nTel: +64 6 350 4166"
-                    }
-                  />
-                </div>
-
-                <div className="email-field">
-                  <label className="email-label">Invoice From block</label>
-                  <textarea
-                    className="email-textarea"
-                    value={fromBlock}
-                    onChange={(e) => setFromBlock(e.target.value)}
-                    placeholder={
-                      "Academic Dress Hire\n3 Refectory Rd,\nMassey University,\nPalmerston North 4472\nTel: +64 6 350 4166"
-                    }
-                  />
-                </div>
-
-                <div className="email-field">
-                  <label className="email-label">Note 1</label>
-                  <input
-                    className="email-input"
-                    value={note1}
-                    onChange={(e) => setNote1(e.target.value)}
-                  />
-                </div>
-                <div className="email-field">
-                  <label className="email-label">Note 2</label>
-                  <input
-                    className="email-input"
-                    value={note2}
-                    onChange={(e) => setNote2(e.target.value)}
-                  />
-                </div>
-                <div className="email-field">
-                  <label className="email-label">Note 3</label>
-                  <input
-                    className="email-input"
-                    value={note3}
-                    onChange={(e) => setNote3(e.target.value)}
-                  />
-                </div>
-                <div className="email-field">
-                  <label className="email-label">Note 4</label>
-                  <input
-                    className="email-input"
-                    value={note4}
-                    onChange={(e) => setNote4(e.target.value)}
-                  />
-                </div>
-
-                {/* Save button + status */}
-                <div className="email-save-row">
-                  <button
-                    className="email-save-button"
-                    onClick={handleSave}
-                    disabled={saving}
-                  >
-                    {saving ? "Saving…" : "Save changes"}
-                  </button>
-
-                  {status && (
-                    <span
-                      className={
-                        "email-status" +
-                        (status.type === "error" ? " email-status-error" : "")
-                      }
-                    >
-                      {status.message}
-                    </span>
-                  )}
-                </div>
-              </>
-            ) : (
-              <p className="email-empty">
-                Select a template on the left to start editing.
-              </p>
-            )}
-          </div>
-        </div>
+        <p className="email-empty">
+          Select a template on the left to start editing.
+        </p>
       )}
     </div>
   );

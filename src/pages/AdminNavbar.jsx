@@ -118,12 +118,8 @@ function AdminNavbar() {
           <li className="has-dropdown">
             <a>DATABASE</a>
             <ul className="dropdown-panel">
-              <Link to="/IndOrder">
-                Individual Orders
-              </Link>
-              <Link to="/BulkOrder">
-                Bulk Orders
-              </Link>
+              <Link to="/IndOrder">Individual Orders</Link>
+              <Link to="/BulkOrder">Bulk Orders</Link>
               {loading && <FullscreenSpinner />}
               <a onClick={printLabels} style={{ cursor: "pointer" }}>
                 PRINT LABELS

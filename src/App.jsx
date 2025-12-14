@@ -12,10 +12,10 @@ import HireRegalia from "./pages/HireRegalia";
 import UpdatePic from "@/components/UpdatePic.jsx";
 import HomepageEdit from "./components/HomepageEdit.jsx";
 import HomePage from "@/pages/HomePage.jsx";
-import EmailEdit from "./components/EmailEdit.jsx";
 import AdminIndOrder from "@/components/AdminIndOrder.jsx";
 import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
 import EmailContent from "./components/EmailContent.jsx";
+import EmailTemplatesPage from "@/pages/EmailTemplatesPage.jsx";
 
 function App() {
   return (
@@ -105,7 +105,7 @@ function App() {
         path="/EmailEdit"
         element={
           <Authentication>
-            <EmailEdit />
+            <EmailTemplatesPage />
           </Authentication>
         }
       />
@@ -133,14 +133,14 @@ function App() {
           </Authentication>
         }
       />
-        <Route
-            path="/EmailContent"
-            element={
-                <Authentication>
-                    <EmailContent />
-                </Authentication>
-            }
-        />
+      <Route
+        path="/EmailContent"
+        element={
+          <Authentication>
+            <EmailContent />
+          </Authentication>
+        }
+      />
     </Routes>
   );
 }
