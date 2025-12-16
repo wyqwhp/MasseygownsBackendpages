@@ -3,8 +3,8 @@ import JoditEditor from "jodit-react";
 
 const variableList = [
   "gstNumber",
-  "invoiceNumber",
-  "invoiceDate",
+  "OrderNumber",
+  "OrderDate",
   "firstName",
   "lastName",
   "address",
@@ -15,11 +15,11 @@ const variableList = [
   "email",
   "mobile",
   "phone",
-  // cartRows is not editable / not shown in CMS
   "total",
   "amountPaid",
   "balanceOwing",
   "eventTitle",
+  "ceremonyDate",
 ];
 
 function parseBodyHtml(html) {
@@ -65,6 +65,48 @@ function buildBodyHtml(_greetingIgnored, main, closing) {
   return parts.join("\n");
 }
 
+function normalizeCollectionDetailsPlacement(html) {
+  if (!html) return html;
+
+  try {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = html;
+
+    const notesRow = wrapper.querySelector(
+      'tr[data-adh="important-notes-row"]'
+    );
+    const collectionRow = wrapper.querySelector(
+      'tr[data-adh="collection-details-row"]'
+    );
+
+    if (!notesRow || !collectionRow) {
+      return html;
+    }
+
+    const sameParent = collectionRow.parentNode === notesRow.parentNode;
+    if (!sameParent) {
+      return html;
+    }
+
+    const parent = notesRow.parentNode;
+    const rows = Array.from(parent.children);
+    const idxCollection = rows.indexOf(collectionRow);
+    const idxNotes = rows.indexOf(notesRow);
+
+    if (idxCollection === -1 || idxNotes === -1) return html;
+
+    if (idxCollection > idxNotes) {
+      parent.insertBefore(collectionRow, notesRow);
+      return wrapper.innerHTML;
+    }
+
+    return html;
+  } catch (e) {
+    console.warn("normalizeCollectionDetailsPlacement failed", e);
+    return html;
+  }
+}
+
 export default function PaymentEmailTemplateEditor({
   apiBase,
   template,
@@ -73,13 +115,11 @@ export default function PaymentEmailTemplateEditor({
   const receiptEditor = useRef(null);
 
   const [subject, setSubject] = useState("");
-
-  const [bodyGreeting, setBodyGreeting] = useState(""); // ignored
+  const [bodyGreeting, setBodyGreeting] = useState("");
   const [bodyMain, setBodyMain] = useState("");
   const [bodyClosing, setBodyClosing] = useState("");
 
   const [taxReceiptHtml, setTaxReceiptHtml] = useState("");
-
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
 
@@ -94,7 +134,8 @@ export default function PaymentEmailTemplateEditor({
     setBodyMain(bodyParts.main || "");
     setBodyClosing("");
 
-    setTaxReceiptHtml((template.taxReceiptHtml || "").trim());
+    const loaded = (template.taxReceiptHtml || "").trim();
+    setTaxReceiptHtml(normalizeCollectionDetailsPlacement(loaded));
   }, [template]);
 
   const insertVariable = (key) => {
@@ -111,14 +152,15 @@ export default function PaymentEmailTemplateEditor({
     setStatus(null);
 
     try {
-      // Always take the latest value from editor (Jodit state can lag)
       const currentHtml =
         receiptEditor.current?.editor?.value ?? taxReceiptHtml ?? "";
+
+      const fixedHtml = normalizeCollectionDetailsPlacement(currentHtml);
 
       const payload = {
         subjectTemplate: subject,
         bodyHtml: buildBodyHtml(bodyGreeting, bodyMain, bodyClosing),
-        taxReceiptHtml: currentHtml, // store as-is
+        taxReceiptHtml: fixedHtml,
       };
 
       const res = await fetch(`${apiBase}/api/emailtemplates/${template.id}`, {
@@ -135,9 +177,7 @@ export default function PaymentEmailTemplateEditor({
       const updated = await res.json();
       onSaved?.(updated);
 
-      // Keep local state in sync with what we saved
-      setTaxReceiptHtml(currentHtml);
-
+      setTaxReceiptHtml(fixedHtml);
       setStatus({ type: "success", message: "Changes saved." });
     } catch (err) {
       console.error(err);
@@ -227,7 +267,11 @@ export default function PaymentEmailTemplateEditor({
                 dragover: (event) => event.preventDefault(),
               },
             }}
-            onBlur={(newContent) => setTaxReceiptHtml(newContent)}
+            onBlur={(newContent) => {
+              setTaxReceiptHtml(
+                normalizeCollectionDetailsPlacement(newContent)
+              );
+            }}
           />
 
           <div className="email-save-row">
