@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { NavLink } from "react-router-dom";
 import ReactDOM from "react-dom";
 import "./AdminNavbar.css";
-import "./spinner.css";
+import "./Spinner.css";
 import { useAuth } from "@/components/AuthContext.jsx";
 import {
   generateLabelsPDF,
