@@ -11,7 +11,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { getOrders } from "../services/RegaliaService";
-import AdminNavbar from "./AdminNavbar";
+import AdminNavbar from "@/components/AdminNavbar";
 
 function BuyRegalia() {
   const [csvData, setCsvData] = useState("");
@@ -52,7 +52,6 @@ function BuyRegalia() {
 
         const data = await getOrders();
         console.log(data);
-        
 
         const processedData = Array.isArray(data)
           ? data.map((order) => ({

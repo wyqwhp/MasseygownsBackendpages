@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import "./HomepageEdit.css";
+import AdminNavbar from "./AdminNavbar.jsx";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 const PAGE_SIZE = 15;
@@ -732,182 +733,186 @@ export default function HomepageEdit() {
   }
 
   return (
-    <div className="admin-content-manager">
-      <h1 className="acm-title">Website Text & Image Editor</h1>
+    <>
+      <AdminNavbar />
+      <div className="admin-content-manager">
+        <h1 className="acm-title">Website Text & Image Editor</h1>
 
-      <div className="acm-toolbar">
-        <div className="acm-search-wrapper">
-          <input
-            type="text"
-            className="acm-search-input"
-            placeholder="Search by page, section, or keyword..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="acm-toolbar">
+          <div className="acm-search-wrapper">
+            <input
+              type="text"
+              className="acm-search-input"
+              placeholder="Search by page, section, or keyword..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="acm-filters">
+            <select
+              className="acm-filter-select"
+              value={pageFilter}
+              onChange={handlePageChange}
+            >
+              <option value="All">All pages</option>
+              {pages.map((page) => (
+                <option key={page} value={page}>
+                  {page}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="acm-filter-select"
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+              disabled={pageFilter === "All"}
+            >
+              <option value="All">All sections</option>
+              {sections.map((section) => (
+                <option key={section} value={section}>
+                  {section}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="acm-filters">
-          <select
-            className="acm-filter-select"
-            value={pageFilter}
-            onChange={handlePageChange}
-          >
-            <option value="All">All pages</option>
-            {pages.map((page) => (
-              <option key={page} value={page}>
-                {page}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="acm-filter-select"
-            value={sectionFilter}
-            onChange={(e) => setSectionFilter(e.target.value)}
-            disabled={pageFilter === "All"}
-          >
-            <option value="All">All sections</option>
-            {sections.map((section) => (
-              <option key={section} value={section}>
-                {section}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="acm-table-wrapper">
-        <table className="acm-table">
-          <thead>
-            <tr>
-              <th>Page</th>
-              <th>Section</th>
-              <th>Content</th>
-              <th>Updated</th>
-              <th>Check &amp; update</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredItems.length === 0 ? (
+        <div className="acm-table-wrapper">
+          <table className="acm-table">
+            <thead>
               <tr>
-                <td colSpan={5} className="acm-table-empty">
-                  No content blocks match your filters.
-                </td>
+                <th>Page</th>
+                <th>Section</th>
+                <th>Content</th>
+                <th>Updated</th>
+                <th>Check &amp; update</th>
               </tr>
-            ) : (
-              pagedItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className={
-                    selectedItem && selectedItem.id === item.id
-                      ? "acm-row-selected"
-                      : ""
-                  }
-                >
-                  <td>{item.page}</td>
-                  <td>{formatSectionLabel(item.section)}</td>
-                  <td>
-                    <div className="acm-cell-label">
-                      <div className="acm-cell-label-main">
-                        {getDisplayLabel(item)}
-                      </div>
-                      <div className="acm-cell-label-key">
-                        {item.type.toUpperCase()} · {item.key}
-                      </div>
-                    </div>
-                  </td>
-                  <td>{item.updatedAt && item.updatedAt.slice(0, 10)}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="acm-button small"
-                      onClick={() => handleSelectItem(item)}
-                    >
-                      Check &amp; update
-                    </button>
+            </thead>
+            <tbody>
+              {filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="acm-table-empty">
+                    No content blocks match your filters.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                pagedItems.map((item) => (
+                  <tr
+                    key={item.id}
+                    className={
+                      selectedItem && selectedItem.id === item.id
+                        ? "acm-row-selected"
+                        : ""
+                    }
+                  >
+                    <td>{item.page}</td>
+                    <td>{formatSectionLabel(item.section)}</td>
+                    <td>
+                      <div className="acm-cell-label">
+                        <div className="acm-cell-label-main">
+                          {getDisplayLabel(item)}
+                        </div>
+                        <div className="acm-cell-label-key">
+                          {item.type.toUpperCase()} · {item.key}
+                        </div>
+                      </div>
+                    </td>
+                    <td>{item.updatedAt && item.updatedAt.slice(0, 10)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="acm-button small"
+                        onClick={() => handleSelectItem(item)}
+                      >
+                        Check &amp; update
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
 
-        {filteredItems.length > 0 && (
-          <div className="acm-pagination">
-            <span className="acm-pagination-info">
-              Showing {(currentPage - 1) * PAGE_SIZE + 1}–
-              {Math.min(currentPage * PAGE_SIZE, filteredItems.length)} of{" "}
-              {filteredItems.length}
-            </span>
-            <div className="acm-pagination-buttons">
-              <button
-                type="button"
-                className="acm-button small"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-              <span className="acm-pagination-page">
-                Page {currentPage} of {totalPages}
+          {filteredItems.length > 0 && (
+            <div className="acm-pagination">
+              <span className="acm-pagination-info">
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+                {Math.min(currentPage * PAGE_SIZE, filteredItems.length)} of{" "}
+                {filteredItems.length}
               </span>
-              <button
-                type="button"
-                className="acm-button small"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
+              <div className="acm-pagination-buttons">
+                <button
+                  type="button"
+                  className="acm-button small"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="acm-pagination-page">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="acm-button small"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {selectedItem && (
+          <div className="acm-modal-overlay" onClick={handleCloseModal}>
+            <div
+              className="acm-modal"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="acm-modal-header">
+                <h2 className="acm-detail-title">
+                  {selectedItem.page} ·{" "}
+                  {formatSectionLabel(selectedItem.section)}
+                </h2>
+                <button
+                  type="button"
+                  className="acm-modal-close"
+                  onClick={handleCloseModal}
+                >
+                  ×
+                </button>
+              </div>
+
+              <p className="acm-detail-subtitle">
+                {getDisplayLabel(selectedItem)} (
+                {selectedItem.type.toUpperCase()} · {selectedItem.key})
+              </p>
+
+              {(statusMessage || statusError) && (
+                <div
+                  className={
+                    statusError
+                      ? "acm-status-message error"
+                      : "acm-status-message success"
+                  }
+                >
+                  {statusError || statusMessage}
+                </div>
+              )}
+
+              {renderDetailBody()}
             </div>
           </div>
         )}
       </div>
-
-      {selectedItem && (
-        <div className="acm-modal-overlay" onClick={handleCloseModal}>
-          <div
-            className="acm-modal"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <div className="acm-modal-header">
-              <h2 className="acm-detail-title">
-                {selectedItem.page} · {formatSectionLabel(selectedItem.section)}
-              </h2>
-              <button
-                type="button"
-                className="acm-modal-close"
-                onClick={handleCloseModal}
-              >
-                ×
-              </button>
-            </div>
-
-            <p className="acm-detail-subtitle">
-              {getDisplayLabel(selectedItem)} ({selectedItem.type.toUpperCase()}{" "}
-              · {selectedItem.key})
-            </p>
-
-            {(statusMessage || statusError) && (
-              <div
-                className={
-                  statusError
-                    ? "acm-status-message error"
-                    : "acm-status-message success"
-                }
-              >
-                {statusError || statusMessage}
-              </div>
-            )}
-
-            {renderDetailBody()}
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
