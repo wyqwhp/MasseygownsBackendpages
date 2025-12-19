@@ -251,6 +251,11 @@ function HireRegalia() {
 
   // Add this function before the return statement
   const generateCSV = () => {
+     if (filteredOrders.length === 0) {
+      alert("No orders match the selected filters");
+      return;
+    }
+
     // CSV Headers
     const headers = [
       "Order ID",
@@ -258,105 +263,47 @@ function HireRegalia() {
       "Last Name",
       "Student ID",
       "Email",
-      "Phone",
-      "Mobile",
-      "Address",
-      "City",
-      "Postcode",
-      "Country",
       "Item Name",
-      "Size",
-      "Fit",
-      "Hood",
       "Quantity",
       "Order Date",
       "Status",
       "Payment Status",
-      "Payment Method",
-      "Purchase Order",
-      "Message",
     ];
 
-    // Generate CSV rows
-    const rows = filteredOrders.flatMap((order) => {
-      // If order has items, create a row for each item
-      if (order.items && order.items.length > 0) {
-        return order.items.map((item) => [
-          order.id,
-          order.firstName || "",
-          order.lastName || "",
-          order.studentId || "",
-          order.email || "",
-          order.phone || "",
-          order.mobile || "",
-          order.address || "",
-          order.city || "",
-          order.postcode || "",
-          order.country || "",
-          item.itemName || "",
-          item.sizeName || "",
-          item.fitName || "",
-          item.hoodName || "",
-          item.quantity || "",
-          order.orderDate || "",
-          order.status || "pending",
-          order.paid ? "Paid" : "Unpaid",
-          order.paymentMethod || "",
-          order.purchaseOrder || "",
-          order.message || "",
-        ]);
-      } else {
-        // If no items, create one row for the order
-        return [
-          [
+    const rows = filteredOrders.flatMap((order) =>
+      order.items?.length
+        ? order.items.map((item) => [
             order.id,
-            order.firstName || "",
-            order.lastName || "",
-            order.studentId || "",
-            order.email || "",
-            order.phone || "",
-            order.mobile || "",
-            order.address || "",
-            order.city || "",
-            order.postcode || "",
-            order.country || "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            order.orderDate || "",
-            order.status || "pending",
+            order.firstName,
+            order.lastName,
+            order.studentId,
+            order.email,
+            item.itemName,
+            item.quantity,
+            order.orderDate,
+            order.status,
             order.paid ? "Paid" : "Unpaid",
-            order.paymentMethod || "",
-            order.purchaseOrder || "",
-            order.message || "",
-          ],
-        ];
-      }
-    });
+          ])
+        : [
+            [
+              order.id,
+              order.firstName,
+              order.lastName,
+              order.studentId,
+              order.email,
+              "",
+              "",
+              order.orderDate,
+              order.status,
+              order.paid ? "Paid" : "Unpaid",
+            ],
+          ]
+    );
 
-    // Escape CSV values (handle commas, quotes, newlines)
-    const escapeCSV = (value) => {
-      if (value === null || value === undefined) return "";
-      const stringValue = String(value);
-      if (
-        stringValue.includes(",") ||
-        stringValue.includes('"') ||
-        stringValue.includes("\n")
-      ) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
-
-    // Build CSV string
     const csvContent = [
-      headers.map(escapeCSV).join(","),
-      ...rows.map((row) => row.map(escapeCSV).join(",")),
+      headers.join(","),
+      ...rows.map((r) => r.map((v) => `"${v ?? ""}"`).join(",")),
     ].join("\n");
-
-    setCsvData(csvContent);
 
     // Trigger download immediately
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -381,15 +328,7 @@ function HireRegalia() {
             <h1 className="hire-regalia-title">Hire Regalia Orders</h1>
             <p className="hire-regalia-subtitle">
               Manage and track graduation regalia purchases
-            </p>
-
-            <button
-              disabled={csvData}
-              onClick={generateCSV}
-              className="!bg-green-700 text-white px-4 py-2 rounded hover:!bg-green-800 disabled:!bg-gray-400 disabled:!cursor-not-allowed"
-            >
-              Export to CSV
-            </button>
+            </p>    
           </div>
 
           <div className="stats-grid">
@@ -491,6 +430,13 @@ function HireRegalia() {
                   Unpaid
                 </label>
               </div>
+              <button
+                onClick={generateCSV}
+                disabled={filteredOrders.length === 0}
+                className="ml-3 bg-green-700 text-white px-3 py-1.5 rounded hover:bg-green-800 disabled:bg-gray-400"
+              >
+                Export CSV
+              </button>
             </div>
           </div>
 
