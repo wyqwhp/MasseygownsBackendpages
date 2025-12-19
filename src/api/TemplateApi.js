@@ -11,6 +11,20 @@ export async function sendOrderCompleteTemplate(payload) {
   });
 }
 
+export async function updateEmailTemplate(apiBase, templateId, payload) {
+  const res = await fetch(`${apiBase}/api/emailtemplates/${templateId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Save failed: ${res.status} ${txt}`);
+  }
+
+  return res.json();
+}
 
 // export const getEmailTemplatesByKey = async (key) => {
 //   try {
@@ -24,4 +38,3 @@ export async function sendOrderCompleteTemplate(payload) {
 //     return null;
 //   }
 // };
-

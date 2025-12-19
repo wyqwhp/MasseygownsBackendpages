@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import JoditEditor from "jodit-react";
+import { updateEmailTemplate } from "../api/TemplateApi.js";
 
 const variableList = [
   "gstNumber",
@@ -163,18 +164,7 @@ export default function PaymentEmailTemplateEditor({
         taxReceiptHtml: fixedHtml,
       };
 
-      const res = await fetch(`${apiBase}/api/emailtemplates/${template.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`Save failed: ${res.status} ${txt}`);
-      }
-
-      const updated = await res.json();
+      const updated = await updateEmailTemplate(apiBase, template.id, payload);
       onSaved?.(updated);
 
       setTaxReceiptHtml(fixedHtml);
