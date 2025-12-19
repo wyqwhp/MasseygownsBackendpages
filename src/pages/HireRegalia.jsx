@@ -251,7 +251,7 @@ function HireRegalia() {
 
   // Add this function before the return statement
   const generateCSV = () => {
-     if (filteredOrders.length === 0) {
+    if (filteredOrders.length === 0) {
       alert("No orders match the selected filters");
       return;
     }
@@ -328,7 +328,7 @@ function HireRegalia() {
             <h1 className="hire-regalia-title">Hire Regalia Orders</h1>
             <p className="hire-regalia-subtitle">
               Manage and track graduation regalia purchases
-            </p>    
+            </p>
           </div>
 
           <div className="stats-grid">
@@ -373,16 +373,17 @@ function HireRegalia() {
           {/* Search and Filter */}
           <div className="search-filter-container">
             <div className="search-filter-wrapper">
-              <div className="filter-wrapper">
-                <Search className="search-icon" />
+              <div className="filter-wrapper search-wrapper">
+                <Search className="search-icon" size={18} />
                 <input
                   type="text"
                   placeholder="Search by order ID, student name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
+                  className="search-input with-icon"
                 />
               </div>
+
               <div className="filter-wrapper">
                 <Filter className="filter-icon" />
                 <select
@@ -398,7 +399,6 @@ function HireRegalia() {
                 </select>
               </div>
               <div className="filter-wrapper">
-                <Filter className="filter-icon" />
                 <select
                   value={filterItemType}
                   onChange={(e) => setFilterItemType(e.target.value)}
@@ -438,6 +438,10 @@ function HireRegalia() {
                 Export CSV
               </button>
             </div>
+          </div>
+
+          <div className="filtered-count">
+            Filtered Items: <span>{filteredOrders.length}</span>
           </div>
 
           {/* Bulk Actions */}

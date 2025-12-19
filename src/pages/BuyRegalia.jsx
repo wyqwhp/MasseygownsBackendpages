@@ -373,14 +373,14 @@ function BuyRegalia() {
           {/* Search and Filter */}
           <div className="search-filter-container">
             <div className="search-filter-wrapper">
-              <div className="filter-wrapper">
-                <Search className="search-icon" />
+              <div className="filter-wrapper search-wrapper">
+                <Search className="search-icon" size={18} />
                 <input
                   type="text"
                   placeholder="Search by order ID, student name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
+                  className="search-input with-icon"
                 />
               </div>
               <div className="filter-wrapper">
@@ -398,7 +398,6 @@ function BuyRegalia() {
                 </select>
               </div>
               <div className="filter-wrapper">
-                <Filter className="filter-icon" />
                 <select
                   value={filterItemType}
                   onChange={(e) => setFilterItemType(e.target.value)}
@@ -438,6 +437,10 @@ function BuyRegalia() {
                 Export CSV
               </button>
             </div>
+          </div>
+
+          <div className="filtered-count">
+            Filtered Items: <span>{filteredOrders.length}</span>
           </div>
 
           {/* Bulk Actions */}
