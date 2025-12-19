@@ -66,10 +66,6 @@ export default function EmailTemplatesPage() {
       );
     }
 
-    if (selected.name === "OrderCompleted") {
-      return <PurchaseOrderEmailTemplate />;
-    }
-
     return (
       <PaymentEmailTemplateEditor
         apiBase={API_BASE}
