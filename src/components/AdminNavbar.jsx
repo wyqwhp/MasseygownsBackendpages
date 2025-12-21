@@ -126,6 +126,7 @@ function AdminNavbar() {
               <a onClick={printManifest} style={{ cursor: "pointer" }}>
                 PRINT MANIFEST
               </a>
+              <NavLink to="/PrintAddressLabels">PRINT ADDRESS LABELS</NavLink>
             </ul>
           </li>
           <li>

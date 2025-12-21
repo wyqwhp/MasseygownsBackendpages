@@ -1,0 +1,273 @@
+/* ===== Page & toolbar ===== */
+.print-labels-page {
+  padding: 16px;
+}
+
+.print-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 14px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn:hover {
+  background: #f6f8fa;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #f6f8fa;
+}
+
+.hint {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* ===== Filters ===== */
+.filters-inline {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-right: 10px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.input {
+  height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+}
+
+.input-wide {
+  width: 220px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 10px;
+  height: 34px;
+  align-items: center;
+  padding: 0 6px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  background: white;
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+/* ===== Sheet wrapper ===== */
+.labels-sheet {
+  margin: 0 auto;
+  background: white;
+  padding: 8mm;
+  box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.08);
+}
+
+/* A4 / A5 预览宽度 */
+.paper-a4 .labels-sheet {
+  max-width: 210mm;
+}
+.paper-a5 .labels-sheet {
+  max-width: 148mm;
+}
+
+/* ===== PDF pages container ===== */
+.pdf-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 8mm;
+}
+
+/* 每个页面固定纸张尺寸（用于 html2canvas 分页截图） */
+.pdf-page {
+  background: #fff;
+  box-sizing: border-box;
+  padding: 8mm;
+  break-after: page;
+  page-break-after: always;
+}
+
+/* A4 页面尺寸 */
+.paper-a4 .pdf-page {
+  width: 210mm;
+  min-height: 297mm;
+}
+
+/* A5 页面尺寸 */
+.paper-a5 .pdf-page {
+  width: 148mm;
+  min-height: 210mm;
+}
+
+/* ===== Grid ===== */
+/* A4：3列 */
+.paper-a4 .labels-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6mm;
+}
+
+/* A5：2列（更稳，不会挤） */
+.paper-a5 .labels-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6mm;
+}
+
+/* ===== Base card ===== */
+.label-card {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4mm;
+  box-sizing: border-box;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  background: #fff;
+}
+
+/* ===== Big layout (match sample) ===== */
+.label-card-big {
+  min-height: 62mm;
+  display: flex;
+  flex-direction: column;
+}
+
+.to-name {
+  font-weight: 800;
+  font-size: 16pt;
+  line-height: 1.1;
+  margin-bottom: 2.5mm;
+}
+
+.addr-line {
+  line-height: 1.1;
+}
+
+.addr1 {
+  font-weight: 800;
+  font-size: 18pt;
+  margin-bottom: 1.5mm;
+}
+
+.addr2 {
+  font-weight: 700;
+  font-size: 14pt;
+  margin-bottom: 1.5mm;
+}
+
+.citypost {
+  font-weight: 900;
+  font-size: 22pt;
+  letter-spacing: 0.5px;
+  margin: 1mm 0 3mm;
+}
+
+.attn-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6mm;
+  margin-bottom: 2.5mm;
+}
+
+.attn-text {
+  font-weight: 700;
+  font-size: 12pt;
+}
+
+.phone-text {
+  font-size: 10pt;
+  opacity: 0.9;
+}
+
+/* separator line before From */
+.from-sep {
+  margin-top: auto;
+  border-top: 2px solid #111;
+  margin-bottom: 2.5mm;
+}
+
+/* From area: From 在左，Logo 在下方，地址在最底部 */
+.from-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+}
+
+.from-label {
+  font-weight: 700;
+  font-size: 10pt;
+}
+
+.from-logo-big {
+  width: 55mm;
+  height: auto;
+  object-fit: contain;
+}
+
+.from-footer {
+  font-size: 9.5pt;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+/* ===== Print rules ===== */
+@media print {
+  .print-toolbar {
+    display: none !important;
+  }
+
+  .labels-sheet {
+    box-shadow: none;
+    padding: 0;
+    max-width: none;
+  }
+
+  .print-labels-page {
+    padding: 0;
+  }
+
+  /* 让浏览器按纸张大小分页（我们的 pdf-page 本身已经是纸张尺寸） */
+  @page {
+    margin: 0;
+  }
+
+  img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
