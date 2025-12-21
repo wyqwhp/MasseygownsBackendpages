@@ -11,6 +11,16 @@ export async function sendOrderCompleteTemplate(payload) {
   });
 }
 
+export async function saveCMSTemplate(payload) {
+  await fetch(`${API_BASE}/api/EmailTemplates/${payload.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 
 // export const getEmailTemplatesByKey = async (key) => {
 //   try {

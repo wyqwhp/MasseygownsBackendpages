@@ -231,7 +231,8 @@ export default function PurchaseOrderEmailTemplate() {
   // LOAD TEMPLATE ON MOUNT
   // ----------------------------
 useEffect(() => {
-  const saved = localStorage.getItem(LOCAL_KEY);
+  // const saved = localStorage.getItem(LOCAL_KEY);
+  const saved = null;
   const initial = saved ?? defaultTemplate;
   setHtml(initial);
   updatePreview(initial);

@@ -9,6 +9,7 @@ import {
   generateLabelsPDF,
   generateManifestPDF,
 } from "@/components/PrintLabels.jsx";
+import {PrintPDF} from "@/components/PrintManifest.js"
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 
@@ -126,6 +127,9 @@ function AdminNavbar() {
               {loading && <FullscreenSpinner />}
               <a onClick={printManifest} style={{ cursor: "pointer" }}>
                 PRINT MANIFEST
+              </a>
+              <a onClick={PrintPDF} style={{ cursor: "pointer" }}>
+                Print Report
               </a>
             </ul>
           </li>
