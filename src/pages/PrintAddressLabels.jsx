@@ -3,12 +3,13 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { fetchAddressLabels } from "../api/LabelApi";
 import "./PrintAddressLabels.css";
+import AdminNavbar from "@/components/AdminNavbar";
 
 const FROM = {
   title: "Academic Dress Hire",
   line1:
     "3 Refectory Rd, Massey University, Palmerston North 4472, 06 350-4166",
-  logoSrc: "/logo.jpg", // public/logo.jpg
+  logoSrc: "/logo.jpg",
 };
 
 function chunkArray(arr, size) {
@@ -18,44 +19,98 @@ function chunkArray(arr, size) {
   return out;
 }
 
+function formatDateForTable(value) {
+  if (!value) return "";
+  try {
+    const d = typeof value === "number" ? new Date(value) : new Date(value);
+    if (!Number.isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  } catch {
+    // ignore
+  }
+  return String(value);
+}
+
 export default function PrintAddressLabels() {
   const [labels, setLabels] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // filters
-  const [type, setType] = useState("individual");
-  const [paper, setPaper] = useState("A4"); // A4 | A5
+  // Filters
+  const [type, setType] = useState("individual"); // individual | institution
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [name, setName] = useState("");
 
+  // Export option (must choose before exporting)
+  const [paper, setPaper] = useState(""); // "A4" | "A5" | ""
+
+  // Table pagination
+  const [tablePage, setTablePage] = useState(1);
+  const pageSize = 10;
+
+  // Hidden printable pages container (not visible on screen)
   const pagesRef = useRef(null);
 
   const dateLabel = type === "individual" ? "Order date" : "Despatch date";
-  const namePlaceholder =
-    type === "individual"
-      ? "Search name (first / last)"
-      : "Search institution name";
 
-  const labelsPerPage = paper === "A4" ? 9 : 6;
+  // Prevent overlapping requests: only last request updates UI
+  const requestSeqRef = useRef(0);
 
-  const loadLabels = async () => {
+  const loadLabels = async (opts) => {
+    const payload = opts || { type, dateFrom, dateTo, name };
+
+    const mySeq = ++requestSeqRef.current;
     setLoading(true);
+
     try {
-      const data = await fetchAddressLabels({ type, dateFrom, dateTo, name });
+      const data = await fetchAddressLabels(payload);
+      if (mySeq !== requestSeqRef.current) return; // ignore stale responses
       setLabels(Array.isArray(data) ? data : []);
+      setTablePage(1);
     } catch (err) {
+      if (mySeq !== requestSeqRef.current) return;
       console.error(err);
       alert("Failed to load labels");
     } finally {
-      setLoading(false);
+      if (mySeq === requestSeqRef.current) setLoading(false);
     }
   };
 
+  const clearFilters = () => {
+    setDateFrom("");
+    setDateTo("");
+    setName("");
+  };
+
+  // Initial load
   useEffect(() => {
-    loadLabels();
+    loadLabels({ type, dateFrom, dateTo, name });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto search when typing name OR switching type (debounced)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      loadLabels({ type, dateFrom, dateTo, name });
+    }, 350);
+
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, type]);
+
+  // If date filters change, auto search too (debounced)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      loadLabels({ type, dateFrom, dateTo, name });
+    }, 350);
+
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFrom, dateTo]);
 
   const displayLabels = useMemo(() => {
     return (labels || []).map((l) => ({
@@ -70,13 +125,33 @@ export default function PrintAddressLabels() {
     }));
   }, [labels]);
 
-  const labelPages = useMemo(() => {
-    return chunkArray(displayLabels, labelsPerPage);
-  }, [displayLabels, labelsPerPage]);
+  // Field mappers (backend now returns orderDate/orderNumber/orderType; orderNumber uses id for now)
+  const getOrderDate = (l) => l.orderDate || l.order_date || "";
+  const getOrderNumber = (l) =>
+    l.orderNumber || l.order_number || l.sourceId || "";
+  // OrderType column removed from table, but labelType still used for keys
 
-  const handlePrint = () => window.print();
+  // Table (client-side pagination)
+  const totalRows = displayLabels.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const tableRows = useMemo(() => {
+    const start = (tablePage - 1) * pageSize;
+    return displayLabels.slice(start, start + pageSize);
+  }, [displayLabels, tablePage]);
+
+  // Printable pages for export only
+  const labelsPerPage = paper === "A4" ? 9 : 6;
+  const labelPages = useMemo(() => {
+    if (!paper) return [];
+    return chunkArray(displayLabels, labelsPerPage);
+  }, [displayLabels, labelsPerPage, paper]);
 
   const exportPdf = async () => {
+    if (!paper) {
+      alert("Please select A4 or A5 before exporting PDF.");
+      return;
+    }
+
     try {
       if (!pagesRef.current) return;
 
@@ -110,7 +185,6 @@ export default function PrintAddressLabels() {
 
       const style = document.createElement("style");
       style.innerHTML = `
-        /* reset everything inside sandbox */
         #pdf-export-sandbox, #pdf-export-sandbox * {
           all: initial;
           box-sizing: border-box;
@@ -119,7 +193,6 @@ export default function PrintAddressLabels() {
           background: #fff !important;
         }
 
-        /* re-apply ONLY what we need for layout */
         #pdf-export-sandbox .pdf-page {
           width: ${isA4 ? "210mm" : "148mm"};
           min-height: ${isA4 ? "297mm" : "210mm"};
@@ -135,8 +208,8 @@ export default function PrintAddressLabels() {
 
         #pdf-export-sandbox .label-card {
           border: 1px solid #ddd;
-          border-radius: 4px;
-          padding: 4mm;
+          border-radius: 6px;
+          padding: 4.5mm;
           background: #fff;
         }
 
@@ -228,16 +301,15 @@ export default function PrintAddressLabels() {
           scale: 2,
           useCORS: true,
           backgroundColor: "#ffffff",
-
           onclone: (clonedDoc) => {
             clonedDoc.documentElement.style.background = "#fff";
             clonedDoc.body.style.background = "#fff";
             clonedDoc.body.style.color = "#000";
 
-            const sandbox = clonedDoc.getElementById("pdf-export-sandbox");
+            const sandboxEl = clonedDoc.getElementById("pdf-export-sandbox");
             const keep = new Set();
-            if (sandbox) {
-              sandbox.querySelectorAll("style").forEach((s) => keep.add(s));
+            if (sandboxEl) {
+              sandboxEl.querySelectorAll("style").forEach((s) => keep.add(s));
             }
 
             clonedDoc
@@ -248,9 +320,9 @@ export default function PrintAddressLabels() {
 
             const s = clonedDoc.createElement("style");
             s.innerHTML = `
-      html, body { background:#fff !important; color:#000 !important; }
-      * { background:#fff !important; color:#000 !important; border-color:#ddd !important; }
-    `;
+              html, body { background:#fff !important; color:#000 !important; }
+              * { background:#fff !important; color:#000 !important; border-color:#ddd !important; }
+            `;
             clonedDoc.head.appendChild(s);
           },
         });
@@ -279,7 +351,6 @@ export default function PrintAddressLabels() {
       }
 
       pdf.save(`address-labels-${type}-${paper}.pdf`);
-
       sandbox.remove();
     } catch (e) {
       console.error(e);
@@ -290,80 +361,67 @@ export default function PrintAddressLabels() {
   };
 
   return (
-    <div className={`print-labels-page paper-${paper.toLowerCase()}`}>
-      {/* ===== Toolbar ===== */}
-      <div className="print-toolbar">
-        <div className="filters-inline">
-          <div className="filter-group">
-            <label className="filter-label">Type</label>
-            <div className="radio-group">
-              <label className="radio">
-                <input
-                  type="radio"
-                  value="individual"
-                  checked={type === "individual"}
-                  onChange={() => setType("individual")}
-                />
-                Individual
-              </label>
-              <label className="radio">
-                <input
-                  type="radio"
-                  value="institution"
-                  checked={type === "institution"}
-                  onChange={() => setType("institution")}
-                />
-                Institution
-              </label>
-            </div>
-          </div>
-
-          <div className="filter-group">
-            <label className="filter-label">{dateLabel} from</label>
+    <>
+      <AdminNavbar />
+      <div className="labels-admin-page">
+        <div className="labels-toolbar">
+          <div className="labels-toolbar-left">
             <input
-              type="date"
-              className="input"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
-          </div>
-
-          <div className="filter-group">
-            <label className="filter-label">{dateLabel} to</label>
-            <input
-              type="date"
-              className="input"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
-          </div>
-
-          <div className="filter-group">
-            <label className="filter-label">Name</label>
-            <input
-              type="text"
-              className="input input-wide"
-              placeholder={namePlaceholder}
+              className="search-input"
+              placeholder="Search queries..."
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-          </div>
 
-          <div className="filter-group">
-            <label className="filter-label">Paper</label>
-            <div className="radio-group">
-              <label className="radio">
+            <div className="date-group">
+              <span className="date-label">From:</span>
+              <input
+                type="date"
+                className="date-input"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                aria-label={`${dateLabel} from`}
+              />
+            </div>
+
+            <div className="date-group">
+              <span className="date-label">To:</span>
+              <input
+                type="date"
+                className="date-input"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                aria-label={`${dateLabel} to`}
+              />
+            </div>
+
+            <button
+              className="btn btn-outline"
+              onClick={() => {
+                clearFilters();
+                // Auto-search will run via the effects
+              }}
+              disabled={loading}
+            >
+              Clear Filters
+            </button>
+
+            <div className="paper-choice" aria-label="Paper size choice">
+              <span className="paper-choice-label">Paper:</span>
+              <label className={`paper-pill ${paper === "A4" ? "active" : ""}`}>
                 <input
                   type="radio"
+                  name="paper"
                   value="A4"
                   checked={paper === "A4"}
                   onChange={() => setPaper("A4")}
                 />
                 A4
               </label>
-              <label className="radio">
+              <label className={`paper-pill ${paper === "A5" ? "active" : ""}`}>
                 <input
                   type="radio"
+                  name="paper"
                   value="A5"
                   checked={paper === "A5"}
                   onChange={() => setPaper("A5")}
@@ -371,39 +429,124 @@ export default function PrintAddressLabels() {
                 A5
               </label>
             </div>
+
+            <button
+              className="btn btn-success"
+              onClick={exportPdf}
+              disabled={loading || !paper}
+              title={!paper ? "Select A4 or A5 first" : "Export labels to PDF"}
+            >
+              Export PDF
+            </button>
           </div>
 
-          <button
-            className="btn btn-secondary"
-            onClick={loadLabels}
-            disabled={loading}
-          >
-            {loading ? "Loading..." : "Search"}
-          </button>
+          <div className="labels-toolbar-right">
+            <div className="toolbar-meta">Total: {totalRows} records</div>
+
+            <div className="tiny-filters">
+              <div className="tiny-filter">
+                <span>Type</span>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  className="tiny-select"
+                >
+                  <option value="individual">Individual</option>
+                  <option value="institution">Institution</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <button className="btn" onClick={handlePrint} disabled={loading}>
-          Print
-        </button>
+        <div className="table-wrap">
+          <table className="labels-table">
+            <thead>
+              <tr>
+                <th style={{ width: 60 }}>#</th>
+                <th style={{ width: 130 }}>Order Date</th>
+                <th style={{ width: 150 }}>Order Number</th>
+                <th>To Name</th>
+                <th>Address</th>
+                <th style={{ width: 150 }}>City</th>
+                <th style={{ width: 120 }}>Postcode</th>
+                <th style={{ width: 180 }}>Attn</th>
+                <th style={{ width: 160 }}>Phone</th>
+              </tr>
+            </thead>
 
-        <button className="btn" onClick={exportPdf} disabled={loading}>
-          Export PDF
-        </button>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="table-empty">
+                    Loading…
+                  </td>
+                </tr>
+              ) : tableRows.length ? (
+                tableRows.map((l, idx) => (
+                  <tr key={`${l.labelType}-${l.sourceId}`}>
+                    <td>{(tablePage - 1) * pageSize + idx + 1}</td>
+                    <td>{formatDateForTable(getOrderDate(l)) || "-"}</td>
+                    <td className="td-mono">
+                      {String(getOrderNumber(l) || "-")}
+                    </td>
+                    <td className="td-strong">{l.toName || "-"}</td>
+                    <td>
+                      <div className="addr-cell">
+                        <div>{l.address1 || "-"}</div>
+                        {l.address2 ? (
+                          <div className="muted">{l.address2}</div>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td>{l.city || "-"}</td>
+                    <td>{l.postcode || "-"}</td>
+                    <td>{l.attn || "-"}</td>
+                    <td>{l.phone || "-"}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={9} className="table-empty">
+                    No results.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
 
-        <div className="hint">
-          Tip: Use Chrome. Print setting: A4/A5, Margins = Default, Scale =
-          100%.
+          <div className="table-pagination">
+            <button
+              className="btn btn-outline"
+              disabled={tablePage <= 1 || loading}
+              onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+            >
+              Prev
+            </button>
+
+            <div className="page-indicator">
+              Page {tablePage} of {totalPages}
+            </div>
+
+            <button
+              className="btn btn-outline"
+              disabled={tablePage >= totalPages || loading}
+              onClick={() => setTablePage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="labels-sheet">
-        {loading ? (
-          <div>Loading…</div>
-        ) : (
+        <div className="print-dom-hidden" aria-hidden="true">
           <div className="pdf-pages" ref={pagesRef}>
             {labelPages.map((pageLabels, pageIndex) => (
               <div className="pdf-page" key={`page-${pageIndex}`}>
-                <div className={`labels-grid big-layout`}>
+                <div
+                  className={`labels-grid ${
+                    paper === "A5" ? "grid-a5" : "grid-a4"
+                  }`}
+                >
                   {pageLabels.map((l) => (
                     <AddressLabelCard
                       key={`${l.labelType}-${l.sourceId}`}
@@ -414,9 +557,9 @@ export default function PrintAddressLabels() {
               </div>
             ))}
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

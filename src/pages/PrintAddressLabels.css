@@ -1,23 +1,129 @@
-/* ===== Page & toolbar ===== */
-.print-labels-page {
-  padding: 16px;
+/* =========================
+   Admin / Table page layout
+========================= */
+
+.labels-admin-page {
+  padding: 14px 18px;
+  background: #ffffff;
 }
 
-.print-toolbar {
+/* ===== Toolbar ===== */
+
+.labels-toolbar {
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
   margin-bottom: 12px;
-  flex-wrap: wrap;
+  padding-top: 100px;
 }
+
+.labels-toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.labels-toolbar-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.toolbar-meta {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* ===== Inputs ===== */
+
+.search-input {
+  width: 320px;
+  height: 36px;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+/* ===== Focus states (inputs & selects) ===== */
+
+.search-input:focus,
+.date-input:focus,
+.tiny-select:focus {
+  outline: none;
+  border-color: #0b5fff;
+  box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.15);
+}
+
+/* For keyboard accessibility */
+.search-input:focus-visible,
+.date-input:focus-visible,
+.tiny-select:focus-visible {
+  outline: none;
+  border-color: #0b5fff;
+  box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.18);
+}
+.search-input::placeholder {
+  color: #9aa4b2;
+}
+.date-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.date-label {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.date-input {
+  height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.tiny-filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tiny-filter {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.tiny-select {
+  height: 32px;
+  padding: 4px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 13px;
+}
+
+/* ===== Buttons ===== */
 
 .btn {
-  padding: 8px 14px;
+  height: 36px;
+  padding: 0 14px;
   border: 1px solid #d0d7de;
-  border-radius: 8px;
-  background: white;
+  border-radius: 6px;
+  background: #ffffff;
   cursor: pointer;
   font-weight: 600;
+  font-size: 14px;
 }
 
 .btn:hover {
@@ -29,80 +135,150 @@
   cursor: not-allowed;
 }
 
-.btn-secondary {
-  background: #f6f8fa;
+.btn-outline {
+  background: #ffffff;
 }
 
-.hint {
+.btn-success {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.btn-success:hover {
+  background: #148a3f;
+}
+
+/* ===== Paper choice ===== */
+
+.paper-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  height: 36px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.paper-choice-label {
   font-size: 13px;
   opacity: 0.85;
 }
 
-/* ===== Filters ===== */
-.filters-inline {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-right: 10px;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.filter-label {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-.input {
-  height: 34px;
-  padding: 6px 10px;
-  border: 1px solid #d0d7de;
-  border-radius: 8px;
-  background: white;
-  font-size: 13px;
-}
-
-.input-wide {
-  width: 220px;
-}
-
-.radio-group {
-  display: flex;
-  gap: 10px;
-  height: 34px;
-  align-items: center;
-  padding: 0 6px;
-  border: 1px solid #d0d7de;
-  border-radius: 8px;
-  background: white;
-}
-
-.radio {
+.paper-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  background: #ffffff;
+}
+
+.paper-pill input {
+  margin: 0;
+}
+
+.paper-pill.active {
+  border-color: #0b5fff;
+  box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.12);
+}
+
+/* =========================
+   Table
+========================= */
+
+.table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.labels-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.labels-table thead th {
+  background: #f6f8fa;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.labels-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 14px;
+  vertical-align: top;
+}
+
+.labels-table tbody tr:hover td {
+  background: #fbfcfe;
+}
+
+.td-strong {
+  font-weight: 700;
+}
+
+.td-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   font-size: 13px;
 }
 
-/* ===== Sheet wrapper ===== */
-.labels-sheet {
-  margin: 0 auto;
-  background: white;
-  padding: 8mm;
-  box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.08);
+.addr-cell .muted {
+  opacity: 0.75;
+  margin-top: 2px;
 }
 
-.paper-a4 .labels-sheet {
-  max-width: 210mm;
+.table-empty {
+  text-align: center;
+  padding: 28px 10px;
+  opacity: 0.8;
 }
-.paper-a5 .labels-sheet {
-  max-width: 148mm;
+
+/* ===== Pagination ===== */
+
+.table-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: #ffffff;
 }
+
+.page-indicator {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* =========================
+   Hidden print DOM
+========================= */
+
+.print-dom-hidden {
+  position: fixed;
+  left: -99999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* =========================
+   Printable label styles
+   (PDF export only)
+========================= */
 
 .pdf-pages {
   display: flex;
@@ -111,49 +287,39 @@
 }
 
 .pdf-page {
-  background: #fff;
+  background: #ffffff;
   box-sizing: border-box;
   padding: 8mm;
   break-after: page;
   page-break-after: always;
 }
 
-.paper-a4 .pdf-page {
-  width: 210mm;
-  min-height: 297mm;
-}
+/* Grid by paper size */
 
-.paper-a5 .pdf-page {
-  width: 148mm;
-  min-height: 210mm;
-}
-
-/* ===== Grid ===== */
-
-.paper-a4 .labels-grid {
+.labels-grid.grid-a4 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6mm;
 }
 
-.paper-a5 .labels-grid {
+.labels-grid.grid-a5 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6mm;
 }
 
-/* ===== Base card ===== */
+/* ===== Label card ===== */
+
 .label-card {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 4mm;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  padding: 4.5mm;
   box-sizing: border-box;
   break-inside: avoid;
   page-break-inside: avoid;
-  background: #fff;
+  background: #ffffff;
 }
 
-/* ===== Big layout (match sample) ===== */
 .label-card-big {
   min-height: 62mm;
   display: flex;
@@ -208,10 +374,11 @@
   opacity: 0.9;
 }
 
-/* separator line before From */
+/* Separator before From */
+
 .from-sep {
   margin-top: auto;
-  border-top: 2px solid #111;
+  border-top: 2px solid #111111;
   margin-bottom: 2.5mm;
 }
 
@@ -236,30 +403,4 @@
   font-size: 9.5pt;
   line-height: 1.2;
   font-weight: 600;
-}
-
-/* ===== Print rules ===== */
-@media print {
-  .print-toolbar {
-    display: none !important;
-  }
-
-  .labels-sheet {
-    box-shadow: none;
-    padding: 0;
-    max-width: none;
-  }
-
-  .print-labels-page {
-    padding: 0;
-  }
-
-  @page {
-    margin: 0;
-  }
-
-  img {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
 }
