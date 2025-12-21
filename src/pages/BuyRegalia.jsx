@@ -29,51 +29,57 @@ function BuyRegalia() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
   useEffect(() => {
-    const cachedOrders = localStorage.getItem("regaliaOrders");
-    if (cachedOrders) {
-      setOrders(JSON.parse(cachedOrders));
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const cachedOrders = localStorage.getItem("regaliaOrders");
-
-        if (cachedOrders) {
-          const parsedOrders = JSON.parse(cachedOrders);
-          setOrders(parsedOrders);
+      const fetchOrders = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+  
+          // Load cached data first (if exists)
+          const cachedOrders = localStorage.getItem("regaliaOrders");
+          if (cachedOrders) {
+            setOrders(JSON.parse(cachedOrders));
+          }
+  
+          // ALWAYS fetch fresh data from API
+          const data = await getOrders();
+  
+          const processedData = Array.isArray(data)
+            ? data
+                .map((order) => {
+                  // Keep ONLY buy items
+                  const buyItems =
+                    order.items?.filter((item) => item.hire === false) || [];
+  
+                  // If no buy items → exclude entire order
+                  if (buyItems.length === 0) return null;
+  
+                  return {
+                    ...order,
+                    items: buyItems,
+                    status: order.status || "pending",
+                  };
+                })
+                .filter(Boolean) // remove null orders
+            : [];
+  
+          // Update state + cache
+          setOrders(processedData);
+          localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
+        } catch (err) {
+          setError(err.message || "Failed to fetch orders");
+  
+          // fallback to cache if API fails
+          const cachedOrders = localStorage.getItem("regaliaOrders");
+          if (cachedOrders) {
+            setOrders(JSON.parse(cachedOrders));
+          }
+        } finally {
           setLoading(false);
-          return;
         }
-
-        const data = await getOrders();
-        console.log(data);
-
-        const processedData = Array.isArray(data)
-          ? data.map((order) => ({
-              ...order,
-              status: order.status || "pending",
-            }))
-          : [];
-
-        setOrders(processedData);
-        localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
-      } catch (err) {
-        setError(err.message);
-        const cachedOrders = localStorage.getItem("regaliaOrders");
-        if (cachedOrders) {
-          setOrders(JSON.parse(cachedOrders));
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-  }, []);
+      };
+  
+      fetchOrders();
+    }, []);
 
   const statusConfig = {
     pending: { label: "Pending", icon: Clock },
@@ -252,6 +258,11 @@ function BuyRegalia() {
 
   // Add this function before the return statement
   const generateCSV = () => {
+    if (filteredOrders.length === 0) {
+      alert("No orders match the selected filters");
+      return;
+    }
+
     // CSV Headers
     const headers = [
       "Order ID",
@@ -259,107 +270,48 @@ function BuyRegalia() {
       "Last Name",
       "Student ID",
       "Email",
-      "Phone",
-      "Mobile",
-      "Address",
-      "City",
-      "Postcode",
-      "Country",
       "Item Name",
-      "Size",
-      "Fit",
-      "Hood",
       "Quantity",
       "Order Date",
       "Status",
       "Payment Status",
-      "Payment Method",
-      "Purchase Order",
-      "Message",
     ];
 
-    // Generate CSV rows
-    const rows = filteredOrders.flatMap((order) => {
-      // If order has items, create a row for each item
-      if (order.items && order.items.length > 0) {
-        return order.items.map((item) => [
-          order.id,
-          order.firstName || "",
-          order.lastName || "",
-          order.studentId || "",
-          order.email || "",
-          order.phone || "",
-          order.mobile || "",
-          order.address || "",
-          order.city || "",
-          order.postcode || "",
-          order.country || "",
-          item.itemName || "",
-          item.sizeName || "",
-          item.fitName || "",
-          item.hoodName || "",
-          item.quantity || "",
-          order.orderDate || "",
-          order.status || "pending",
-          order.paid ? "Paid" : "Unpaid",
-          order.paymentMethod || "",
-          order.purchaseOrder || "",
-          order.message || "",
-        ]);
-      } else {
-        // If no items, create one row for the order
-        return [
-          [
+    const rows = filteredOrders.flatMap((order) =>
+      order.items?.length
+        ? order.items.map((item) => [
             order.id,
-            order.firstName || "",
-            order.lastName || "",
-            order.studentId || "",
-            order.email || "",
-            order.phone || "",
-            order.mobile || "",
-            order.address || "",
-            order.city || "",
-            order.postcode || "",
-            order.country || "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            order.orderDate || "",
-            order.status || "pending",
+            order.firstName,
+            order.lastName,
+            order.studentId,
+            order.email,
+            item.itemName,
+            item.quantity,
+            order.orderDate,
+            order.status,
             order.paid ? "Paid" : "Unpaid",
-            order.paymentMethod || "",
-            order.purchaseOrder || "",
-            order.message || "",
-          ],
-        ];
-      }
-    });
+          ])
+        : [
+            [
+              order.id,
+              order.firstName,
+              order.lastName,
+              order.studentId,
+              order.email,
+              "",
+              "",
+              order.orderDate,
+              order.status,
+              order.paid ? "Paid" : "Unpaid",
+            ],
+          ]
+    );
 
-    // Escape CSV values (handle commas, quotes, newlines)
-    const escapeCSV = (value) => {
-      if (value === null || value === undefined) return "";
-      const stringValue = String(value);
-      if (
-        stringValue.includes(",") ||
-        stringValue.includes('"') ||
-        stringValue.includes("\n")
-      ) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
-
-    // Build CSV string
     const csvContent = [
-      headers.map(escapeCSV).join(","),
-      ...rows.map((row) => row.map(escapeCSV).join(",")),
+      headers.join(","),
+      ...rows.map((r) => r.map((v) => `"${v ?? ""}"`).join(",")),
     ].join("\n");
 
-    setCsvData(csvContent);
-
-    // Trigger download immediately
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -383,13 +335,6 @@ function BuyRegalia() {
             <p className="buy-regalia-subtitle">
               Manage and track graduation regalia purchases
             </p>
-
-            <button
-              onClick={generateCSV}
-              className="!bg-green-700 text-white px-4 py-2 rounded hover:!bg-green-800 disabled:!bg-gray-400 disabled:!cursor-not-allowed"
-            >
-              Export to CSV
-            </button>
           </div>
 
           <div className="stats-grid">
@@ -434,14 +379,14 @@ function BuyRegalia() {
           {/* Search and Filter */}
           <div className="search-filter-container">
             <div className="search-filter-wrapper">
-              <div className="filter-wrapper">
-                <Search className="search-icon" />
+              <div className="filter-wrapper search-wrapper">
+                <Search className="search-icon" size={18} />
                 <input
                   type="text"
                   placeholder="Search by order ID, student name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
+                  className="search-input with-icon"
                 />
               </div>
               <div className="filter-wrapper">
@@ -459,7 +404,6 @@ function BuyRegalia() {
                 </select>
               </div>
               <div className="filter-wrapper">
-                <Filter className="filter-icon" />
                 <select
                   value={filterItemType}
                   onChange={(e) => setFilterItemType(e.target.value)}
@@ -491,7 +435,18 @@ function BuyRegalia() {
                   Unpaid
                 </label>
               </div>
+              <button
+                onClick={generateCSV}
+                disabled={filteredOrders.length === 0}
+                className="ml-3 bg-green-700 text-white px-3 py-1.5 rounded hover:bg-green-800 disabled:bg-gray-400"
+              >
+                Export CSV
+              </button>
             </div>
+          </div>
+
+          <div className="filtered-count">
+            Filtered Items: <span>{filteredOrders.length}</span>
           </div>
 
           {/* Bulk Actions */}

@@ -2,8 +2,6 @@
 import React, { useEffect, useState } from "react";
 import "../components/EmailEdit.css";
 import PaymentEmailTemplateEditor from "../components/PaymentEmailTemplateEditor";
-import OrderCompletedEditor from "../components/OrderCompletedEditor";
-import PurchaseOrderEmailTemplate from "../components/PurchaseOrderEmailTemplate";
 import AdminNavbar from "@/components/AdminNavbar";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
@@ -64,10 +62,6 @@ export default function EmailTemplatesPage() {
           </p>
         </div>
       );
-    }
-
-    if (selected.name === "OrderCompleted") {
-      return <PurchaseOrderEmailTemplate />;
     }
 
     return (

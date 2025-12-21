@@ -10,7 +10,7 @@ import {
   Truck,
   CheckCircle,
 } from "lucide-react";
-import { getOrders } from "../services/RegaliaService";
+import { getOrders, updateOrderStatus } from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
 
 function HireRegalia() {
@@ -29,40 +29,46 @@ function HireRegalia() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
   useEffect(() => {
-    const cachedOrders = localStorage.getItem("regaliaOrders");
-    if (cachedOrders) {
-      setOrders(JSON.parse(cachedOrders));
-    }
-  }, []);
-
-  useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
         setError(null);
 
+        // Load cached data first (if exists)
         const cachedOrders = localStorage.getItem("regaliaOrders");
-
         if (cachedOrders) {
-          const parsedOrders = JSON.parse(cachedOrders);
-          setOrders(parsedOrders);
-          setLoading(false);
-          return;
+          setOrders(JSON.parse(cachedOrders));
         }
 
+        // ALWAYS fetch fresh data from API
         const data = await getOrders();
 
         const processedData = Array.isArray(data)
-          ? data.map((order) => ({
-              ...order,
-              status: order.status || "pending",
-            }))
+          ? data
+              .map((order) => {
+                // Keep ONLY hire items
+                const hireItems =
+                  order.items?.filter((item) => item.hire === true) || [];
+
+                // If no hire items → exclude entire order
+                if (hireItems.length === 0) return null;
+
+                return {
+                  ...order,
+                  items: hireItems,
+                  status: order.status || "pending",
+                };
+              })
+              .filter(Boolean) // remove null orders
           : [];
 
+        // Update state + cache
         setOrders(processedData);
         localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Failed to fetch orders");
+
+        // fallback to cache if API fails
         const cachedOrders = localStorage.getItem("regaliaOrders");
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
@@ -71,6 +77,7 @@ function HireRegalia() {
         setLoading(false);
       }
     };
+
     fetchOrders();
   }, []);
 
@@ -95,10 +102,44 @@ function HireRegalia() {
     return Array.from(types).sort();
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
+  const updateStatus = (orderId, newStatus) => {
     const updatedOrders = orders.map((order) =>
       order.id === orderId ? { ...order, status: newStatus } : order
     );
+    // const payload = {
+    //   id: orderId,
+    //   firstName: "string",
+    //   lastName: "string",
+    //   email: "string",
+    //   address: "string",
+    //   city: "string",
+    //   postcode: "string",
+    //   country: "string",
+    //   phone: "string",
+    //   mobile: "string",
+    //   studentId: 0,
+    //   message: "string",
+    //   paid: true,
+    //   paymentMethod: 0,
+    //   purchaseOrder: "string",
+    //   orderDate: "2025-12-20",
+    //   ceremonyId: 0,
+    //   degreeId: 0,
+    //   orderType: "string",
+    //   note: "string",
+    //   changes: "string",
+    //   packNote: "string",
+    //   amountPaid: 0,
+    //   amountOwning: 0,
+    //   donation: 0,
+    //   freight: 0,
+    //   refund: 0,
+    //   adminCharges: 0,
+    //   payBy: "2025-12-20",
+    //   status: newStatus
+    // }
+    const payload = updatedOrders.filter(order => order.id == orderId);
+    // updateOrderStatus(orderId, payload);
     setOrders(updatedOrders);
     localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
     setSelectedOrder(null);
@@ -251,6 +292,11 @@ function HireRegalia() {
 
   // Add this function before the return statement
   const generateCSV = () => {
+    if (filteredOrders.length === 0) {
+      alert("No orders match the selected filters");
+      return;
+    }
+
     // CSV Headers
     const headers = [
       "Order ID",
@@ -258,105 +304,47 @@ function HireRegalia() {
       "Last Name",
       "Student ID",
       "Email",
-      "Phone",
-      "Mobile",
-      "Address",
-      "City",
-      "Postcode",
-      "Country",
       "Item Name",
-      "Size",
-      "Fit",
-      "Hood",
       "Quantity",
       "Order Date",
       "Status",
       "Payment Status",
-      "Payment Method",
-      "Purchase Order",
-      "Message",
     ];
 
-    // Generate CSV rows
-    const rows = filteredOrders.flatMap((order) => {
-      // If order has items, create a row for each item
-      if (order.items && order.items.length > 0) {
-        return order.items.map((item) => [
-          order.id,
-          order.firstName || "",
-          order.lastName || "",
-          order.studentId || "",
-          order.email || "",
-          order.phone || "",
-          order.mobile || "",
-          order.address || "",
-          order.city || "",
-          order.postcode || "",
-          order.country || "",
-          item.itemName || "",
-          item.sizeName || "",
-          item.fitName || "",
-          item.hoodName || "",
-          item.quantity || "",
-          order.orderDate || "",
-          order.status || "pending",
-          order.paid ? "Paid" : "Unpaid",
-          order.paymentMethod || "",
-          order.purchaseOrder || "",
-          order.message || "",
-        ]);
-      } else {
-        // If no items, create one row for the order
-        return [
-          [
+    const rows = filteredOrders.flatMap((order) =>
+      order.items?.length
+        ? order.items.map((item) => [
             order.id,
-            order.firstName || "",
-            order.lastName || "",
-            order.studentId || "",
-            order.email || "",
-            order.phone || "",
-            order.mobile || "",
-            order.address || "",
-            order.city || "",
-            order.postcode || "",
-            order.country || "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            order.orderDate || "",
-            order.status || "pending",
+            order.firstName,
+            order.lastName,
+            order.studentId,
+            order.email,
+            item.itemName,
+            item.quantity,
+            order.orderDate,
+            order.status,
             order.paid ? "Paid" : "Unpaid",
-            order.paymentMethod || "",
-            order.purchaseOrder || "",
-            order.message || "",
-          ],
-        ];
-      }
-    });
+          ])
+        : [
+            [
+              order.id,
+              order.firstName,
+              order.lastName,
+              order.studentId,
+              order.email,
+              "",
+              "",
+              order.orderDate,
+              order.status,
+              order.paid ? "Paid" : "Unpaid",
+            ],
+          ]
+    );
 
-    // Escape CSV values (handle commas, quotes, newlines)
-    const escapeCSV = (value) => {
-      if (value === null || value === undefined) return "";
-      const stringValue = String(value);
-      if (
-        stringValue.includes(",") ||
-        stringValue.includes('"') ||
-        stringValue.includes("\n")
-      ) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
-
-    // Build CSV string
     const csvContent = [
-      headers.map(escapeCSV).join(","),
-      ...rows.map((row) => row.map(escapeCSV).join(",")),
+      headers.join(","),
+      ...rows.map((r) => r.map((v) => `"${v ?? ""}"`).join(",")),
     ].join("\n");
-
-    setCsvData(csvContent);
 
     // Trigger download immediately
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -382,14 +370,6 @@ function HireRegalia() {
             <p className="hire-regalia-subtitle">
               Manage and track graduation regalia purchases
             </p>
-
-            <button
-              disabled={csvData}
-              onClick={generateCSV}
-              className="!bg-green-700 text-white px-4 py-2 rounded hover:!bg-green-800 disabled:!bg-gray-400 disabled:!cursor-not-allowed"
-            >
-              Export to CSV
-            </button>
           </div>
 
           <div className="stats-grid">
@@ -434,16 +414,17 @@ function HireRegalia() {
           {/* Search and Filter */}
           <div className="search-filter-container">
             <div className="search-filter-wrapper">
-              <div className="filter-wrapper">
-                <Search className="search-icon" />
+              <div className="filter-wrapper search-wrapper">
+                <Search className="search-icon" size={18} />
                 <input
                   type="text"
                   placeholder="Search by order ID, student name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
+                  className="search-input with-icon"
                 />
               </div>
+
               <div className="filter-wrapper">
                 <Filter className="filter-icon" />
                 <select
@@ -459,7 +440,6 @@ function HireRegalia() {
                 </select>
               </div>
               <div className="filter-wrapper">
-                <Filter className="filter-icon" />
                 <select
                   value={filterItemType}
                   onChange={(e) => setFilterItemType(e.target.value)}
@@ -491,7 +471,18 @@ function HireRegalia() {
                   Unpaid
                 </label>
               </div>
+              <button
+                onClick={generateCSV}
+                disabled={filteredOrders.length === 0}
+                className="ml-3 bg-green-700 text-white px-3 py-1.5 rounded hover:bg-green-800 disabled:bg-gray-400"
+              >
+                Export CSV
+              </button>
             </div>
+          </div>
+
+          <div className="filtered-count">
+            Filtered Items: <span>{filteredOrders.length}</span>
           </div>
 
           {/* Bulk Actions */}
@@ -834,7 +825,7 @@ function HireRegalia() {
                               <button
                                 key={status}
                                 onClick={() =>
-                                  updateOrderStatus(selectedOrder.id, status)
+                                  updateStatus(selectedOrder.id, status)
                                 }
                                 className={`status-update-button ${
                                   selectedOrder.status === status
