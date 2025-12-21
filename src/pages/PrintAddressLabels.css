@@ -97,7 +97,6 @@
   box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.08);
 }
 
-/* A4 / A5 预览宽度 */
 .paper-a4 .labels-sheet {
   max-width: 210mm;
 }
@@ -105,14 +104,12 @@
   max-width: 148mm;
 }
 
-/* ===== PDF pages container ===== */
 .pdf-pages {
   display: flex;
   flex-direction: column;
   gap: 8mm;
 }
 
-/* 每个页面固定纸张尺寸（用于 html2canvas 分页截图） */
 .pdf-page {
   background: #fff;
   box-sizing: border-box;
@@ -121,27 +118,24 @@
   page-break-after: always;
 }
 
-/* A4 页面尺寸 */
 .paper-a4 .pdf-page {
   width: 210mm;
   min-height: 297mm;
 }
 
-/* A5 页面尺寸 */
 .paper-a5 .pdf-page {
   width: 148mm;
   min-height: 210mm;
 }
 
 /* ===== Grid ===== */
-/* A4：3列 */
+
 .paper-a4 .labels-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6mm;
 }
 
-/* A5：2列（更稳，不会挤） */
 .paper-a5 .labels-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -221,7 +215,6 @@
   margin-bottom: 2.5mm;
 }
 
-/* From area: From 在左，Logo 在下方，地址在最底部 */
 .from-area {
   display: flex;
   flex-direction: column;
@@ -261,7 +254,6 @@
     padding: 0;
   }
 
-  /* 让浏览器按纸张大小分页（我们的 pdf-page 本身已经是纸张尺寸） */
   @page {
     margin: 0;
   }
