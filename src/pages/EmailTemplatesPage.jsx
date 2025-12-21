@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import "../components/EmailEdit.css";
 import PaymentEmailTemplateEditor from "../components/PaymentEmailTemplateEditor";
+import AdminNavbar from "@/components/AdminNavbar";
 import OrderCompletedEditor from "../components/OrderCompletedEditor";
 import PurchaseOrderEmailTemplate from "../components/PurchaseOrderEmailTemplate";
 import ReportOrderTemplate from "../components/ReportOrderTemplate";
@@ -90,44 +91,47 @@ export default function EmailTemplatesPage() {
   };
 
   return (
-    <div className="email-admin-page">
-      <h1 className="email-page-title">CMS Templates</h1>
+    <>
+      <AdminNavbar />
+      <div className="email-admin-page">
+        <h1 className="email-page-title">Email Templates</h1>
 
-      {status && status.type === "error" && (
-        <p className="email-status email-status-error">{status.message}</p>
-      )}
+        {status && status.type === "error" && (
+          <p className="email-status email-status-error">{status.message}</p>
+        )}
 
-      {loading ? (
-        <p className="email-status">Loading CMS templates…</p>
-      ) : (
-        <div className="email-layout">
-          <div className="email-list-card">
-            <div className="email-list-header">Templates</div>
-            {templates.length === 0 ? (
-              <p className="email-empty">No CMS templates found.</p>
-            ) : (
-              <ul className="email-list">
-                {templates.map((tpl) => (
-                  <li
-                    key={tpl.id}
-                    onClick={() => handleSelect(tpl)}
-                    className={
-                      "email-list-item" +
-                      (selected && selected.id === tpl.id ? " is-active" : "")
-                    }
-                  >
-                    <div className="email-list-title">
-                      {tpl.name || "Untitled template"}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+        {loading ? (
+          <p className="email-status">Loading email templates…</p>
+        ) : (
+          <div className="email-layout">
+            <div className="email-list-card">
+              <div className="email-list-header">Templates</div>
+              {templates.length === 0 ? (
+                <p className="email-empty">No email templates found.</p>
+              ) : (
+                <ul className="email-list">
+                  {templates.map((tpl) => (
+                    <li
+                      key={tpl.id}
+                      onClick={() => handleSelect(tpl)}
+                      className={
+                        "email-list-item" +
+                        (selected && selected.id === tpl.id ? " is-active" : "")
+                      }
+                    >
+                      <div className="email-list-title">
+                        {tpl.name || "Untitled template"}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {renderEditor()}
           </div>
-
-          {renderEditor()}
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

@@ -16,6 +16,7 @@ import AdminIndOrder from "@/components/AdminIndOrder.jsx";
 import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
 import AdminImportBulk from "@/components/AdminImportBulk.jsx";
 import EmailTemplatesPage from "@/pages/EmailTemplatesPage.jsx";
+import PrintAddressLabels from "@/pages/PrintAddressLabels.jsx";
 
 function App() {
   return (
@@ -117,30 +118,38 @@ function App() {
           </Authentication>
         }
       />
-        <Route
-            path="/IndOrder"
-            element={
-                <Authentication>
-                    <AdminIndOrder />
-                </Authentication>
-            }
-        />
-        <Route
-            path="/BulkOrder"
-            element={
-                <Authentication>
-                    <AdminBulkOrder />
-                </Authentication>
-            }
-        />
-        <Route
-            path="/ImportBulk"
-            element={
-                <Authentication>
-                    <AdminImportBulk />
-                </Authentication>
-            }
-        />
+      <Route
+        path="/IndOrder"
+        element={
+          <Authentication>
+            <AdminIndOrder />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/BulkOrder"
+        element={
+          <Authentication>
+            <AdminBulkOrder />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/ImportBulk"
+        element={
+          <Authentication>
+            <AdminImportBulk />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/PrintAddressLabels"
+        element={
+          <Authentication>
+            <PrintAddressLabels />
+          </Authentication>
+        }
+      />
     </Routes>
   );
 }

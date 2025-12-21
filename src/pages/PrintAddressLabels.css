@@ -1,0 +1,406 @@
+/* =========================
+   Admin / Table page layout
+========================= */
+
+.labels-admin-page {
+  padding: 14px 18px;
+  background: #ffffff;
+}
+
+/* ===== Toolbar ===== */
+
+.labels-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding-top: 100px;
+}
+
+.labels-toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.labels-toolbar-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.toolbar-meta {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* ===== Inputs ===== */
+
+.search-input {
+  width: 320px;
+  height: 36px;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+/* ===== Focus states (inputs & selects) ===== */
+
+.search-input:focus,
+.date-input:focus,
+.tiny-select:focus {
+  outline: none;
+  border-color: #0b5fff;
+  box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.15);
+}
+
+/* For keyboard accessibility */
+.search-input:focus-visible,
+.date-input:focus-visible,
+.tiny-select:focus-visible {
+  outline: none;
+  border-color: #0b5fff;
+  box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.18);
+}
+.search-input::placeholder {
+  color: #9aa4b2;
+}
+.date-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.date-label {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.date-input {
+  height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.tiny-filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tiny-filter {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.tiny-select {
+  height: 32px;
+  padding: 4px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 13px;
+}
+
+/* ===== Buttons ===== */
+
+.btn {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.btn:hover {
+  background: #f6f8fa;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  background: #ffffff;
+}
+
+.btn-success {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.btn-success:hover {
+  background: #148a3f;
+}
+
+/* ===== Paper choice ===== */
+
+.paper-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  height: 36px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.paper-choice-label {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.paper-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  background: #ffffff;
+}
+
+.paper-pill input {
+  margin: 0;
+}
+
+.paper-pill.active {
+  border-color: #0b5fff;
+  box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.12);
+}
+
+/* =========================
+   Table
+========================= */
+
+.table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.labels-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.labels-table thead th {
+  background: #f6f8fa;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.labels-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 14px;
+  vertical-align: top;
+}
+
+.labels-table tbody tr:hover td {
+  background: #fbfcfe;
+}
+
+.td-strong {
+  font-weight: 700;
+}
+
+.td-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+}
+
+.addr-cell .muted {
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.table-empty {
+  text-align: center;
+  padding: 28px 10px;
+  opacity: 0.8;
+}
+
+/* ===== Pagination ===== */
+
+.table-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.page-indicator {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* =========================
+   Hidden print DOM
+========================= */
+
+.print-dom-hidden {
+  position: fixed;
+  left: -99999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* =========================
+   Printable label styles
+   (PDF export only)
+========================= */
+
+.pdf-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 8mm;
+}
+
+.pdf-page {
+  background: #ffffff;
+  box-sizing: border-box;
+  padding: 8mm;
+  break-after: page;
+  page-break-after: always;
+}
+
+/* Grid by paper size */
+
+.labels-grid.grid-a4 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6mm;
+}
+
+.labels-grid.grid-a5 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6mm;
+}
+
+/* ===== Label card ===== */
+
+.label-card {
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  padding: 4.5mm;
+  box-sizing: border-box;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  background: #ffffff;
+}
+
+.label-card-big {
+  min-height: 62mm;
+  display: flex;
+  flex-direction: column;
+}
+
+.to-name {
+  font-weight: 800;
+  font-size: 16pt;
+  line-height: 1.1;
+  margin-bottom: 2.5mm;
+}
+
+.addr-line {
+  line-height: 1.1;
+}
+
+.addr1 {
+  font-weight: 800;
+  font-size: 18pt;
+  margin-bottom: 1.5mm;
+}
+
+.addr2 {
+  font-weight: 700;
+  font-size: 14pt;
+  margin-bottom: 1.5mm;
+}
+
+.citypost {
+  font-weight: 900;
+  font-size: 22pt;
+  letter-spacing: 0.5px;
+  margin: 1mm 0 3mm;
+}
+
+.attn-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6mm;
+  margin-bottom: 2.5mm;
+}
+
+.attn-text {
+  font-weight: 700;
+  font-size: 12pt;
+}
+
+.phone-text {
+  font-size: 10pt;
+  opacity: 0.9;
+}
+
+/* Separator before From */
+
+.from-sep {
+  margin-top: auto;
+  border-top: 2px solid #111111;
+  margin-bottom: 2.5mm;
+}
+
+.from-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+}
+
+.from-label {
+  font-weight: 700;
+  font-size: 10pt;
+}
+
+.from-logo-big {
+  width: 55mm;
+  height: auto;
+  object-fit: contain;
+}
+
+.from-footer {
+  font-size: 9.5pt;
+  line-height: 1.2;
+  font-weight: 600;
+}

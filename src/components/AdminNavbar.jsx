@@ -1,6 +1,7 @@
 import React from "react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import ReactDOM from "react-dom";
 import "./AdminNavbar.css";
 import "./Spinner.css";
@@ -79,22 +80,22 @@ function AdminNavbar() {
             <a>EDIT CONTENT</a>
             <ul className="dropdown-panel">
               <li className="dropdown-item">
-                <Link to="/admineditceremonies">Ceremonies</Link>
+                <NavLink to="/admineditceremonies">Ceremonies</NavLink>
               </li>
               <li className="dropdown-item">
-                <Link to="/admineditdegrees">Degrees</Link>
+                <NavLink to="/admineditdegrees">Degrees</NavLink>
               </li>
               <li className="dropdown-item">
-                <Link to="/adminedititems">Items</Link>
+                <NavLink to="/adminedititems">Items</NavLink>
               </li>
               <li className="dropdown-item">
-                <Link to="/HomepageEdit">Text & Image</Link>
+                <NavLink to="/HomepageEdit">Text & Image</NavLink>
               </li>
               <li className="dropdown-item">
-                <Link to="/EmailEdit">Email Template</Link>
+                <NavLink to="/EmailEdit">Email Template</NavLink>
               </li>
               <li className="dropdown-item">
-                <Link to="/adminusers">Users</Link>
+                <NavLink to="/adminusers">Users</NavLink>
               </li>
               {/*<li className="dropdown-item">*/}
               {/*    <Link to="/admintest">*/}
@@ -104,22 +105,20 @@ function AdminNavbar() {
             </ul>
           </li>
           <li>
-            <Link to="/adminqueries">QUERIES</Link>
+            <NavLink to="/adminqueries">QUERIES</NavLink>
           </li>
           <li>
-            <Link to="/BuyRegalia">SHOW BUY ORDERS</Link>
+            <NavLink to="/BuyRegalia">SHOW BUY ORDERS</NavLink>
           </li>
           <li>
-            <Link to="/HireRegalia">SHOW HIRE ORDERS</Link>
+            <NavLink to="/HireRegalia">SHOW HIRE ORDERS</NavLink>
           </li>
           <li className="has-dropdown">
             <a>DATABASE</a>
             <ul className="dropdown-panel">
-              <Link to="/IndOrder">Individual Orders</Link>
-              <Link to="/BulkOrder">Bulk Orders</Link>
-              <Link to="/ImportBulk">
-                Import Bulk Hire
-              </Link>
+              <NavLink to="/IndOrder">Individual Orders</NavLink>
+              <NavLink to="/BulkOrder">Bulk Orders</NavLink>
+              <NavLink to="/ImportBulk">Import Bulk Hire</NavLink>
               {loading && <FullscreenSpinner />}
               <a onClick={printLabels} style={{ cursor: "pointer" }}>
                 PRINT LABELS
@@ -131,6 +130,7 @@ function AdminNavbar() {
               <a onClick={PrintPDF} style={{ cursor: "pointer" }}>
                 Print Report
               </a>
+              <NavLink to="/PrintAddressLabels">PRINT ADDRESS LABELS</NavLink>
             </ul>
           </li>
           <li>
