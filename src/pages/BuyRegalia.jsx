@@ -29,51 +29,57 @@ function BuyRegalia() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
   useEffect(() => {
-    const cachedOrders = localStorage.getItem("regaliaOrders");
-    if (cachedOrders) {
-      setOrders(JSON.parse(cachedOrders));
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const cachedOrders = localStorage.getItem("regaliaOrders");
-
-        if (cachedOrders) {
-          const parsedOrders = JSON.parse(cachedOrders);
-          setOrders(parsedOrders);
+      const fetchOrders = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+  
+          // Load cached data first (if exists)
+          const cachedOrders = localStorage.getItem("regaliaOrders");
+          if (cachedOrders) {
+            setOrders(JSON.parse(cachedOrders));
+          }
+  
+          // ALWAYS fetch fresh data from API
+          const data = await getOrders();
+  
+          const processedData = Array.isArray(data)
+            ? data
+                .map((order) => {
+                  // Keep ONLY buy items
+                  const buyItems =
+                    order.items?.filter((item) => item.hire === false) || [];
+  
+                  // If no buy items → exclude entire order
+                  if (buyItems.length === 0) return null;
+  
+                  return {
+                    ...order,
+                    items: buyItems,
+                    status: order.status || "pending",
+                  };
+                })
+                .filter(Boolean) // remove null orders
+            : [];
+  
+          // Update state + cache
+          setOrders(processedData);
+          localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
+        } catch (err) {
+          setError(err.message || "Failed to fetch orders");
+  
+          // fallback to cache if API fails
+          const cachedOrders = localStorage.getItem("regaliaOrders");
+          if (cachedOrders) {
+            setOrders(JSON.parse(cachedOrders));
+          }
+        } finally {
           setLoading(false);
-          return;
         }
-
-        const data = await getOrders();
-        console.log(data);
-
-        const processedData = Array.isArray(data)
-          ? data.map((order) => ({
-              ...order,
-              status: order.status || "pending",
-            }))
-          : [];
-
-        setOrders(processedData);
-        localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
-      } catch (err) {
-        setError(err.message);
-        const cachedOrders = localStorage.getItem("regaliaOrders");
-        if (cachedOrders) {
-          setOrders(JSON.parse(cachedOrders));
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-  }, []);
+      };
+  
+      fetchOrders();
+    }, []);
 
   const statusConfig = {
     pending: { label: "Pending", icon: Clock },

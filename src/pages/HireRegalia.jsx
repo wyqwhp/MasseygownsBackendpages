@@ -10,7 +10,7 @@ import {
   Truck,
   CheckCircle,
 } from "lucide-react";
-import { getOrders } from "../services/RegaliaService";
+import { getOrders, updateOrderStatus } from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
 
 function HireRegalia() {
@@ -29,40 +29,46 @@ function HireRegalia() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
   useEffect(() => {
-    const cachedOrders = localStorage.getItem("regaliaOrders");
-    if (cachedOrders) {
-      setOrders(JSON.parse(cachedOrders));
-    }
-  }, []);
-
-  useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
         setError(null);
 
+        // Load cached data first (if exists)
         const cachedOrders = localStorage.getItem("regaliaOrders");
-
         if (cachedOrders) {
-          const parsedOrders = JSON.parse(cachedOrders);
-          setOrders(parsedOrders);
-          setLoading(false);
-          return;
+          setOrders(JSON.parse(cachedOrders));
         }
 
+        // ALWAYS fetch fresh data from API
         const data = await getOrders();
 
         const processedData = Array.isArray(data)
-          ? data.map((order) => ({
-              ...order,
-              status: order.status || "pending",
-            }))
+          ? data
+              .map((order) => {
+                // Keep ONLY hire items
+                const hireItems =
+                  order.items?.filter((item) => item.hire === true) || [];
+
+                // If no hire items → exclude entire order
+                if (hireItems.length === 0) return null;
+
+                return {
+                  ...order,
+                  items: hireItems,
+                  status: order.status || "pending",
+                };
+              })
+              .filter(Boolean) // remove null orders
           : [];
 
+        // Update state + cache
         setOrders(processedData);
         localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Failed to fetch orders");
+
+        // fallback to cache if API fails
         const cachedOrders = localStorage.getItem("regaliaOrders");
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
@@ -71,6 +77,7 @@ function HireRegalia() {
         setLoading(false);
       }
     };
+
     fetchOrders();
   }, []);
 
@@ -95,10 +102,44 @@ function HireRegalia() {
     return Array.from(types).sort();
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
+  const updateStatus = (orderId, newStatus) => {
     const updatedOrders = orders.map((order) =>
       order.id === orderId ? { ...order, status: newStatus } : order
     );
+    // const payload = {
+    //   id: orderId,
+    //   firstName: "string",
+    //   lastName: "string",
+    //   email: "string",
+    //   address: "string",
+    //   city: "string",
+    //   postcode: "string",
+    //   country: "string",
+    //   phone: "string",
+    //   mobile: "string",
+    //   studentId: 0,
+    //   message: "string",
+    //   paid: true,
+    //   paymentMethod: 0,
+    //   purchaseOrder: "string",
+    //   orderDate: "2025-12-20",
+    //   ceremonyId: 0,
+    //   degreeId: 0,
+    //   orderType: "string",
+    //   note: "string",
+    //   changes: "string",
+    //   packNote: "string",
+    //   amountPaid: 0,
+    //   amountOwning: 0,
+    //   donation: 0,
+    //   freight: 0,
+    //   refund: 0,
+    //   adminCharges: 0,
+    //   payBy: "2025-12-20",
+    //   status: newStatus
+    // }
+    const payload = updatedOrders.filter(order => order.id == orderId);
+    // updateOrderStatus(orderId, payload);
     setOrders(updatedOrders);
     localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
     setSelectedOrder(null);
@@ -784,7 +825,7 @@ function HireRegalia() {
                               <button
                                 key={status}
                                 onClick={() =>
-                                  updateOrderStatus(selectedOrder.id, status)
+                                  updateStatus(selectedOrder.id, status)
                                 }
                                 className={`status-update-button ${
                                   selectedOrder.status === status
