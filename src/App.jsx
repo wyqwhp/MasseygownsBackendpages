@@ -17,6 +17,7 @@ import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
 import AdminImportBulk from "@/components/AdminImportBulk.jsx";
 import EmailTemplatesPage from "@/pages/EmailTemplatesPage.jsx";
 import PrintAddressLabels from "@/pages/PrintAddressLabels.jsx";
+import AdminEditDelivery from "./components/AdminEditDelivery.jsx";
 
 function App() {
   return (
@@ -147,6 +148,14 @@ function App() {
         element={
           <Authentication>
             <PrintAddressLabels />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/EditDelivery"
+        element={
+          <Authentication>
+            <AdminEditDelivery />
           </Authentication>
         }
       />

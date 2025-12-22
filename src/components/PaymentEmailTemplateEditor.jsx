@@ -21,6 +21,9 @@ const variableList = [
   "balanceOwing",
   "eventTitle",
   "ceremonyDate",
+  "invoiceNumber",
+  "invoiceDate",
+  "cartRows",
 ];
 
 function parseBodyHtml(html) {

@@ -97,6 +97,9 @@ function AdminNavbar() {
               <li className="dropdown-item">
                 <NavLink to="/adminusers">Users</NavLink>
               </li>
+              <li className="dropdown-item">
+                <NavLink to="/editDelivery">Delivery</NavLink>
+              </li>
               {/*<li className="dropdown-item">*/}
               {/*    <Link to="/admintest">*/}
               {/*        TEST*/}
