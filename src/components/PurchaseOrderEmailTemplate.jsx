@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import JoditEditor from "jodit-react";
-import "./PurchaseOrderEmailTemplate.css";
+// import "./PurchaseOrderEmailTemplate.css";
 import { sendOrderCompleteTemplate } from "../api/TemplateApi.js";
 
 export default function PurchaseOrderEmailTemplate() {

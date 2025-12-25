@@ -89,10 +89,13 @@ function AdminNavbar() {
                 <NavLink to="/adminedititems">Items</NavLink>
               </li>
               <li className="dropdown-item">
+                <NavLink to="/HoodEditor">Hood Qualifications</NavLink>
+              </li>
+              <li className="dropdown-item">
                 <NavLink to="/HomepageEdit">Text & Image</NavLink>
               </li>
               <li className="dropdown-item">
-                <NavLink to="/EmailEdit">Email Template</NavLink>
+                <NavLink to="/EmailEdit">CMS Templates</NavLink>
               </li>
               <li className="dropdown-item">
                 <NavLink to="/adminusers">Users</NavLink>

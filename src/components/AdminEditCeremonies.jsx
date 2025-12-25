@@ -101,6 +101,7 @@ export default function CeremonyEditor() {
         );
       } else {
         res = await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, form);
+        console.log("Form=", degrees);
         await axios.post(
           `${API_URL}/admin/ceremonies/${editingId}/degrees`,
           degrees

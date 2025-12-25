@@ -94,20 +94,20 @@ export default function EmailTemplatesPage() {
     <>
       <AdminNavbar />
       <div className="email-admin-page">
-        <h1 className="email-page-title">Email Templates</h1>
+        <h1 className="email-page-title">CMS Templates</h1>
 
         {status && status.type === "error" && (
           <p className="email-status email-status-error">{status.message}</p>
         )}
 
         {loading ? (
-          <p className="email-status">Loading email templates…</p>
+          <p className="email-status">Loading CMS templates…</p>
         ) : (
           <div className="email-layout">
             <div className="email-list-card">
               <div className="email-list-header">Templates</div>
               {templates.length === 0 ? (
-                <p className="email-empty">No email templates found.</p>
+                <p className="email-empty">No CMS templates found.</p>
               ) : (
                 <ul className="email-list">
                   {templates.map((tpl) => (

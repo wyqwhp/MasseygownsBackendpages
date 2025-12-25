@@ -1,3 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        th, td {
+            border: 1px solid #ccc;
+            border-left: 2px solid #ccc;
+            padding: 20px 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
 <div style="position:absolute; font-weight: bold; font-size: xx-large; top:50px; left:40px">
     {{idCode}}
 </div>
@@ -32,5 +48,46 @@
     Notes:
 </div>
 <div style="position:absolute; font-size: large; top:610px; left:40px">
-    {{Xero INV-12572}}
+    {{Notes}}
 </div>
+<div style="position:absolute; font-weight: bold; font-size: x-large; top:650px; left:40px; width:794px">
+    <table style="width:100%; border: 1px solid darkgray; text-align: center; border-collapse: separate; border-spacing: 0 0px;">
+        <thead style="font-size: x-large; border: 1px solid darkgray">
+            <tr style="border: 1px solid darkgray">
+                <th>Dates:</th>
+                <th>Despatched</th>
+                <th>Returned</th>
+            </tr>
+        </thead>
+        <tbody style="font-size: x-large; border: 1px solid darkgray; ">
+            <tr>
+                <td>Gowns</td>
+                <td>{{gownsDespatched}}</td>
+                <td>{{gownsReturned}}</td>
+            </tr>
+            <tr>
+                <td>Hoods/Stoles</td>
+                <td>{{hoodsDespatched}}</td>
+                <td>{{hoodsReturned}}</td>
+            </tr>
+            <tr>
+                <td>Hats</td>
+                <td>{{hatsDespatched}}</td>
+                <td>{{hatsReturned}}</td>
+            </tr>
+            <tr>
+                <td>Ucol Sashes</td>
+                <td>{{ucolDespatched}}</td>
+                <td>{{ucolReturned}}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<div style="position:absolute; font-size: x-large; top:1010px; left:40px">
+    Return Due {{returnDate}}
+</div>
+<div style="position:absolute; font-size: x-large; top:1060px; left:40px">
+    Date All Returned:
+</div>
+</body>
+</html>

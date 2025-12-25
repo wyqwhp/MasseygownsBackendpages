@@ -63,29 +63,24 @@ export async function PrintPDF() {
 
     const generatePdf = async () => {
         // await fetch('http://reportpdf.ajeravd8gbgkhkdf.newzealandnorth.azurecontainer.io:8080/api/pdf/print', {
-        const response = await fetch('http://reportpdf.ajeravd8gbgkhkdf.newzealandnorth.azurecontainer.io:8080', {
+        const response = await fetch('http://reportpdf.ajeravd8gbgkhkdf.newzealandnorth.azurecontainer.io:8080/api/pdf/print', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/pdf'
             },
             body: JSON.stringify({
-                html: '<html><body><h1>Test</h1></body></html>'
-                // html
+                // html: '<html><body><h1>Test</h1></body></html>'
+                html
             })
         });
 
-        console.log('Response:', {
-            status: response.status,
-            contentType: response.headers.get('Content-Type')
-        });
-
-        console.log('Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            contentType: response.headers.get('Content-Type'),
-            headers: Object.fromEntries(response.headers.entries())
-        });
+        // console.log('Response:', {
+        //     status: response.status,
+        //     statusText: response.statusText,
+        //     contentType: response.headers.get('Content-Type'),
+        //     headers: Object.fromEntries(response.headers.entries())
+        // });
         // console.log('Response headers:', [...response.headers.entries()]);
 
         // Clone response so we can read it multiple times
@@ -93,7 +88,7 @@ export async function PrintPDF() {
 
         // Try to read as text first to see what we got
         const text = await clonedResponse.text();
-        console.log('Response body (first 200 chars):', text.substring(0, 200));
+        // console.log('Response body (first 200 chars):', text.substring(0, 200));
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${text}`);
