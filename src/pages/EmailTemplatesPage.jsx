@@ -4,7 +4,6 @@ import "../components/EmailEdit.css";
 import PaymentEmailTemplateEditor from "../components/PaymentEmailTemplateEditor";
 import AdminNavbar from "@/components/AdminNavbar";
 import OrderCompletedEditor from "../components/OrderCompletedEditor";
-import PurchaseOrderEmailTemplate from "../components/PurchaseOrderEmailTemplate";
 import ReportOrderTemplate from "../components/ReportOrderTemplate";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
@@ -64,12 +63,6 @@ export default function EmailTemplatesPage() {
             Select a template on the left to start editing.
           </p>
         </div>
-      );
-    }
-
-    if (selected.name === "OrderCompleted") {
-      return (
-        <PurchaseOrderEmailTemplate/>
       );
     }
 
