@@ -1,40 +1,120 @@
-import React, { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import axios from "axios";
+import {Edit, Plus, Trash2} from 'lucide-react';
 import AdminNavbar from "@/components/AdminNavbar.jsx";
+import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
+
+const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
 
 export default function HoodQualificationsEditor() {
     const [activeTab, setActiveTab] = useState('bachelor');
-    const [bachelorHoods, setBachelorHoods] = useState([
-        'Bachelor of Arts',
-        'Bachelor of Science',
-        'Bachelor of Engineering'
-    ]);
-    const [masterHoods, setMasterHoods] = useState([
-        'Master of Arts',
-        'Master of Science',
-        'Master of Business Administration'
-    ]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [newItem, setNewItem] = useState('');
+    const [hoods, setHoods] = useState({
+        bachelor: [],
+        master: [],
+        'bachelor set': [],
+        'master set': []
+    });
+    // const []
+    const currentList = hoods[activeTab];
+    const setCurrentList = updater =>
+        setHoods(prev => ({
+            ...prev,
+            [activeTab]:
+                typeof updater === 'function'
+                    ? updater(prev[activeTab])
+                    : updater
+        }));
 
-    const currentList = activeTab === 'bachelor' ? bachelorHoods : masterHoods;
-    const setCurrentList = activeTab === 'bachelor' ? setBachelorHoods : setMasterHoods;
+    useEffect(() => {
+        axios
+            .get(`${API_URL}/admin/hoods/4`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    bachelor: res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/admin/hoods/6`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    master: res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/admin/hoods/14`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    'master set': res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/admin/hoods/13`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    'bachelor set': res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+    }, []);
 
     const addItem = () => {
         if (newItem.trim()) {
-            setCurrentList([...currentList, newItem.trim()]);
+            setCurrentList([...currentList, {name:newItem.trim(), itemId:4}]);
             setNewItem('');
         }
     };
 
-    const removeItem = (index) => {
-        setCurrentList(currentList.filter((_, i) => i !== index));
+    const editItem = (index) => {
+        setCurrentList(list =>
+            [...list].sort((a, b) => a.name.localeCompare(b.name))
+        );
+        const editedItem = currentList[index];
+        axios
+        .put(`${API_URL}/admin/hoods/${editedItem.id}`, editedItem);
     };
 
     const updateItem = (index, value) => {
-        const updated = [...currentList];
-        updated[index] = value;
-        setCurrentList(updated);
+        setCurrentList(list =>
+            list.map(item =>
+                item.id === index
+                    ? { ...item, name: value }
+                    : item
+            )
+        );
     };
+
+    if (loading) return <FullscreenSpinner />;
+    if (error) return <p className="text-red-600">Error: {error}</p>;
 
     return (
         <>
@@ -49,7 +129,7 @@ export default function HoodQualificationsEditor() {
                         onClick={() => setActiveTab('bachelor')}
                         className={`px-6 py-3 font-medium transition-colors ${
                             activeTab === 'bachelor'
-                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                ? 'border-b-2 border-green-600 text-green-700'
                                 : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
@@ -59,11 +139,31 @@ export default function HoodQualificationsEditor() {
                         onClick={() => setActiveTab('master')}
                         className={`px-6 py-3 font-medium transition-colors ${
                             activeTab === 'master'
-                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                ? 'border-b-2 border-green-600 text-green-700'
                                 : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
                         Master Hoods
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('bachelor set')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'bachelor set'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Bachelor Set Hoods
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('master set')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'master set'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Master Set Hoods
                     </button>
                 </div>
 
@@ -75,11 +175,11 @@ export default function HoodQualificationsEditor() {
                         onChange={(e) => setNewItem(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && addItem()}
                         placeholder={`Add new ${activeTab} qualification...`}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <button
                         onClick={addItem}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                     >
                         <Plus size={20} />
                         Add
@@ -93,23 +193,24 @@ export default function HoodQualificationsEditor() {
                             No qualifications added yet. Add one above to get started.
                         </p>
                     ) : (
-                        currentList.map((item, index) => (
+                        currentList
+                        .map((item) => (
                             <div
-                                key={index}
-                                className="flex gap-2 items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                key={item.id}
+                                className="flex gap-1 items-center p-0 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                             >
                                 <input
                                     type="text"
-                                    value={item}
-                                    onChange={(e) => updateItem(index, e.target.value)}
+                                    value={item.name}
+                                    onChange={(e) => updateItem(item.id, e.target.value)}
                                     className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                                 <button
-                                    onClick={() => removeItem(index)}
-                                    className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
-                                    title="Remove"
+                                    onClick={() => editItem(item.id)}
+                                    className="p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                    title="Edit"
                                 >
-                                    <Trash2 size={20} />
+                                    <Edit size={20} />
                                 </button>
                             </div>
                         ))
