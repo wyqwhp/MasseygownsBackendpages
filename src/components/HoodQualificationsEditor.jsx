@@ -4,8 +4,15 @@ import {Edit, Plus, Trash2} from 'lucide-react';
 import AdminNavbar from "@/components/AdminNavbar.jsx";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
+
+const TAB_IDS = {
+    bachelor: 4,
+    master: 6,
+    'bachelor set': 13,
+    'master set': 14
+};
 
 export default function HoodQualificationsEditor() {
     const [activeTab, setActiveTab] = useState('bachelor');
@@ -87,9 +94,12 @@ export default function HoodQualificationsEditor() {
             });
     }, []);
 
-    const addItem = () => {
+    const addItem = async () => {
         if (newItem.trim()) {
-            setCurrentList([...currentList, {name:newItem.trim(), itemId:4}]);
+            const addedItem = {name: newItem.trim(), itemId: TAB_IDS[activeTab]};
+            const res = await axios
+                .post(`${API_URL}/admin/hoods`, addedItem);
+            setCurrentList(list => [...list, res.data].sort((a, b) => a.name.localeCompare(b.name)));
             setNewItem('');
         }
     };
