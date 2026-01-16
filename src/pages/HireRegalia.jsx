@@ -27,6 +27,8 @@ function HireRegalia() {
   const [error, setError] = useState(null);
   const [bulkStatusUpdate, setBulkStatusUpdate] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -35,7 +37,7 @@ function HireRegalia() {
         setError(null);
 
         // Load cached data first (if exists)
-        const cachedOrders = localStorage.getItem("regaliaOrders");
+        const cachedOrders = localStorage.getItem("regaliaOrders_hire");
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
         }
@@ -48,7 +50,7 @@ function HireRegalia() {
               .map((order) => {
                 // Keep ONLY hire items
                 const hireItems =
-                  order.items?.filter((item) => item.hire === true) || [];
+                  order.items?.filter((item) => Boolean(item.hire)) || [];
 
                 // If no hire items → exclude entire order
                 if (hireItems.length === 0) return null;
@@ -56,7 +58,7 @@ function HireRegalia() {
                 return {
                   ...order,
                   items: hireItems,
-                  status: order.status || "pending",
+                  status: normalizeStatus(order.status),
                 };
               })
               .filter(Boolean) // remove null orders
@@ -64,12 +66,15 @@ function HireRegalia() {
 
         // Update state + cache
         setOrders(processedData);
-        localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
+        localStorage.setItem(
+          "regaliaOrders_hire",
+          JSON.stringify(processedData)
+        );
       } catch (err) {
         setError(err.message || "Failed to fetch orders");
 
         // fallback to cache if API fails
-        const cachedOrders = localStorage.getItem("regaliaOrders");
+        const cachedOrders = localStorage.getItem("regaliaOrders_hire");
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
         }
@@ -80,6 +85,26 @@ function HireRegalia() {
 
     fetchOrders();
   }, []);
+
+  function normalizeStatus(status) {
+    if (!status) return "pending";
+
+    const s = String(status).toLowerCase().trim();
+
+    switch (s) {
+      case "pending":
+        return "pending";
+      case "processing":
+        return "processing";
+      case "delivered":
+        return "delivered";
+      case "cancelled":
+      case "canceled":
+        return "cancelled";
+      default:
+        return "pending";
+    }
+  }
 
   const statusConfig = {
     pending: { label: "Pending", icon: Clock },
@@ -106,65 +131,51 @@ function HireRegalia() {
     const updatedOrders = orders.map((order) =>
       order.id === orderId ? { ...order, status: newStatus } : order
     );
-    // const payload = {
-    //   id: orderId,
-    //   firstName: "string",
-    //   lastName: "string",
-    //   email: "string",
-    //   address: "string",
-    //   city: "string",
-    //   postcode: "string",
-    //   country: "string",
-    //   phone: "string",
-    //   mobile: "string",
-    //   studentId: 0,
-    //   message: "string",
-    //   paid: true,
-    //   paymentMethod: 0,
-    //   purchaseOrder: "string",
-    //   orderDate: "2025-12-20",
-    //   ceremonyId: 0,
-    //   degreeId: 0,
-    //   orderType: "string",
-    //   note: "string",
-    //   changes: "string",
-    //   packNote: "string",
-    //   amountPaid: 0,
-    //   amountOwning: 0,
-    //   donation: 0,
-    //   freight: 0,
-    //   refund: 0,
-    //   adminCharges: 0,
-    //   payBy: "2025-12-20",
-    //   status: newStatus
-    // }
-    const payload = updatedOrders.filter(order => order.id == orderId);
-    // updateOrderStatus(orderId, payload);
+    updateOrderStatus(orderId, newStatus);
+
     setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
+    localStorage.setItem("regaliaOrders_hire", JSON.stringify(updatedOrders));
     setSelectedOrder(null);
   };
 
   // Bulk status update
-  const handleBulkStatusUpdate = () => {
+  const handleBulkStatusUpdate = async () => {
     if (!bulkStatusUpdate || selectedOrders.length === 0) {
       alert("Please select orders and a status to update");
       return;
     }
 
+    const normalizedStatus = normalizeStatus(bulkStatusUpdate);
+
+    // Optimistic UI update
     const updatedOrders = orders.map((order) =>
       selectedOrders.includes(order.id)
-        ? { ...order, status: bulkStatusUpdate }
+        ? { ...order, status: normalizedStatus }
         : order
     );
 
     setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
-    setSelectedOrders([]);
-    setBulkStatusUpdate("");
-    alert(
-      `Updated ${selectedOrders.length} order(s) to ${statusConfig[bulkStatusUpdate].label}`
-    );
+    localStorage.setItem("regaliaOrders_hire", JSON.stringify(updatedOrders));
+
+    try {
+      for (const orderId of selectedOrders) {
+        await updateOrderStatus(orderId, normalizedStatus);
+      }
+
+      alert(
+        `Updated ${selectedOrders.length} order(s) to ${
+          statusConfig[normalizedStatus]?.label || normalizedStatus
+        }`
+      );
+
+      setSelectedOrders([]);
+      setBulkStatusUpdate("");
+    } catch (err) {
+      console.error("Bulk status update failed:", err.response?.data || err);
+      alert(
+        "Some updates failed on the server. UI updated locally. Please refresh to verify."
+      );
+    }
   };
 
   // Sorting function
@@ -193,12 +204,24 @@ function HireRegalia() {
     );
   };
 
-  // Toggle all visible orders
+  // Toggle all visible (current page) orders
   const toggleAllOrders = () => {
-    if (selectedOrders.length === filteredOrders.length) {
-      setSelectedOrders([]);
+    const visibleIds = paginatedOrders.map((order) => order.id);
+
+    const allVisibleSelected = visibleIds.every((id) =>
+      selectedOrders.includes(id)
+    );
+
+    if (allVisibleSelected) {
+      // remove only visible ones
+      setSelectedOrders((prev) =>
+        prev.filter((id) => !visibleIds.includes(id))
+      );
     } else {
-      setSelectedOrders(filteredOrders.map((order) => order.id));
+      // add visible ones
+      setSelectedOrders((prev) =>
+        Array.from(new Set([...prev, ...visibleIds]))
+      );
     }
   };
 
@@ -285,6 +308,34 @@ function HireRegalia() {
     filterItemType,
     sortConfig,
   ]);
+
+  // ----------------------------
+  // PAGINATION
+  // ----------------------------
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+
+  // Keep currentPage in valid range when filtering reduces results
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+    if (currentPage < 1) setCurrentPage(1);
+  }, [currentPage, totalPages]);
+
+  // Reset to page 1 whenever filters/search/sort change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchTerm,
+    filterStatus,
+    filterPaid,
+    filterUnpaid,
+    filterItemType,
+    sortConfig,
+  ]);
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
   const getStatusCount = (status) => {
     return orders.filter((o) => o.status === status).length;
@@ -418,7 +469,7 @@ function HireRegalia() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by order ID, student name, or student ID..."
+                  placeholder="Search by order ID, customer name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -558,8 +609,10 @@ function HireRegalia() {
                       <input
                         type="checkbox"
                         checked={
-                          selectedOrders.length === filteredOrders.length &&
-                          filteredOrders.length > 0
+                          paginatedOrders.length > 0 &&
+                          paginatedOrders.every((o) =>
+                            selectedOrders.includes(o.id)
+                          )
                         }
                         onChange={toggleAllOrders}
                         style={{ cursor: "pointer" }}
@@ -575,7 +628,7 @@ function HireRegalia() {
                       onClick={() => handleSort("name")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
-                      Student{getSortIndicator("name")}
+                      Customer{getSortIndicator("name")}
                     </th>
                     <th>Items</th>
                     <th>Quantity</th>
@@ -590,10 +643,10 @@ function HireRegalia() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => {
-                    const status = order.status || "pending";
-                    const config = statusConfig[status];
-                    const StatusIcon = config.icon;
+                  {paginatedOrders.map((order) => {
+                    const status = normalizeStatus(order.status);
+                    const config = statusConfig[status] || statusConfig.pending;
+                    const StatusIcon = config.icon || Clock;
 
                     return (
                       <tr
@@ -657,6 +710,100 @@ function HireRegalia() {
               </table>
             </div>
           </div>
+          {/* Pagination */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "1rem",
+              marginTop: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontSize: "0.9rem", color: "#374151" }}>
+              Showing <b>{filteredOrders.length === 0 ? 0 : startIndex + 1}</b>–
+              <b>{Math.min(endIndex, filteredOrders.length)}</b> of{" "}
+              <b>{filteredOrders.length}</b> orders
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #d1d5db",
+                  background: currentPage === 1 ? "#f3f4f6" : "white",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                }}
+              >
+                Prev
+              </button>
+
+              {/* Page numbers*/}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => {
+                  if (totalPages <= 7) return true;
+                  return (
+                    p === 1 ||
+                    p === totalPages ||
+                    (p >= currentPage - 2 && p <= currentPage + 2)
+                  );
+                })
+                .map((p, idx, arr) => {
+                  const prev = arr[idx - 1];
+                  const showDots = prev && p - prev > 1;
+
+                  return (
+                    <React.Fragment key={p}>
+                      {showDots && (
+                        <span style={{ padding: "0 0.25rem" }}>…</span>
+                      )}
+                      <button
+                        onClick={() => setCurrentPage(p)}
+                        style={{
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "6px",
+                          border: "1px solid #d1d5db",
+                          background: p === currentPage ? "#2563eb" : "white",
+                          color: p === currentPage ? "white" : "#111827",
+                          cursor: "pointer",
+                          fontWeight: p === currentPage ? "700" : "500",
+                        }}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+
+              <button
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #d1d5db",
+                  background: currentPage === totalPages ? "#f3f4f6" : "white",
+                  cursor:
+                    currentPage === totalPages ? "not-allowed" : "pointer",
+                }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
 
           {/* Order Detail Modal - keeping your existing modal code */}
           {selectedOrder && (
@@ -679,7 +826,7 @@ function HireRegalia() {
                   <div className="modal-sections">
                     <div>
                       <h3 className="modal-section-title">
-                        Student Information
+                        Customer Information
                       </h3>
                       <div className="info-card">
                         <div className="info-row">
@@ -730,24 +877,28 @@ function HireRegalia() {
                             <div className="info-row">
                               <span className="info-label">Size:</span>
                               <span className="info-value">
-                                {item.sizeName}
+                                {item.sizeName || "N/A"}
                               </span>
                             </div>
                             <div className="info-row">
                               <span className="info-label">Fit:</span>
-                              <span className="info-value">{item.fitName}</span>
+                              <span className="info-value">
+                                {item.fitName || "N/A"}
+                              </span>
                             </div>
                             {item.hoodName && (
                               <div className="info-row">
                                 <span className="info-label">Hood:</span>
                                 <span className="info-value">
-                                  {item.hoodName}
+                                  {item.hoodName || "N/A"}
                                 </span>
                               </div>
                             )}
                             <div className="info-row">
                               <span className="info-label">Type:</span>
-                              <span className="info-value">Hire</span>
+                              <span className="info-value">
+                                {item.hire === true ? "Hire" : "Buy"}
+                              </span>
                             </div>
                             <div className="info-row">
                               <span className="info-label">Quantity:</span>
@@ -791,7 +942,9 @@ function HireRegalia() {
                           <div className="info-row">
                             <span className="info-label">Payment Method:</span>
                             <span className="info-value">
-                              {selectedOrder.paymentMethod}
+                              {selectedOrder.paymentMethod
+                                ? "Card payment or A2A"
+                                : "Purchased order"}
                             </span>
                           </div>
                         )}
@@ -799,7 +952,9 @@ function HireRegalia() {
                           <div className="info-row">
                             <span className="info-label">Purchase Order:</span>
                             <span className="info-value">
-                              {selectedOrder.purchaseOrder}
+                              {selectedOrder.purchaseOrder === "PN"
+                                ? "N/A"
+                                : selectedOrder.purchaseOrder}
                             </span>
                           </div>
                         )}
@@ -828,7 +983,8 @@ function HireRegalia() {
                                   updateStatus(selectedOrder.id, status)
                                 }
                                 className={`status-update-button ${
-                                  selectedOrder.status === status
+                                  normalizeStatus(selectedOrder.status) ===
+                                  status
                                     ? "active"
                                     : "inactive"
                                 }`}
