@@ -12,16 +12,18 @@ export const getOrders = async () => {
   }
 };
 
-export async function updateOrderStatus(id, payload) {
+export async function updateOrderStatus(id, status) {
   try {
-    const res = await fetch(`${API_URL}/orders/${id}`, {
-      method: "PUT",
+    const payload = { Status: status };
+
+    const response = await axios.patch(`${API_URL}/orders/${id}`, payload, {
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
     });
-    return res.json();
+
+    return response.data;
   } catch (err) {
-    console.error("Error updating status:", err);
+    console.error("Error updating order status:", err.response?.data || err);
+    throw err;
   }
 }
 
