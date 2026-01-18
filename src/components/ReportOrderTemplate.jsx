@@ -11,6 +11,7 @@ export default function PurchaseOrderEmailTemplate(template) {
     const [html, setHtml] = useState("");
     const [previewHtml, setPreviewHtml] = useState("");
     const [loading, setLoading] = useState(true);
+    const latestHtmlRef = useRef("");
 
     // ----------------------------
     // VARIABLE LIST
@@ -23,6 +24,18 @@ export default function PurchaseOrderEmailTemplate(template) {
         "email",
         "organiser",
         "phone",
+        "amountDue",
+        "freight",
+        "Notes",
+        "gownsDespatched",
+        "gownsReturned",
+        "hoodsDespatched",
+        "hoodsReturned",
+        "hatsDespatched",
+        "hatsReturned",
+        "ucolDespatched",
+        "ucolReturned",
+        "returnDate"
     ];
 
     // ----------------------------
@@ -37,6 +50,8 @@ export default function PurchaseOrderEmailTemplate(template) {
         organiser: "Robyn Walsh",
         email: "robyn.walsh@woodford.school.nz",
         despatchDate: "2024-12-05",
+        amountDue: 3000,
+        freight: 20,
         returnDate: "2024-12-08",
         gownsDespatched: 5,
         gownsReturned: 0,
@@ -52,6 +67,7 @@ export default function PurchaseOrderEmailTemplate(template) {
         invoiceNumber: "41782315",
         gstNumber: "41782315",
         total: "$0.00",
+        Notes: "Xero INV-12572",
     };
 
     // ----------------------------
@@ -79,45 +95,48 @@ export default function PurchaseOrderEmailTemplate(template) {
         };
     }, []);
 
-    const openPreview = (html) => {
+    const openPreview = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        let output = latestHtmlRef.current || html;
+        Object.keys(sampleData).forEach((key) => {
+            output = output.replaceAll(`{{${key}}}`, sampleData[key]);
+        });
         const previewWindow = window.open("", "_blank", "width=900,height=700");
 
         if (!previewWindow) {
             alert("Popup blocked. Please allow popups for this site.");
             return;
         }
+            previewWindow.document.open();
+            previewWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Preview</title>
+                        <meta charset="UTF-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    </head>
+                    <body>
+                        ${output}
+                    </body>
+                </html>
+            `);
+            previewWindow.document.close();
 
-        previewWindow.document.open();
-        previewWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <title>Preview</title>
-                <meta charset="UTF-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            </head>
-            <body>
-                ${html}
-            </body>
-        </html>
-    `);
-        previewWindow.document.close();
-    }
+    };
 
     // ----------------------------
     // PREVIEW UPDATE
     // ----------------------------
     const updatePreview = (value) => {
-        let output = value;
+        let output = latestHtmlRef.current || html;
         Object.keys(sampleData).forEach((key) => {
             output = output.replaceAll(`{{${key}}}`, sampleData[key]);
         });
         setPreviewHtml(output);
-        console.log("Output: ", output);
     };
-
-    // Helper: get the actual Jodit instance
-    // const getJodit = () => editor.current?.editor;
 
     // ----------------------------
     // INSERT VARIABLE
@@ -153,12 +172,14 @@ export default function PurchaseOrderEmailTemplate(template) {
     // SAVE TEMPLATE
     // ----------------------------
     const saveTemplate = async () => {
-        localStorage.setItem(LOCAL_KEY, html);
+        const latestHtml = latestHtmlRef.current;
+        localStorage.setItem(LOCAL_KEY, latestHtml);
+
         try {
             await saveCMSTemplate({
                 id: template.template.id,
                 SubjectTemplate: template.template.subjectTemplate,
-                BodyHtml: html,
+                BodyHtml: latestHtml,
                 TaxReceiptHtml: "",
             });
         } catch (err) {
@@ -201,18 +222,20 @@ export default function PurchaseOrderEmailTemplate(template) {
 
                 {/* EDITOR */}
                 <JoditEditor
-                    ref={editor}
-                    value={html}
+                    value={html}      // initial value only
                     config={config}
-                    onBlur={(newContent) => {
-                        setHtml(newContent);
-                        localStorage.setItem(LOCAL_KEY, newContent);
+                    onChange={(content) => {
+                        latestHtmlRef.current = content;
+                    }}
+                    onBlur={(content) => {
+                        latestHtmlRef.current = content;
+                        localStorage.setItem(LOCAL_KEY, content);
                     }}
                 />
 
                 <div className="flex gap-12">
                     {/* PREVIEW */}
-                    <button onClick={() => openPreview(previewHtml)} className="email-save-button">
+                    <button onClick={(e) => openPreview(e)} className="email-save-button">
                         Preview
                     </button>
                     {/* SAVE */}

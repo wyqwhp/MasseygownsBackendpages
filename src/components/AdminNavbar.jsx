@@ -10,7 +10,7 @@ import {
   generateLabelsPDF,
   generateManifestPDF,
 } from "@/components/PrintLabels.jsx";
-import {PrintPDF} from "@/components/PrintManifest.js"
+import PrintReportOrder from "@/components/PrintReportOrder.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 
@@ -103,11 +103,6 @@ function AdminNavbar() {
               <li className="dropdown-item">
                 <NavLink to="/editDelivery">Delivery</NavLink>
               </li>
-              {/*<li className="dropdown-item">*/}
-              {/*    <Link to="/admintest">*/}
-              {/*        TEST*/}
-              {/*    </Link>*/}
-              {/*</li>*/}
             </ul>
           </li>
           <li>
@@ -133,7 +128,7 @@ function AdminNavbar() {
               <a onClick={printManifest} style={{ cursor: "pointer" }}>
                 PRINT MANIFEST
               </a>
-              <a onClick={PrintPDF} style={{ cursor: "pointer" }}>
+              <a onClick={PrintReportOrder} style={{ cursor: "pointer" }}>
                 Print Report
               </a>
               <NavLink to="/PrintAddressLabels">PRINT ADDRESS LABELS</NavLink>

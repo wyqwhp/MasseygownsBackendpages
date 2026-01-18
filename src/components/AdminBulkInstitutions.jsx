@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent} from "@/components/ui/card";
-import { ChevronsLeft, ChevronsRight, Copy, PlusCircle, Save, HardDrive } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Copy, PlusCircle, Save, Printer } from "lucide-react";
 import AdminNavbar from "./AdminNavbar.jsx";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import PrintReportOrder from "@/components/PrintReportOrder.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -48,6 +49,8 @@ export default function AdminBulkOrder() {
   const [showError, setShowError] = useState(false);
   const [changed, setChanged] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showPrint, setShowPrint] = useState(false);
+  // const hasPrintedRef = useRef(false);
   const navButtonClass =
       "bg-green-700 hover:bg-green-800 w-20 h-10 p-0 flex items-center justify-center";
 
@@ -64,7 +67,7 @@ export default function AdminBulkOrder() {
   const updateForm = (ceremony) => {
     console.log("Updating form");
     setFormData({
-      // id: ceremony.id,
+      id: ceremony.id,
       visible: ceremony.visible,
       name: ceremony.name || "",
       idCode: ceremony.idCode || "",
@@ -96,6 +99,9 @@ export default function AdminBulkOrder() {
 
   // Fetch orders on mount
   useEffect(() => {
+    // if (hasPrintedRef.current) return;
+    // hasPrintedRef.current = true;
+
     const cached = localStorage.getItem("ceremonies");
 
     if (cached) {
@@ -144,6 +150,11 @@ export default function AdminBulkOrder() {
     setCeremonies([...ceremonies, {id: tempId}]);
     setFormData(emptyFormRecord);
     setChanged(true);
+  }
+
+  const handlePrint = () => {
+    setShowPrint(false);
+    setTimeout(() => setShowPrint(true), 0);
   }
 
   const handleSubmit = async (e) => {
@@ -471,29 +482,40 @@ export default function AdminBulkOrder() {
                 </Button>
               </div>
 
-              <Button onClick={handleCopy}
-                      className={`${navButtonClass} row-start-11 col-start-2 mt-4 place-self-center`}>
-                <Copy />
+              <div className="row-start-11 col-start-2 flex justify-around mt-4">
+                <Button onClick={handleCopy}
+                        className={`${navButtonClass}`}>
+                  <Copy />
+                </Button>
+
+                <Button className={`${navButtonClass} `}
+                        onClick={handleNew}
+                >
+                  <PlusCircle />
+                </Button>
+              </div>
+
+              <Button
+                  className={`${navButtonClass} row-start-11 col-start-3 mt-4 place-self-center`}
+                  onClick={handlePrint}
+              >
+                <Printer/>
               </Button>
 
               <Button
-                type="submit"
-                className={`${navButtonClass} row-start-11 col-start-3 mt-4 place-self-center`}
-                hidden={!changed}
-                onClick={handleSubmit}
+                  type="submit"
+                  className={`${navButtonClass} row-start-11 col-start-4 mt-4 place-self-center`}
+                  disabled={!changed}
+                  onClick={handleSubmit}
               >
                 <Save/>
               </Button>
 
-              <Button className={`${navButtonClass} row-start-11 col-start-4 mt-4 place-self-center`}
-                onClick={handleNew}
-              >
-                <PlusCircle />
-              </Button>
             </form>
           </CardContent>
         </Card>
       </div>
+      {showPrint && <PrintReportOrder ceremony={formData}/>}
     </>
   );
 }
