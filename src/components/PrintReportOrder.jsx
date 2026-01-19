@@ -4,8 +4,8 @@ import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import axios from "axios";
 
 const PRINT_API_URL = import.meta.env.VITE_PRINT_PDF;
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE;
-const API_URL = "http://localhost:5144";
+const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+// const API_URL = "http://localhost:5144";
 
 function formatNZDate(dateStr) {
     const [year, month, day] = dateStr.split("-");
