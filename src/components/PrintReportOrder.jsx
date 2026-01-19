@@ -7,6 +7,14 @@ const PRINT_API_URL = import.meta.env.VITE_PRINT_PDF;
 // const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 const API_URL = "http://localhost:5144";
 
+function formatNZDate(dateStr) {
+    const [year, month, day] = dateStr.split("-");
+
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    return `${day}-${months[month - 1]}-${year}`;
+}
+
 export default function PrintReportOrder({ceremony}) {
     // ----------------------------
     // SAMPLE DATA FOR PREVIEW
@@ -18,14 +26,14 @@ export default function PrintReportOrder({ceremony}) {
             idCode: ceremony.idCode,
             Name: ceremony.name,
             CourierAddress: ceremony.courierAddress,
-            ceremonyDate: ceremony.ceremonyDate,
+            ceremonyDate: formatNZDate(ceremony.ceremonyDate),
             phone: ceremony.phone,
             organiser: ceremony.organiser,
             email: ceremony.email,
-            despatchDate: ceremony.despatchDate,
+            despatchDate: formatNZDate(ceremony.despatchDate),
             // amountDue: 3000,
             freight: ceremony.freight ?? 0,
-            returnDate: ceremony.returnDate,
+            returnDate: formatNZDate(ceremony.returnDate),
             gownsDespatched: countItem.gown_count,
             gownsReturned: 0,
             hatsDespatched: countItem.hat_count,
@@ -60,6 +68,7 @@ export default function PrintReportOrder({ceremony}) {
                 console.log("Count Item=",res.data);
                 setLoading(false);
                 fillData(res.data);
+                updateTemplateWithData();
             })
             .catch((err) => {
                 setError(err.message);
@@ -67,7 +76,6 @@ export default function PrintReportOrder({ceremony}) {
             });
 
         printedRef.current = true;
-        updateTemplateWithData();
     }, []);
 
     function PrintPDF(doc) {
@@ -135,8 +143,6 @@ export default function PrintReportOrder({ceremony}) {
                 output = output.replaceAll(`{{${key}}}`, sampleData[key]);
             });
 
-            // console.log("Output=", output);
-
             PrintPDF(output);
         } catch (err) {
             console.error("Failed to load template", err);
@@ -144,10 +150,5 @@ export default function PrintReportOrder({ceremony}) {
             setLoading(false);
         }
     }
-
     if (loading) return <FullscreenSpinner />;
-
-    // return (
-        // {loading && <FullscreenSpinner/>
-    // );
 }
