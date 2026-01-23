@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from "react";
 import "./HireRegalia.css";
-import {
-  Search,
-  Filter,
-  Eye,
-  X,
-  Clock,
-  Package,
-  Truck,
-  CheckCircle,
-} from "lucide-react";
+import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
 import { getOrders, updateOrderStatus } from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
+import {
+  ORDER_STATUS,
+  normalizeStatus,
+  statusToClass,
+} from "../constants/status";
 
 function HireRegalia() {
   const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("1");
+  const [filterStatus, setFilterStatus] = useState(ORDER_STATUS.ALL);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
@@ -25,8 +21,14 @@ function HireRegalia() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [bulkStatusUpdate, setBulkStatusUpdate] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [bulkStatusUpdate, setBulkStatusUpdate] = useState(0);
+
+  // default: sort by latest order id first
+  const [sortConfig, setSortConfig] = useState({
+    key: "id",
+    direction: "desc",
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
@@ -58,10 +60,10 @@ function HireRegalia() {
                 return {
                   ...order,
                   items: hireItems,
-                  status: normalizeStatus(order.status),
+                  status: normalizeStatus(order.status), // numeric
                 };
               })
-              .filter(Boolean) // remove null orders
+              .filter(Boolean)
           : [];
 
         // Update state + cache
@@ -86,31 +88,11 @@ function HireRegalia() {
     fetchOrders();
   }, []);
 
-  function normalizeStatus(status) {
-    if (!status) return "pending";
-
-    const s = String(status).toLowerCase().trim();
-
-    switch (s) {
-      case "pending":
-        return "pending";
-      case "processing":
-        return "processing";
-      case "delivered":
-        return "delivered";
-      case "cancelled":
-      case "canceled":
-        return "cancelled";
-      default:
-        return "pending";
-    }
-  }
-
   const statusConfig = {
-    pending: { label: "Pending", icon: Clock },
-    processing: { label: "Processing", icon: Package },
-    delivered: { label: "Delivered", icon: Truck },
-    cancelled: { label: "Cancelled", icon: X },
+    [ORDER_STATUS.PENDING]: { label: "Pending", icon: Clock },
+    [ORDER_STATUS.PROCESSING]: { label: "Processing", icon: Package },
+    [ORDER_STATUS.DELIVERED]: { label: "Delivered", icon: Truck },
+    [ORDER_STATUS.CANCELLED]: { label: "Cancelled", icon: X },
   };
 
   // Get unique item types from all orders
@@ -118,10 +100,7 @@ function HireRegalia() {
     const types = new Set();
     orders.forEach((order) => {
       order.items?.forEach((item) => {
-        if (item.itemName) {
-          // Extract category/type from item name or use full name
-          types.add(item.itemName);
-        }
+        if (item.itemName) types.add(item.itemName);
       });
     });
     return Array.from(types).sort();
@@ -131,6 +110,8 @@ function HireRegalia() {
     const updatedOrders = orders.map((order) =>
       order.id === orderId ? { ...order, status: newStatus } : order
     );
+
+    // fire-and-forget (same as your BuyRegalia)
     updateOrderStatus(orderId, newStatus);
 
     setOrders(updatedOrders);
@@ -138,20 +119,22 @@ function HireRegalia() {
     setSelectedOrder(null);
   };
 
-  // Bulk status update
+  // Bulk status update (numeric)
   const handleBulkStatusUpdate = async () => {
-    if (!bulkStatusUpdate || selectedOrders.length === 0) {
+    if (
+      bulkStatusUpdate === 0 ||
+      bulkStatusUpdate === ORDER_STATUS.ALL ||
+      selectedOrders.length === 0
+    ) {
       alert("Please select orders and a status to update");
       return;
     }
 
-    const normalizedStatus = normalizeStatus(bulkStatusUpdate);
+    const newStatus = bulkStatusUpdate; // already numeric
 
     // Optimistic UI update
     const updatedOrders = orders.map((order) =>
-      selectedOrders.includes(order.id)
-        ? { ...order, status: normalizedStatus }
-        : order
+      selectedOrders.includes(order.id) ? { ...order, status: newStatus } : order
     );
 
     setOrders(updatedOrders);
@@ -159,17 +142,17 @@ function HireRegalia() {
 
     try {
       for (const orderId of selectedOrders) {
-        await updateOrderStatus(orderId, normalizedStatus);
+        await updateOrderStatus(orderId, newStatus);
       }
 
       alert(
         `Updated ${selectedOrders.length} order(s) to ${
-          statusConfig[normalizedStatus]?.label || normalizedStatus
+          statusConfig[newStatus]?.label || newStatus
         }`
       );
 
       setSelectedOrders([]);
-      setBulkStatusUpdate("");
+      setBulkStatusUpdate(0);
     } catch (err) {
       console.error("Bulk status update failed:", err.response?.data || err);
       alert(
@@ -189,9 +172,7 @@ function HireRegalia() {
 
   // Get sort indicator
   const getSortIndicator = (columnKey) => {
-    if (sortConfig.key !== columnKey) {
-      return "↑↓";
-    }
+    if (sortConfig.key !== columnKey) return "↑↓";
     return sortConfig.direction === "asc" ? " ↑" : " ↓";
   };
 
@@ -213,52 +194,34 @@ function HireRegalia() {
     );
 
     if (allVisibleSelected) {
-      // remove only visible ones
-      setSelectedOrders((prev) =>
-        prev.filter((id) => !visibleIds.includes(id))
-      );
+      setSelectedOrders((prev) => prev.filter((id) => !visibleIds.includes(id)));
     } else {
-      // add visible ones
-      setSelectedOrders((prev) =>
-        Array.from(new Set([...prev, ...visibleIds]))
-      );
+      setSelectedOrders((prev) => Array.from(new Set([...prev, ...visibleIds])));
     }
   };
 
   const filteredOrders = React.useMemo(() => {
-    // First filter the orders
     const filtered = orders.filter((order) => {
       const fullName = `${order.firstName || ""} ${
         order.lastName || ""
       }`.toLowerCase();
+
+      const q = searchTerm.toLowerCase();
+
       const matchesSearch =
-        fullName.includes(searchTerm.toLowerCase()) ||
-        (order.id?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase()
-        ) ||
-        (order.studentId?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase()
-        ) ||
-        (order.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+        fullName.includes(q) ||
+        (order.id?.toString().toLowerCase() || "").includes(q) ||
+        (order.studentId?.toString().toLowerCase() || "").includes(q) ||
+        (order.email?.toLowerCase() || "").includes(q);
 
-      const statusMap = {
-        1: null,
-        2: "pending",
-        3: "processing",
-        4: "delivered",
-        5: "cancelled",
-      };
-
-      const selectedStatus = statusMap[filterStatus];
       const matchesFilter =
-        selectedStatus === null || order.status === selectedStatus;
+        filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
 
       const matchesPayment =
         (filterPaid && filterUnpaid) ||
         (filterPaid && order.paid) ||
         (filterUnpaid && !order.paid);
 
-      // Filter by item type
       const matchesItemType =
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
@@ -268,7 +231,6 @@ function HireRegalia() {
       );
     });
 
-    // Then sort the filtered results
     if (!sortConfig.key) return filtered;
 
     return [...filtered].sort((a, b) => {
@@ -291,12 +253,8 @@ function HireRegalia() {
           return 0;
       }
 
-      if (aValue < bValue) {
-        return sortConfig.direction === "asc" ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === "asc" ? 1 : -1;
-      }
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
   }, [
@@ -314,41 +272,30 @@ function HireRegalia() {
   // ----------------------------
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
 
-  // Keep currentPage in valid range when filtering reduces results
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
     if (currentPage < 1) setCurrentPage(1);
   }, [currentPage, totalPages]);
 
-  // Reset to page 1 whenever filters/search/sort change
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    searchTerm,
-    filterStatus,
-    filterPaid,
-    filterUnpaid,
-    filterItemType,
-    sortConfig,
-  ]);
+  }, [searchTerm, filterStatus, filterPaid, filterUnpaid, filterItemType, sortConfig]);
 
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
   const getStatusCount = (status) => {
+    // status should be numeric now
     return orders.filter((o) => o.status === status).length;
   };
 
-  // Add this function before the return statement
   const generateCSV = () => {
     if (filteredOrders.length === 0) {
       alert("No orders match the selected filters");
       return;
     }
 
-    // CSV Headers
     const headers = [
       "Order ID",
       "First Name",
@@ -397,7 +344,6 @@ function HireRegalia() {
       ...rows.map((r) => r.map((v) => `"${v ?? ""}"`).join(",")),
     ].join("\n");
 
-    // Trigger download immediately
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -414,6 +360,7 @@ function HireRegalia() {
       <div className="nav-bar">
         <AdminNavbar />
       </div>
+
       <div className="hire-regalia-container">
         <div className="hire-regalia-wrapper">
           <div className="hire-regalia-header">
@@ -428,7 +375,7 @@ function HireRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Pending</p>
-                  <p>{getStatusCount("pending")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.PENDING)}</p>
                 </div>
                 <Clock className="stat-icon yellow" />
               </div>
@@ -437,7 +384,7 @@ function HireRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Processing</p>
-                  <p>{getStatusCount("processing")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.PROCESSING)}</p>
                 </div>
                 <Package className="stat-icon blue" />
               </div>
@@ -446,7 +393,7 @@ function HireRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Delivered</p>
-                  <p>{getStatusCount("delivered")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.DELIVERED)}</p>
                 </div>
                 <Truck className="stat-icon green" />
               </div>
@@ -455,7 +402,7 @@ function HireRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Cancelled</p>
-                  <p>{getStatusCount("cancelled")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.CANCELLED)}</p>
                 </div>
                 <X className="stat-icon red" />
               </div>
@@ -480,16 +427,17 @@ function HireRegalia() {
                 <Filter className="filter-icon" />
                 <select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  onChange={(e) => setFilterStatus(Number(e.target.value))}
                   className="filter-select"
                 >
-                  <option value="1">All Status</option>
-                  <option value="2">Pending</option>
-                  <option value="3">Processing</option>
-                  <option value="4">Delivered</option>
-                  <option value="5">Cancelled</option>
+                  <option value={ORDER_STATUS.ALL}>All Status</option>
+                  <option value={ORDER_STATUS.PENDING}>Pending</option>
+                  <option value={ORDER_STATUS.PROCESSING}>Processing</option>
+                  <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
+                  <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
                 </select>
               </div>
+
               <div className="filter-wrapper">
                 <select
                   value={filterItemType}
@@ -504,6 +452,7 @@ function HireRegalia() {
                   ))}
                 </select>
               </div>
+
               <div className="payment-filter-wrapper">
                 <label>
                   <input
@@ -522,6 +471,7 @@ function HireRegalia() {
                   Unpaid
                 </label>
               </div>
+
               <button
                 onClick={generateCSV}
                 disabled={filteredOrders.length === 0}
@@ -553,21 +503,23 @@ function HireRegalia() {
               <span style={{ fontWeight: "600" }}>
                 {selectedOrders.length} order(s) selected
               </span>
+
               <select
                 value={bulkStatusUpdate}
-                onChange={(e) => setBulkStatusUpdate(e.target.value)}
+                onChange={(e) => setBulkStatusUpdate(Number(e.target.value))}
                 style={{
                   padding: "0.5rem",
                   borderRadius: "4px",
                   border: "1px solid #d1d5db",
                 }}
               >
-                <option value="">Select new status...</option>
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
+                <option value={0}>Select new status...</option>
+                <option value={ORDER_STATUS.PENDING}>Pending</option>
+                <option value={ORDER_STATUS.PROCESSING}>Processing</option>
+                <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
+                <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
               </select>
+
               <button
                 onClick={handleBulkStatusUpdate}
                 style={{
@@ -582,6 +534,7 @@ function HireRegalia() {
               >
                 Update Status
               </button>
+
               <button
                 onClick={() => setSelectedOrders([])}
                 style={{
@@ -642,10 +595,12 @@ function HireRegalia() {
                     <th>Actions</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {paginatedOrders.map((order) => {
                     const status = normalizeStatus(order.status);
-                    const config = statusConfig[status] || statusConfig.pending;
+                    const config =
+                      statusConfig[status] || statusConfig[ORDER_STATUS.PENDING];
                     const StatusIcon = config.icon || Clock;
 
                     return (
@@ -665,15 +620,18 @@ function HireRegalia() {
                             style={{ cursor: "pointer" }}
                           />
                         </td>
+
                         <td className="table-cell-nowrap">
                           <div className="order-id">{order.id}</div>
                         </td>
+
                         <td className="table-cell-nowrap">
                           <div className="student-name">
                             {order.firstName} {order.lastName}
                           </div>
                           <div className="student-id">{order.studentId}</div>
                         </td>
+
                         <td>
                           {order.items?.map((item, index) => (
                             <div key={index} className="item-row">
@@ -681,24 +639,31 @@ function HireRegalia() {
                             </div>
                           )) || <span className="no-items-text">No items</span>}
                         </td>
+
                         <td className="table-cell-nowrap">
                           <div className="item-quantity">
                             {order.items?.length || 0}
                           </div>
                         </td>
+
                         <td className="table-cell-nowrap">
                           <div className="order-date">{order.orderDate}</div>
                         </td>
+
                         <td className="table-cell-nowrap">
-                          <span className={`status-badge ${status}`}>
+                          <span
+                            className={`status-badge ${statusToClass(status)}`}
+                          >
                             <StatusIcon className="status-icon" />
                             {config.label}
                           </span>
                         </td>
+
                         <td className="table-cell-nowrap">
                           <button
                             onClick={() => setSelectedOrder(order)}
                             className="action-button"
+                            type="button"
                           >
                             <Eye className="action-icon" />
                           </button>
@@ -710,6 +675,7 @@ function HireRegalia() {
               </table>
             </div>
           </div>
+
           {/* Pagination */}
           <div
             style={{
@@ -745,11 +711,11 @@ function HireRegalia() {
                   background: currentPage === 1 ? "#f3f4f6" : "white",
                   cursor: currentPage === 1 ? "not-allowed" : "pointer",
                 }}
+                type="button"
               >
                 Prev
               </button>
 
-              {/* Page numbers*/}
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter((p) => {
                   if (totalPages <= 7) return true;
@@ -765,9 +731,7 @@ function HireRegalia() {
 
                   return (
                     <React.Fragment key={p}>
-                      {showDots && (
-                        <span style={{ padding: "0 0.25rem" }}>…</span>
-                      )}
+                      {showDots && <span style={{ padding: "0 0.25rem" }}>…</span>}
                       <button
                         onClick={() => setCurrentPage(p)}
                         style={{
@@ -779,6 +743,7 @@ function HireRegalia() {
                           cursor: "pointer",
                           fontWeight: p === currentPage ? "700" : "500",
                         }}
+                        type="button"
                       >
                         {p}
                       </button>
@@ -787,9 +752,7 @@ function HireRegalia() {
                 })}
 
               <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 style={{
                   padding: "0.5rem 0.75rem",
@@ -799,13 +762,14 @@ function HireRegalia() {
                   cursor:
                     currentPage === totalPages ? "not-allowed" : "pointer",
                 }}
+                type="button"
               >
                 Next
               </button>
             </div>
           </div>
 
-          {/* Order Detail Modal - keeping your existing modal code */}
+          {/* Order Detail Modal */}
           {selectedOrder && (
             <div className="modal-overlay">
               <div className="modal-content">
@@ -818,6 +782,7 @@ function HireRegalia() {
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="modal-close-button"
+                      type="button"
                     >
                       <X className="modal-close-icon" />
                     </button>
@@ -825,9 +790,7 @@ function HireRegalia() {
 
                   <div className="modal-sections">
                     <div>
-                      <h3 className="modal-section-title">
-                        Customer Information
-                      </h3>
+                      <h3 className="modal-section-title">Customer Information</h3>
                       <div className="info-card">
                         <div className="info-row">
                           <span className="info-label">Name:</span>
@@ -843,9 +806,7 @@ function HireRegalia() {
                         </div>
                         <div className="info-row">
                           <span className="info-label">Email:</span>
-                          <span className="info-value">
-                            {selectedOrder.email}
-                          </span>
+                          <span className="info-value">{selectedOrder.email}</span>
                         </div>
                         <div className="info-row">
                           <span className="info-label">Phone:</span>
@@ -870,9 +831,7 @@ function HireRegalia() {
                           <div key={index}>
                             <div className="info-row">
                               <span className="info-label">Item:</span>
-                              <span className="info-value">
-                                {item.itemName}
-                              </span>
+                              <span className="info-value">{item.itemName}</span>
                             </div>
                             <div className="info-row">
                               <span className="info-label">Size:</span>
@@ -896,15 +855,11 @@ function HireRegalia() {
                             )}
                             <div className="info-row">
                               <span className="info-label">Type:</span>
-                              <span className="info-value">
-                                {item.hire === true ? "Hire" : "Buy"}
-                              </span>
+                              <span className="info-value">Hire</span>
                             </div>
                             <div className="info-row">
                               <span className="info-label">Quantity:</span>
-                              <span className="info-value">
-                                {item.quantity}
-                              </span>
+                              <span className="info-value">{item.quantity}</span>
                             </div>
                             {index < selectedOrder.items.length - 1 && (
                               <hr
@@ -924,9 +879,7 @@ function HireRegalia() {
                       <div className="info-card">
                         <div className="info-row">
                           <span className="info-label">Order Date:</span>
-                          <span className="info-value">
-                            {selectedOrder.orderDate}
-                          </span>
+                          <span className="info-value">{selectedOrder.orderDate}</span>
                         </div>
                         <div className="info-row">
                           <span className="info-label">Payment Status:</span>
@@ -973,30 +926,30 @@ function HireRegalia() {
                     <div>
                       <h3 className="modal-section-title">Update Status</h3>
                       <div className="status-update-grid">
-                        {Object.entries(statusConfig).map(
-                          ([status, config]) => {
-                            const StatusIcon = config.icon;
-                            return (
-                              <button
-                                key={status}
-                                onClick={() =>
-                                  updateStatus(selectedOrder.id, status)
-                                }
-                                className={`status-update-button ${
-                                  normalizeStatus(selectedOrder.status) ===
-                                  status
-                                    ? "active"
-                                    : "inactive"
-                                }`}
-                              >
-                                <StatusIcon className="status-update-icon" />
-                                <span className="status-update-label">
-                                  {config.label}
-                                </span>
-                              </button>
-                            );
-                          }
-                        )}
+                        {Object.entries(statusConfig).map(([statusKey, config]) => {
+                          const numericStatus = Number(statusKey);
+                          const StatusIcon = config.icon;
+
+                          return (
+                            <button
+                              key={numericStatus}
+                              onClick={() =>
+                                updateStatus(selectedOrder.id, numericStatus)
+                              }
+                              className={`status-update-button ${
+                                normalizeStatus(selectedOrder.status) === numericStatus
+                                  ? "active"
+                                  : "inactive"
+                              }`}
+                              type="button"
+                            >
+                              <StatusIcon className="status-update-icon" />
+                              <span className="status-update-label">
+                                {config.label}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1005,6 +958,7 @@ function HireRegalia() {
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="close-button"
+                      type="button"
                     >
                       Close
                     </button>
@@ -1013,6 +967,10 @@ function HireRegalia() {
               </div>
             </div>
           )}
+
+          {/* Optional: show loading/error (if you want) */}
+          {/* {loading && <div style={{ padding: 12 }}>Loading...</div>} */}
+          {/* {error && <div style={{ padding: 12, color: "red" }}>{error}</div>} */}
         </div>
       </div>
     </>

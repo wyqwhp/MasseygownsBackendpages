@@ -12,11 +12,16 @@ import {
 } from "lucide-react";
 import { getOrders, updateOrderStatus } from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
+import {
+  ORDER_STATUS,
+  normalizeStatus,
+  statusToClass,
+} from "../constants/status";
 
 function BuyRegalia() {
   const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("1");
+  const [filterStatus, setFilterStatus] = useState(0);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
@@ -25,8 +30,11 @@ function BuyRegalia() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [bulkStatusUpdate, setBulkStatusUpdate] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [bulkStatusUpdate, setBulkStatusUpdate] = useState(0);
+  const [sortConfig, setSortConfig] = useState({
+    key: "id",
+    direction: "desc",
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
@@ -86,31 +94,11 @@ function BuyRegalia() {
     fetchOrders();
   }, []);
 
-  function normalizeStatus(status) {
-    if (!status) return "pending";
-
-    const s = String(status).toLowerCase().trim();
-
-    switch (s) {
-      case "pending":
-        return "pending";
-      case "processing":
-        return "processing";
-      case "delivered":
-        return "delivered";
-      case "cancelled":
-      case "canceled":
-        return "cancelled";
-      default:
-        return "pending";
-    }
-  }
-
   const statusConfig = {
-    pending: { label: "Pending", icon: Clock },
-    processing: { label: "Processing", icon: Package },
-    delivered: { label: "Delivered", icon: Truck },
-    cancelled: { label: "Cancelled", icon: X },
+    [ORDER_STATUS.PENDING]: { label: "Pending", icon: Clock },
+    [ORDER_STATUS.PROCESSING]: { label: "Processing", icon: Package },
+    [ORDER_STATUS.DELIVERED]: { label: "Delivered", icon: Truck },
+    [ORDER_STATUS.CANCELLED]: { label: "Cancelled", icon: X },
   };
 
   // Get unique item types from all orders
@@ -251,7 +239,7 @@ function BuyRegalia() {
 
       const selectedStatus = statusMap[filterStatus];
       const matchesFilter =
-        selectedStatus === null || order.status === selectedStatus;
+        filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
 
       const matchesPayment =
         (filterPaid && filterUnpaid) ||
@@ -427,7 +415,7 @@ function BuyRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Pending</p>
-                  <p>{getStatusCount("pending")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.PENDING)}</p>
                 </div>
                 <Clock className="stat-icon yellow" />
               </div>
@@ -436,7 +424,7 @@ function BuyRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Processing</p>
-                  <p>{getStatusCount("processing")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.PROCESSING)}</p>
                 </div>
                 <Package className="stat-icon blue" />
               </div>
@@ -445,7 +433,7 @@ function BuyRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Delivered</p>
-                  <p>{getStatusCount("delivered")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.DELIVERED)}</p>
                 </div>
                 <Truck className="stat-icon green" />
               </div>
@@ -454,7 +442,7 @@ function BuyRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Cancelled</p>
-                  <p>{getStatusCount("cancelled")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.CANCELLED)}</p>
                 </div>
                 <X className="stat-icon red" />
               </div>
@@ -478,14 +466,14 @@ function BuyRegalia() {
                 <Filter className="filter-icon" />
                 <select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  onChange={(e) => setFilterStatus(Number(e.target.value))}
                   className="filter-select"
                 >
-                  <option value="1">All Status</option>
-                  <option value="2">Pending</option>
-                  <option value="3">Processing</option>
-                  <option value="4">Delivered</option>
-                  <option value="5">Cancelled</option>
+                  <option value={ORDER_STATUS.ALL}>All Status</option>
+                  <option value={ORDER_STATUS.PENDING}>Pending</option>
+                  <option value={ORDER_STATUS.PROCESSING}>Processing</option>
+                  <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
+                  <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
                 </select>
               </div>
               <div className="filter-wrapper">
@@ -553,7 +541,7 @@ function BuyRegalia() {
               </span>
               <select
                 value={bulkStatusUpdate}
-                onChange={(e) => setBulkStatusUpdate(e.target.value)}
+                onChange={(e) => setBulkStatusUpdate(Number(e.target.value))}
                 style={{
                   padding: "0.5rem",
                   borderRadius: "4px",
@@ -561,10 +549,10 @@ function BuyRegalia() {
                 }}
               >
                 <option value="">Select new status...</option>
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
+                <option value={ORDER_STATUS.PENDING}>Pending</option>
+                <option value={ORDER_STATUS.PROCESSING}>Processing</option>
+                <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
+                <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
               </select>
               <button
                 onClick={handleBulkStatusUpdate}
@@ -643,7 +631,9 @@ function BuyRegalia() {
                 <tbody>
                   {paginatedOrders.map((order) => {
                     const status = normalizeStatus(order.status);
-                    const config = statusConfig[status] || statusConfig.pending;
+                    const config =
+                      statusConfig[status] ||
+                      statusConfig[ORDER_STATUS.PENDING];
                     const StatusIcon = config.icon || Clock;
 
                     return (
@@ -688,7 +678,9 @@ function BuyRegalia() {
                           <div className="order-date">{order.orderDate}</div>
                         </td>
                         <td className="table-cell-nowrap">
-                          <span className={`status-badge ${status}`}>
+                          <span
+                            className={`status-badge ${statusToClass(status)}`}
+                          >
                             <StatusIcon className="status-icon" />
                             {config.label}
                           </span>
@@ -880,7 +872,9 @@ function BuyRegalia() {
                             </div>
                             <div className="info-row">
                               <span className="info-label">Fit:</span>
-                              <span className="info-value">{item.fitName || "N/A"}</span>
+                              <span className="info-value">
+                                {item.fitName || "N/A"}
+                              </span>
                             </div>
                             {item.hoodName && (
                               <div className="info-row">
@@ -970,20 +964,23 @@ function BuyRegalia() {
                       <h3 className="modal-section-title">Update Status</h3>
                       <div className="status-update-grid">
                         {Object.entries(statusConfig).map(
-                          ([status, config]) => {
+                          ([statusKey, config]) => {
+                            const numericStatus = Number(statusKey);
                             const StatusIcon = config.icon;
+
                             return (
                               <button
-                                key={status}
+                                key={numericStatus}
                                 onClick={() =>
-                                  updateStatus(selectedOrder.id, status)
+                                  updateStatus(selectedOrder.id, numericStatus)
                                 }
                                 className={`status-update-button ${
                                   normalizeStatus(selectedOrder.status) ===
-                                  status
+                                  numericStatus
                                     ? "active"
                                     : "inactive"
                                 }`}
+                                type="button"
                               >
                                 <StatusIcon className="status-update-icon" />
                                 <span className="status-update-label">
