@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import AdminNavbar from "./AdminNavbar.jsx";
 import "./AdminEditCeremonies.css";
 import DegreesInCeremony from "@/components/DegreesInCeremony.jsx";
+import JoditEditor from "jodit-react";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -17,6 +18,7 @@ export default function CeremonyEditor() {
     ceremonyDate: "",
     visible: false,
     collectionTime: "",
+    content: "",
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -62,6 +64,7 @@ export default function CeremonyEditor() {
       dueDate: ceremony.dueDate,
       visible: ceremony.visible,
       collectionTime: ceremony.collectionTime,
+      content: ceremony.content || "",
     });
   };
 
@@ -81,6 +84,7 @@ export default function CeremonyEditor() {
       ceremonyDate: "",
       visible: false,
       collectionTime: "",
+      content: "",
     });
   };
 
@@ -115,6 +119,7 @@ export default function CeremonyEditor() {
         ceremonyDate: "",
         visible: false,
         collectionTime: "",
+        content: "",
       });
     } catch (err) {
       setError("Update failed: " + err.message);
@@ -134,6 +139,7 @@ export default function CeremonyEditor() {
         ceremonyDate: "",
         visible: false,
         collectionTime: "",
+        content: "",
       },
     ]);
     setEditingId(tempId);
@@ -143,7 +149,20 @@ export default function CeremonyEditor() {
       ceremonyDate: null,
       visible: false,
       collectionTime: "",
+      content: "",
     });
+  };
+
+  const editor = useRef(null);
+
+  const editorConfig = {
+    readonly: false,
+    height: 500,
+    toolbarAdaptive: false,
+    toolbarSticky: false,
+    askBeforePasteHTML: false,
+    askBeforePasteFromWord: false,
+    placeholder: "Enter ceremony description here...",
   };
 
   if (loading) return <FullscreenSpinner />;
@@ -166,8 +185,8 @@ export default function CeremonyEditor() {
           </thead>
           <tbody>
             {ceremonies.map((ceremony) => (
-              <>
-                <tr key={ceremony.id} className="border">
+              <React.Fragment key={ceremony.id}>
+                <tr className="border">
                   {editingId === ceremony.id ? (
                     <>
                       <td className="p-2 border">
@@ -270,11 +289,40 @@ export default function CeremonyEditor() {
                           ceremonyId={ceremony.id}
                           onDegreesUpdated={handleDegreesUpdated}
                         />
+                        <div className="w-full mt-4">
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            Content related to ceremony
+                          </h3>
+
+                          <div className="border rounded bg-white">
+                            <JoditEditor
+                              ref={editor}
+                              value={form.content}
+                              config={editorConfig}
+                              onChange={(newContent) =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  content: newContent,
+                                }))
+                              }
+                            />
+                          </div>
+
+                          {/* <p className="text-sm text-gray-500 mt-2">
+                            You can use placeholders like:
+                            <br />
+                            <code>
+                              {
+                                "{{firstName}} {{lastName}} {{invoiceNumber}} {{cartRows}} {{total}}"
+                              }
+                            </code>
+                          </p> */}
+                        </div>
                       </div>
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </tbody>
         </table>
