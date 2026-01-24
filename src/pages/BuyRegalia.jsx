@@ -404,7 +404,7 @@ function BuyRegalia() {
       <div className="buy-regalia-container">
         <div className="buy-regalia-wrapper">
           <div className="buy-regalia-header">
-            <h1 className="buy-regalia-title">Buy Regalia Orders</h1>
+            {/* <h1 className="buy-regalia-title">Buy Regalia Orders</h1> */}
             <p className="buy-regalia-subtitle">
               Manage and track graduation regalia purchases
             </p>

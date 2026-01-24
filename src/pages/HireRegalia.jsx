@@ -364,7 +364,7 @@ function HireRegalia() {
       <div className="hire-regalia-container">
         <div className="hire-regalia-wrapper">
           <div className="hire-regalia-header">
-            <h1 className="hire-regalia-title">Hire Regalia Orders</h1>
+            {/* <h1 className="hire-regalia-title">Hire Regalia Orders</h1> */}
             <p className="hire-regalia-subtitle">
               Manage and track graduation regalia purchases
             </p>
