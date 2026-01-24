@@ -23,6 +23,8 @@ export default function CeremonyEditor() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [degrees, setDegrees] = useState([]);
+  const editor = useRef(null);
+  const contentRef = useRef("");
 
   const handleDegreesUpdated = (updatedDegrees) => {
     setDegrees(updatedDegrees);
@@ -57,6 +59,7 @@ export default function CeremonyEditor() {
   // Start editing
   const handleEdit = (ceremony) => {
     setEditingId(ceremony.id);
+    contentRef.current = ceremony.content || "";
     setForm({
       id: ceremony.id,
       name: ceremony.name,
@@ -92,26 +95,29 @@ export default function CeremonyEditor() {
   const handleSave = async () => {
     setLoading(true);
     try {
+      const payload = { ...form, content: contentRef.current ?? form.content }; // ✅
+
       let res;
-      if (
-        editingId &&
-        typeof editingId === "string" &&
-        editingId.startsWith("temp-")
-      ) {
-        res = await axios.post(`${API_URL}/admin/ceremonies`, form);
+      if (typeof editingId === "string" && editingId.startsWith("temp-")) {
+        res = await axios.post(`${API_URL}/admin/ceremonies`, payload);
         await axios.post(
           `${API_URL}/admin/ceremonies/${res.data.id}/degrees`,
           degrees
         );
       } else {
-        res = await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, form);
-        console.log("Form=", degrees);
+        res = await axios.put(
+          `${API_URL}/admin/ceremonies/${editingId}`,
+          payload
+        );
         await axios.post(
           `${API_URL}/admin/ceremonies/${editingId}/degrees`,
           degrees
         );
       }
-      setCeremonies(ceremonies.map((c) => (c.id === editingId ? res.data : c)));
+
+      setCeremonies((prev) =>
+        prev.map((c) => (c.id === editingId ? res.data : c))
+      );
       setEditingId(null);
       setForm({
         name: "",
@@ -121,6 +127,7 @@ export default function CeremonyEditor() {
         collectionTime: "",
         content: "",
       });
+      contentRef.current = "";
     } catch (err) {
       setError("Update failed: " + err.message);
     } finally {
@@ -130,6 +137,7 @@ export default function CeremonyEditor() {
 
   const addCeremony = () => {
     const tempId = "temp-" + crypto.randomUUID();
+    contentRef.current = "";
     setCeremonies([
       ...ceremonies,
       {
@@ -152,8 +160,6 @@ export default function CeremonyEditor() {
       content: "",
     });
   };
-
-  const editor = useRef(null);
 
   const editorConfig = {
     readonly: false,
@@ -299,24 +305,17 @@ export default function CeremonyEditor() {
                               ref={editor}
                               value={form.content}
                               config={editorConfig}
-                              onChange={(newContent) =>
+                              onChange={(newContent) => {
+                                contentRef.current = newContent;
+                              }}
+                              onBlur={(newContent) => {
                                 setForm((prev) => ({
                                   ...prev,
                                   content: newContent,
-                                }))
-                              }
+                                }));
+                              }}
                             />
                           </div>
-
-                          {/* <p className="text-sm text-gray-500 mt-2">
-                            You can use placeholders like:
-                            <br />
-                            <code>
-                              {
-                                "{{firstName}} {{lastName}} {{invoiceNumber}} {{cartRows}} {{total}}"
-                              }
-                            </code>
-                          </p> */}
                         </div>
                       </div>
                     </td>
