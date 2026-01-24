@@ -9,11 +9,11 @@
   min-height: 100vh;
   background-color: #f9fafb;
   padding: 1.5rem;
-padding-top: var(--admin-nav-height);
+  padding-top: var(--admin-nav-height);
 }
 
 .hire-regalia-wrapper {
-  max-width: 80rem;
+  max-width: 100rem;
   margin: 0 auto;
 }
 
@@ -173,7 +173,6 @@ padding-top: var(--admin-nav-height);
   font-weight: 600;
   font-size: 13px;
 }
-
 
 @media (min-width: 768px) {
   .search-filter-wrapper {

@@ -16,6 +16,11 @@ function HireRegalia() {
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
+
+  // Date filters (YYYY-MM-DD from <input type="date" />)
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -31,6 +36,38 @@ function HireRegalia() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
+
+  // ----------------------------
+  // Helpers: date parsing/filtering
+  // ----------------------------
+  const toStartOfDay = (d) => {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  };
+
+  const toEndOfDay = (d) => {
+    const x = new Date(d);
+    x.setHours(23, 59, 59, 999);
+    return x;
+  };
+
+  // Handles: ISO strings, "YYYY-MM-DD", and "dd/mm/yyyy"
+  const parseOrderDate = (value) => {
+    if (!value) return null;
+
+    const direct = new Date(value);
+    if (!isNaN(direct.getTime())) return direct;
+
+    const m = String(value).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) {
+      const [, dd, mm, yyyy] = m;
+      const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -134,7 +171,9 @@ function HireRegalia() {
 
     // Optimistic UI update
     const updatedOrders = orders.map((order) =>
-      selectedOrders.includes(order.id) ? { ...order, status: newStatus } : order
+      selectedOrders.includes(order.id)
+        ? { ...order, status: newStatus }
+        : order
     );
 
     setOrders(updatedOrders);
@@ -185,21 +224,6 @@ function HireRegalia() {
     );
   };
 
-  // Toggle all visible (current page) orders
-  const toggleAllOrders = () => {
-    const visibleIds = paginatedOrders.map((order) => order.id);
-
-    const allVisibleSelected = visibleIds.every((id) =>
-      selectedOrders.includes(id)
-    );
-
-    if (allVisibleSelected) {
-      setSelectedOrders((prev) => prev.filter((id) => !visibleIds.includes(id)));
-    } else {
-      setSelectedOrders((prev) => Array.from(new Set([...prev, ...visibleIds])));
-    }
-  };
-
   const filteredOrders = React.useMemo(() => {
     const filtered = orders.filter((order) => {
       const fullName = `${order.firstName || ""} ${
@@ -225,6 +249,14 @@ function HireRegalia() {
       const matchesItemType =
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
+
+      // Date match
+      const orderDateObj = parseOrderDate(order.orderDate);
+      const matchesDate =
+        (!dateFrom && !dateTo) ||
+        (orderDateObj &&
+          (!dateFrom || orderDateObj >= toStartOfDay(dateFrom)) &&
+          (!dateTo || orderDateObj <= toEndOfDay(dateTo)));
 
       return (
         matchesSearch && matchesFilter && matchesPayment && matchesItemType
@@ -265,6 +297,8 @@ function HireRegalia() {
     filterUnpaid,
     filterItemType,
     sortConfig,
+    dateFrom,
+    dateTo,
   ]);
 
   // ----------------------------
@@ -279,16 +313,40 @@ function HireRegalia() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus, filterPaid, filterUnpaid, filterItemType, sortConfig]);
+  }, [
+    searchTerm,
+    filterStatus,
+    filterPaid,
+    filterUnpaid,
+    filterItemType,
+    sortConfig,
+    dateFrom,
+    dateTo,
+  ]);
 
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
-  const getStatusCount = (status) => {
-    // status should be numeric now
-    return orders.filter((o) => o.status === status).length;
+  const toggleAllOrders = () => {
+    const visibleIds = paginatedOrders.map((order) => order.id);
+    const allVisibleSelected = visibleIds.every((id) =>
+      selectedOrders.includes(id)
+    );
+
+    if (allVisibleSelected) {
+      setSelectedOrders((prev) =>
+        prev.filter((id) => !visibleIds.includes(id))
+      );
+    } else {
+      setSelectedOrders((prev) =>
+        Array.from(new Set([...prev, ...visibleIds]))
+      );
+    }
   };
+
+  const getStatusCount = (status) =>
+    orders.filter((o) => o.status === status).length;
 
   const generateCSV = () => {
     if (filteredOrders.length === 0) {
@@ -453,6 +511,40 @@ function HireRegalia() {
                 </select>
               </div>
 
+              {/* DATE FILTERS */}
+              <div className="filter-wrapper">
+                <div>From</div>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="filter-select"
+                  title="From date"
+                />
+              </div>
+
+              <div className="filter-wrapper">
+                <div>To</div>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="filter-select"
+                  title="To date"
+                />
+              </div>
+
+              <button
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="ml-2 bg-gray-200 text-gray-800 px-3 py-1.5 rounded hover:bg-gray-300"
+                type="button"
+              >
+                Clear dates
+              </button>
+
               <div className="payment-filter-wrapper">
                 <label>
                   <input
@@ -600,7 +692,8 @@ function HireRegalia() {
                   {paginatedOrders.map((order) => {
                     const status = normalizeStatus(order.status);
                     const config =
-                      statusConfig[status] || statusConfig[ORDER_STATUS.PENDING];
+                      statusConfig[status] ||
+                      statusConfig[ORDER_STATUS.PENDING];
                     const StatusIcon = config.icon || Clock;
 
                     return (
@@ -731,7 +824,9 @@ function HireRegalia() {
 
                   return (
                     <React.Fragment key={p}>
-                      {showDots && <span style={{ padding: "0 0.25rem" }}>…</span>}
+                      {showDots && (
+                        <span style={{ padding: "0 0.25rem" }}>…</span>
+                      )}
                       <button
                         onClick={() => setCurrentPage(p)}
                         style={{
@@ -752,7 +847,9 @@ function HireRegalia() {
                 })}
 
               <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages}
                 style={{
                   padding: "0.5rem 0.75rem",
@@ -790,7 +887,9 @@ function HireRegalia() {
 
                   <div className="modal-sections">
                     <div>
-                      <h3 className="modal-section-title">Customer Information</h3>
+                      <h3 className="modal-section-title">
+                        Customer Information
+                      </h3>
                       <div className="info-card">
                         <div className="info-row">
                           <span className="info-label">Name:</span>
@@ -806,7 +905,9 @@ function HireRegalia() {
                         </div>
                         <div className="info-row">
                           <span className="info-label">Email:</span>
-                          <span className="info-value">{selectedOrder.email}</span>
+                          <span className="info-value">
+                            {selectedOrder.email}
+                          </span>
                         </div>
                         <div className="info-row">
                           <span className="info-label">Phone:</span>
@@ -831,7 +932,9 @@ function HireRegalia() {
                           <div key={index}>
                             <div className="info-row">
                               <span className="info-label">Item:</span>
-                              <span className="info-value">{item.itemName}</span>
+                              <span className="info-value">
+                                {item.itemName}
+                              </span>
                             </div>
                             <div className="info-row">
                               <span className="info-label">Size:</span>
@@ -859,7 +962,9 @@ function HireRegalia() {
                             </div>
                             <div className="info-row">
                               <span className="info-label">Quantity:</span>
-                              <span className="info-value">{item.quantity}</span>
+                              <span className="info-value">
+                                {item.quantity}
+                              </span>
                             </div>
                             {index < selectedOrder.items.length - 1 && (
                               <hr
@@ -879,7 +984,9 @@ function HireRegalia() {
                       <div className="info-card">
                         <div className="info-row">
                           <span className="info-label">Order Date:</span>
-                          <span className="info-value">{selectedOrder.orderDate}</span>
+                          <span className="info-value">
+                            {selectedOrder.orderDate}
+                          </span>
                         </div>
                         <div className="info-row">
                           <span className="info-label">Payment Status:</span>
@@ -895,8 +1002,10 @@ function HireRegalia() {
                           <div className="info-row">
                             <span className="info-label">Payment Method:</span>
                             <span className="info-value">
-                              {selectedOrder.paymentMethod
-                                ? "Card payment or A2A"
+                              {selectedOrder.paymentMethod === 1
+                                ? "Card payment"
+                                : selectedOrder.paymentMethod === 2
+                                ? "A2A"
                                 : "Purchased order"}
                             </span>
                           </div>
@@ -926,30 +1035,33 @@ function HireRegalia() {
                     <div>
                       <h3 className="modal-section-title">Update Status</h3>
                       <div className="status-update-grid">
-                        {Object.entries(statusConfig).map(([statusKey, config]) => {
-                          const numericStatus = Number(statusKey);
-                          const StatusIcon = config.icon;
+                        {Object.entries(statusConfig).map(
+                          ([statusKey, config]) => {
+                            const numericStatus = Number(statusKey);
+                            const StatusIcon = config.icon;
 
-                          return (
-                            <button
-                              key={numericStatus}
-                              onClick={() =>
-                                updateStatus(selectedOrder.id, numericStatus)
-                              }
-                              className={`status-update-button ${
-                                normalizeStatus(selectedOrder.status) === numericStatus
-                                  ? "active"
-                                  : "inactive"
-                              }`}
-                              type="button"
-                            >
-                              <StatusIcon className="status-update-icon" />
-                              <span className="status-update-label">
-                                {config.label}
-                              </span>
-                            </button>
-                          );
-                        })}
+                            return (
+                              <button
+                                key={numericStatus}
+                                onClick={() =>
+                                  updateStatus(selectedOrder.id, numericStatus)
+                                }
+                                className={`status-update-button ${
+                                  normalizeStatus(selectedOrder.status) ===
+                                  numericStatus
+                                    ? "active"
+                                    : "inactive"
+                                }`}
+                                type="button"
+                              >
+                                <StatusIcon className="status-update-icon" />
+                                <span className="status-update-label">
+                                  {config.label}
+                                </span>
+                              </button>
+                            );
+                          }
+                        )}
                       </div>
                     </div>
                   </div>
