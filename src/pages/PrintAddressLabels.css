@@ -1,13 +1,7 @@
-/* =========================
-   Admin / Table page layout
-========================= */
-
 .labels-admin-page {
   padding: 14px 18px;
   background: #ffffff;
 }
-
-/* ===== Toolbar ===== */
 
 .labels-toolbar {
   display: flex;
@@ -37,8 +31,6 @@
   opacity: 0.85;
 }
 
-/* ===== Inputs ===== */
-
 .search-input {
   width: 320px;
   height: 36px;
@@ -49,8 +41,6 @@
   font-size: 14px;
 }
 
-/* ===== Focus states (inputs & selects) ===== */
-
 .search-input:focus,
 .date-input:focus,
 .tiny-select:focus {
@@ -59,17 +49,10 @@
   box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.15);
 }
 
-/* For keyboard accessibility */
-.search-input:focus-visible,
-.date-input:focus-visible,
-.tiny-select:focus-visible {
-  outline: none;
-  border-color: #0b5fff;
-  box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.18);
-}
 .search-input::placeholder {
   color: #9aa4b2;
 }
+
 .date-group {
   display: flex;
   gap: 8px;
@@ -113,8 +96,6 @@
   font-size: 13px;
 }
 
-/* ===== Buttons ===== */
-
 .btn {
   height: 36px;
   padding: 0 14px;
@@ -135,10 +116,6 @@
   cursor: not-allowed;
 }
 
-.btn-outline {
-  background: #ffffff;
-}
-
 .btn-success {
   background: #16a34a;
   border-color: #16a34a;
@@ -148,8 +125,6 @@
 .btn-success:hover {
   background: #148a3f;
 }
-
-/* ===== Paper choice ===== */
 
 .paper-choice {
   display: inline-flex;
@@ -189,9 +164,12 @@
   box-shadow: 0 0 0 2px rgba(11, 95, 255, 0.12);
 }
 
-/* =========================
-   Table
-========================= */
+.paper-help {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: 6px;
+  white-space: nowrap;
+}
 
 .table-wrap {
   border: 1px solid #e5e7eb;
@@ -225,10 +203,6 @@
   background: #fbfcfe;
 }
 
-.td-strong {
-  font-weight: 700;
-}
-
 .td-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
@@ -246,8 +220,6 @@
   opacity: 0.8;
 }
 
-/* ===== Pagination ===== */
-
 .table-pagination {
   display: flex;
   justify-content: center;
@@ -262,10 +234,6 @@
   opacity: 0.85;
 }
 
-/* =========================
-   Hidden print DOM
-========================= */
-
 .print-dom-hidden {
   position: fixed;
   left: -99999px;
@@ -274,11 +242,6 @@
   height: 1px;
   overflow: hidden;
 }
-
-/* =========================
-   Printable label styles
-   (PDF export only)
-========================= */
 
 .pdf-pages {
   display: flex;
@@ -294,113 +257,62 @@
   page-break-after: always;
 }
 
-/* Grid by paper size */
-
+/* A4 */
 .labels-grid.grid-a4 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6mm;
-}
-
-.labels-grid.grid-a5 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6mm;
 }
 
-/* ===== Label card ===== */
+/* A5 */
+.labels-grid.grid-a5 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6mm;
+}
+
+/* 120x90 */
+.labels-grid.grid-120 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
 
 .label-card {
   border: 1px solid #dddddd;
   border-radius: 6px;
-  padding: 4.5mm;
+  padding: 3mm;
   box-sizing: border-box;
-  break-inside: avoid;
-  page-break-inside: avoid;
   background: #ffffff;
 }
 
 .label-card-big {
-  min-height: 62mm;
+  height: 90mm;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.to-name {
-  font-weight: 800;
-  font-size: 16pt;
-  line-height: 1.1;
-  margin-bottom: 2.5mm;
+.label-top {
+  flex: 1;
+  overflow: hidden;
 }
-
-.addr-line {
-  line-height: 1.1;
-}
-
-.addr1 {
-  font-weight: 800;
-  font-size: 18pt;
-  margin-bottom: 1.5mm;
-}
-
-.addr2 {
-  font-weight: 700;
-  font-size: 14pt;
-  margin-bottom: 1.5mm;
-}
-
-.citypost {
-  font-weight: 900;
-  font-size: 22pt;
-  letter-spacing: 0.5px;
-  margin: 1mm 0 3mm;
-}
-
-.attn-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 6mm;
-  margin-bottom: 2.5mm;
-}
-
-.attn-text {
-  font-weight: 700;
-  font-size: 12pt;
-}
-
-.phone-text {
-  font-size: 10pt;
-  opacity: 0.9;
-}
-
-/* Separator before From */
 
 .from-sep {
-  margin-top: auto;
   border-top: 2px solid #111111;
-  margin-bottom: 2.5mm;
+  margin: 1mm 0 1.5mm;
+  width: 245px;
 }
 
 .from-area {
   display: flex;
   flex-direction: column;
-  gap: 2mm;
-}
-
-.from-label {
-  font-weight: 700;
-  font-size: 10pt;
+  gap: 1mm;
 }
 
 .from-logo-big {
-  width: 55mm;
+  width: 52mm;
+  max-height: 12mm;
   height: auto;
   object-fit: contain;
-}
-
-.from-footer {
-  font-size: 9.5pt;
-  line-height: 1.2;
-  font-weight: 600;
 }

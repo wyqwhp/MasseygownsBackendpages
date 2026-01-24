@@ -127,6 +127,9 @@ function AdminNavbar() {
                 PRINT MANIFEST
               </a>
               <NavLink to="/PrintAddressLabels">PRINT ADDRESS LABELS</NavLink>
+              <NavLink to="/InternalManagementForm">
+                INTERNAL MANAGEMENT FORMS
+              </NavLink>
             </ul>
           </li>
           <li>

@@ -17,6 +17,7 @@ import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
 import AdminImportBulk from "@/components/AdminImportBulk.jsx";
 import EmailTemplatesPage from "@/pages/EmailTemplatesPage.jsx";
 import PrintAddressLabels from "@/pages/PrintAddressLabels.jsx";
+import InternalManagementForm from "@/components/AdminInternalManagementForm.jsx";
 
 function App() {
   return (
@@ -147,6 +148,15 @@ function App() {
         element={
           <Authentication>
             <PrintAddressLabels />
+          </Authentication>
+        }
+      />
+
+      <Route
+        path="/InternalManagementForm"
+        element={
+          <Authentication>
+            <InternalManagementForm />
           </Authentication>
         }
       />
