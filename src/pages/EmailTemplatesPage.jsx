@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import "../components/EmailEdit.css";
 import PaymentEmailTemplateEditor from "../components/PaymentEmailTemplateEditor";
 import AdminNavbar from "@/components/AdminNavbar";
+import OrderCompletedEditor from "../components/OrderCompletedEditor";
+import ReportOrderTemplate from "../components/ReportOrderTemplate";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 
@@ -64,6 +66,14 @@ export default function EmailTemplatesPage() {
       );
     }
 
+    if (selected.name === "Order Report") {
+      return (
+          <ReportOrderTemplate
+            template={selected}
+          />
+      );
+    }
+
     return (
       <PaymentEmailTemplateEditor
         apiBase={API_BASE}
@@ -77,20 +87,20 @@ export default function EmailTemplatesPage() {
     <>
       <AdminNavbar />
       <div className="email-admin-page">
-        <h1 className="email-page-title">Email Templates</h1>
+        <h1 className="email-page-title">CMS Templates</h1>
 
         {status && status.type === "error" && (
           <p className="email-status email-status-error">{status.message}</p>
         )}
 
         {loading ? (
-          <p className="email-status">Loading email templates…</p>
+          <p className="email-status">Loading CMS templates…</p>
         ) : (
           <div className="email-layout">
             <div className="email-list-card">
               <div className="email-list-header">Templates</div>
               {templates.length === 0 ? (
-                <p className="email-empty">No email templates found.</p>
+                <p className="email-empty">No CMS templates found.</p>
               ) : (
                 <ul className="email-list">
                   {templates.map((tpl) => (

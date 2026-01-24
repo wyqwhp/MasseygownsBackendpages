@@ -1,8 +1,10 @@
 import jsPDF from "jspdf";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+const WIDTH = 300;
 
 export default async function PrintManifest() {
+    console.log("Printing manifest...");
     let response = await fetch(`${API_URL}/orders`)
     let orders = await response.json();
     generateManifestPDF(orders);
@@ -13,6 +15,8 @@ function generateManifestPDF(orders) {
 
     let i = 0;
     let j = 0;
+    let x = 1;
+    let y = 1;
     orders.forEach((order) => {
         doc.setFontSize(10);
         doc.text(order.lastName + ", " + order.firstName, x, y);

@@ -10,6 +10,7 @@ import {
   generateLabelsPDF,
   generateManifestPDF,
 } from "@/components/PrintLabels.jsx";
+import PrintReportOrder from "@/components/PrintReportOrder.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 
@@ -88,19 +89,20 @@ function AdminNavbar() {
                 <NavLink to="/adminedititems">Items</NavLink>
               </li>
               <li className="dropdown-item">
+                <NavLink to="/HoodEditor">Hood Qualifications</NavLink>
+              </li>
+              <li className="dropdown-item">
                 <NavLink to="/HomepageEdit">Text & Image</NavLink>
               </li>
               <li className="dropdown-item">
-                <NavLink to="/EmailEdit">Email Template</NavLink>
+                <NavLink to="/EmailEdit">CMS Templates</NavLink>
               </li>
               <li className="dropdown-item">
                 <NavLink to="/adminusers">Users</NavLink>
               </li>
-              {/*<li className="dropdown-item">*/}
-              {/*    <Link to="/admintest">*/}
-              {/*        TEST*/}
-              {/*    </Link>*/}
-              {/*</li>*/}
+              <li className="dropdown-item">
+                <NavLink to="/editDelivery">Delivery</NavLink>
+              </li>
             </ul>
           </li>
           <li>
@@ -125,6 +127,9 @@ function AdminNavbar() {
               {loading && <FullscreenSpinner />}
               <a onClick={printManifest} style={{ cursor: "pointer" }}>
                 PRINT MANIFEST
+              </a>
+              <a onClick={PrintReportOrder} style={{ cursor: "pointer" }}>
+                Print Report
               </a>
               <NavLink to="/PrintAddressLabels">PRINT ADDRESS LABELS</NavLink>
               <NavLink to="/InternalManagementForm">

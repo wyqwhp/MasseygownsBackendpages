@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        th, td {
+            border: 1px solid #ccc;
+            border-left: 2px solid #ccc;
+            padding: 20px 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+<div style="position:absolute; font-weight: bold; font-size: xx-large; top:50px; left:40px">
+    {{idCode}}
+</div>
+<div style="position:absolute; font-weight: bold; font-size: xx-large; top:40px; left:340px">
+    Despatch Date	{{despatchDate}}
+</div>
+<div style="position:absolute; font-weight: bold; font-size: x-large; top:80px; left:340px">
+    Date Sent:
+</div>
+<div style="position:absolute; font-weight: bold; font-size: xx-large; top:140px; left:40px">
+    {{Name}}
+</div>
+<div style="position:absolute; font-size: x-large; top:220px; left:40px">
+    Courier Address:	434 Botanical Road Palmerston North 4412
+</div>
+<div style="position:absolute; font-size: x-large; top:280px; left:40px">
+    CeremonyDate(s):	{{ceremonyDate}}	Email: {{email}}
+</div>
+<div style="position:absolute; font-size: x-large; top:340px; left:40px">
+    Organiser:	{{organiser}}	Phone {{phone}}
+</div>
+<div style="position:absolute; font-size: x-large; top:400px; left:40px">
+    Order acknowledged:	Purchase Order No:
+</div>
+<div style="position:absolute; font-size: x-large; top:460px; left:40px">
+    Amount Due {{$3,040.00}} (Inc.Freight {{$0.00}})	Invoice Number:
+</div>
+<div style="position:absolute; font-size: x-large; top:520px; left:40px">
+    Data checked:
+</div>
+<div style="position:absolute; font-weight: bold; font-size: x-large; top:580px; left:40px">
+    Notes:
+</div>
+<div style="position:absolute; font-size: large; top:610px; left:40px">
+    {{Notes}}
+</div>
+<div style="position:absolute; font-weight: bold; font-size: x-large; top:650px; left:40px; width:794px">
+    <table style="width:100%; border: 1px solid darkgray; text-align: center; border-collapse: separate; border-spacing: 0 0px;">
+        <thead style="font-size: x-large; border: 1px solid darkgray">
+            <tr style="border: 1px solid darkgray">
+                <th>Dates:</th>
+                <th>Despatched</th>
+                <th>Returned</th>
+            </tr>
+        </thead>
+        <tbody style="font-size: x-large; border: 1px solid darkgray; ">
+            <tr>
+                <td>Gowns</td>
+                <td>{{gownsDespatched}}</td>
+                <td>{{gownsReturned}}</td>
+            </tr>
+            <tr>
+                <td>Hoods/Stoles</td>
+                <td>{{hoodsDespatched}}</td>
+                <td>{{hoodsReturned}}</td>
+            </tr>
+            <tr>
+                <td>Hats</td>
+                <td>{{hatsDespatched}}</td>
+                <td>{{hatsReturned}}</td>
+            </tr>
+            <tr>
+                <td>Ucol Sashes</td>
+                <td>{{ucolDespatched}}</td>
+                <td>{{ucolReturned}}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<div style="position:absolute; font-size: x-large; top:1010px; left:40px">
+    Return Due {{returnDate}}
+</div>
+<div style="position:absolute; font-size: x-large; top:1060px; left:40px">
+    Date All Returned:
+</div>
+</body>
+</html>

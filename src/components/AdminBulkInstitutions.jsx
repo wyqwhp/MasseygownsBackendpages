@@ -1,27 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Card, CardContent} from "@/components/ui/card";
+import { ChevronsLeft, ChevronsRight, Copy, PlusCircle, Save, Printer } from "lucide-react";
 import AdminNavbar from "./AdminNavbar.jsx";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import "./AdminIndOrder.css";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import PrintReportOrder from "@/components/PrintReportOrder.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
 
 export default function AdminBulkOrder() {
-  const [formData, setFormData] = useState({
-    id: undefined,
+  const emptyFormRecord = {
     name: "",
     idCode: "",
     orderNumber: "",
@@ -29,32 +28,49 @@ export default function AdminBulkOrder() {
     courierAddress: "",
     postalAddress: "",
     city: "",
-    ceremonyDate: "",
-    dueDate: "",
-    despatchDate: "",
-    dateSent: "",
-    returnDate: "",
-    dateReturned: "",
+    ceremonyDate: null,
+    dueDate: null,
+    despatchDate: null,
+    dateSent: null,
+    returnDate: null,
+    dateReturned: null,
     organiser: "",
     phone: "",
     email: "",
     invoiceEmail: "",
     priceCode: "",
-    freight: "",
-  });
+    freight: 0,
+  };
+  const [formData, setFormData] = useState({ emptyFormRecord });
   const [ceremonies, setCeremonies] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentId, setCurrentId] = useState(null);
   const [loading, setLoading] = useState();
   const [error, setError] = useState(null);
+  const [showError, setShowError] = useState(false);
   const [changed, setChanged] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [showPrint, setShowPrint] = useState(false);
+  // const hasPrintedRef = useRef(false);
+  const navButtonClass =
+      "bg-green-700 hover:bg-green-800 w-20 h-10 p-0 flex items-center justify-center";
+
+  const sortedCeremonies = useMemo(() => {
+    return [...ceremonies].sort((a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", undefined, { sensitivity: "base" })
+    );
+  }, [ceremonies]);
+
+  const currentIndex = sortedCeremonies.findIndex(
+      c => c.id === currentId
+  );
 
   const updateForm = (ceremony) => {
     console.log("Updating form");
     setFormData({
       id: ceremony.id,
       visible: ceremony.visible,
-      name: ceremony.name,
-      idCode: ceremony.idCode,
+      name: ceremony.name || "",
+      idCode: ceremony.idCode || "",
       orderNumber: ceremony.orderNumber || "",
       institutionName: ceremony.institutionName || "",
       courierAddress: ceremony.courierAddress || "",
@@ -75,8 +91,17 @@ export default function AdminBulkOrder() {
     });
   };
 
+  useEffect(() => {
+    if (!sortedCeremonies.some(c => c.id === currentId)) {
+      setCurrentId(sortedCeremonies[0]?.id ?? null);
+    }
+  }, [sortedCeremonies, currentId]);
+
   // Fetch orders on mount
   useEffect(() => {
+    // if (hasPrintedRef.current) return;
+    // hasPrintedRef.current = true;
+
     const cached = localStorage.getItem("ceremonies");
 
     if (cached) {
@@ -103,65 +128,122 @@ export default function AdminBulkOrder() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log(name, value);
-    setFormData((prev) => ({ ...prev, [name]: value }));
     setChanged(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log("Order submitted:", formData);
-    // Replace with API call
-    // setLoading(true);
-    try {
-      //     let res;
-      //     if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
-      //         res = await axios.post(`${API_URL}/admin/ceremonies`, form);
-      //         await axios.post(`${API_URL}/admin/ceremonies/${res.data.id}/degrees`, degrees);
-      //     } else {
-      await axios.put(`${API_URL}/admin/ceremonies/${formData.id}`, formData);
-      setChanged(false);
-      //     }
-      setCeremonies((prevCeremonies) =>
-        prevCeremonies.map((c) =>
-          c.id === formData.id ? { ...c, ...formData } : c
-        )
-      );
-      //     setCeremonies(
-      //         ceremonies.map((c) => (c.id === editingId ? res.data : c))
-      //     );
-      //     setEditingId(null);
-      //     setForm({ name: "", dueDate: "", ceremonyDate: "", visible: false});
-    } catch (err) {
-      setError("Update failed: " + err.message);
-    } finally {
-      setLoading(false);
+    if (editingId === null) {
+      setEditingId(ceremonies[currentIndex].id);
+      setFormData((prev) => ({ ...prev, id: ceremonies[currentIndex].id, [name]: value }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const goPrev = () => {
-    setCurrentIndex((prev) => {
-      const newIndex = Math.max(prev - 1, 0);
-      updateForm(ceremonies[newIndex]);
+  const handleCopy = () => {
+    setEditingId("temp-" + crypto.randomUUID());
+    const duplicated = { ...formData, name: `${formData.name} - Copy`, idCode: `${formData.idCode} - Copy` };
+    setFormData(duplicated);
+    setChanged(true);
+  }
+
+  const handleNew = () => {
+    const tempId = "temp-" + crypto.randomUUID();
+    setEditingId(tempId);
+    setCeremonies([...ceremonies, {id: tempId}]);
+    setFormData(emptyFormRecord);
+    setChanged(true);
+  }
+
+  const handlePrint = () => {
+    setShowPrint(false);
+    setTimeout(() => setShowPrint(true), 0);
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+        if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+          await axios.post(`${API_URL}/admin/ceremonies`, formData);
+          // formData.id = res.id;
+        } else {
+          await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, formData);
+        }
+        setCeremonies((prevCeremonies) =>
+          prevCeremonies.map((c) =>
+            c.id === editingId ? { ...c, ...formData } : c
+          )
+      );
+      setEditingId(null);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 409) {
+          setError(err.response.data?.message || "ID code already exists");
+          setShowError(true);
+          return;
+        }
+      }
+      setError("Update failed: " + err.message);
+      setShowError(true);
+
+    } finally {
+      setLoading(false);
       setChanged(false);
-      return newIndex;
-    });
+    }
   };
 
   const goNext = () => {
-    setCurrentIndex((prev) => {
-      const newIndex = Math.min(prev + 1, ceremonies.length - 1);
-      updateForm(ceremonies[newIndex]);
-      setChanged(false);
-      return newIndex;
-    });
+    if (
+        editingId &&
+        typeof editingId === "string" &&
+        editingId.startsWith("temp-")
+    ) {
+      setCeremonies(ceremonies.filter((d) => d.id !== editingId));
+      const idx = sortedCeremonies.findIndex(c => c.id === currentId);
+      updateForm(sortedCeremonies[idx]);
+    } else {
+      const idx = sortedCeremonies.findIndex(c => c.id === currentId);
+      if (idx >= 0 && idx < sortedCeremonies.length - 1) {
+        setCurrentId(sortedCeremonies[idx + 1].id);
+        updateForm(sortedCeremonies[idx + 1]);
+      }
+    }
+    setChanged(false);
+    setEditingId(null);
+  };
+
+  const goPrev = () => {
+    if (
+        editingId &&
+        typeof editingId === "string" &&
+        editingId.startsWith("temp-")
+    ) {
+      setCeremonies(ceremonies.filter((d) => d.id !== editingId));
+      const idx = sortedCeremonies.findIndex(c => c.id === currentId);
+      updateForm(sortedCeremonies[idx]);
+    } else {
+      const idx = sortedCeremonies.findIndex(c => c.id === currentId);
+      if (idx > 0) {
+        setCurrentId(sortedCeremonies[idx - 1].id);
+        updateForm(sortedCeremonies[idx - 1]);
+      }
+    }
+    setChanged(false);
+    setEditingId(null);
   };
 
   if (loading) return <FullscreenSpinner />;
-  if (error) return <p className="text-red-600">Error: {error}</p>;
 
   return (
     <>
+      <Dialog open={showError} onOpenChange={setShowError}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">
+              Error
+            </DialogTitle>
+          </DialogHeader>
+          <p>{error}</p>
+        </DialogContent>
+      </Dialog>;
       <AdminNavbar />
       <div className="max-w-6xl mx-auto pt-24 shadow-lg">
         <Card className="bg-green-50 pt-4">
@@ -382,38 +464,58 @@ export default function AdminBulkOrder() {
 
               <hr className="row-start-9 col-span-full border-t border-gray-300 my-4" />
 
+              <div className="row-start-11 col-start-1 flex justify-around mt-4">
+                <Button
+                    className={navButtonClass}
+                    onClick={goPrev}
+                    disabled={currentIndex === 0}
+                >
+                  <ChevronsLeft />
+                </Button>
+
+                <Button
+                    className={navButtonClass}
+                    onClick={goNext}
+                    disabled={currentIndex === ceremonies.length - 1}
+                >
+                  <ChevronsRight />
+                </Button>
+              </div>
+
+              <div className="row-start-11 col-start-2 flex justify-around mt-4">
+                <Button onClick={handleCopy}
+                        className={`${navButtonClass}`}>
+                  <Copy />
+                </Button>
+
+                <Button className={`${navButtonClass} `}
+                        onClick={handleNew}
+                >
+                  <PlusCircle />
+                </Button>
+              </div>
+
               <Button
-                className="mt-4 row-start-11 col-start-1 bg-green-700 hover:bg-green-800"
-                onClick={goPrev}
-                disabled={currentIndex === 0}
+                  className={`${navButtonClass} row-start-11 col-start-3 mt-4 place-self-center`}
+                  onClick={handlePrint}
               >
-                <ChevronsLeft />
+                <Printer/>
               </Button>
 
               <Button
-                className="mt-4 row-start-11 col-start-2 bg-green-700 hover:bg-green-800"
-                onClick={goNext}
-                disabled={currentIndex === ceremonies.length - 1}
+                  type="submit"
+                  className={`${navButtonClass} row-start-11 col-start-4 mt-4 place-self-center`}
+                  disabled={!changed}
+                  onClick={handleSubmit}
               >
-                <ChevronsRight />
+                <Save/>
               </Button>
 
-              <Button
-                type="submit"
-                className="mt-4 row-start-11 col-start-3 bg-green-700 hover:bg-green-800"
-                hidden={!changed}
-                onClick={handleSubmit}
-              >
-                Save
-              </Button>
-
-              <Button className="mt-4 row-start-11 col-start-4 bg-green-700 hover:bg-green-800">
-                New
-              </Button>
             </form>
           </CardContent>
         </Card>
       </div>
+      {showPrint && <PrintReportOrder ceremony={formData}/>}
     </>
   );
 }
