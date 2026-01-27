@@ -5,7 +5,7 @@ const WIDTH = 300;
 
 export default async function PrintManifest() {
     console.log("Printing manifest...");
-    let response = await fetch(`${API_URL}/orders`)
+    let response = await fetch(`${API_URL}/admin/items/ceremony/5`)
     let orders = await response.json();
     generateManifestPDF(orders);
 }

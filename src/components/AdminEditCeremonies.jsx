@@ -4,6 +4,8 @@ import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import AdminNavbar from "./AdminNavbar.jsx";
 import "./AdminEditCeremonies.css";
 import DegreesInCeremony from "@/components/DegreesInCeremony.jsx";
+import {Printer} from "lucide-react";
+import PrintManifest from "@/components/PrintLabels.js";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -84,6 +86,16 @@ export default function CeremonyEditor() {
     });
   };
 
+  const handlePrint = (ceremony) => {
+    console.log("Ceremony=", ceremony)
+    setLoading(true);
+
+    setTimeout(() => {
+      PrintManifest(ceremony); // synchronous
+      setLoading(false);
+    }, 0);
+  }
+
   // Save update
   const handleSave = async () => {
     setLoading(true);
@@ -146,7 +158,7 @@ export default function CeremonyEditor() {
     });
   };
 
-  if (loading) return <FullscreenSpinner />;
+  // if (loading) return <FullscreenSpinner />;
   if (error) return <p className="text-red-600">Error: {error}</p>;
 
   return (
@@ -235,12 +247,18 @@ export default function CeremonyEditor() {
                           className="border rounded p-1 w-full accent-green-700"
                         />
                       </td>
-                      <td className="p-2 border">
+                      <td className="flex p-2 gap-8 justify-center">
                         <button
                           onClick={() => handleEdit(ceremony)}
                           className="!bg-green-700 text-white px-3 py-1 rounded hover:!bg-green-800"
                         >
                           Edit
+                        </button>
+                        <button
+                            onClick={() => handlePrint(ceremony)}
+                            className="flex gap-2 !bg-green-700 text-white px-3 py-1 rounded hover:!bg-green-800"
+                        >
+                          <Printer/> Manifest
                         </button>
                       </td>
                     </>
@@ -252,7 +270,7 @@ export default function CeremonyEditor() {
                       <div className="flex flex-col items-center gap-4 p-2">
                         <label
                           htmlFor="collectionTime"
-                          className="tracking-wide  font-medium mb-1 text-gray-700"
+                          className="tracking-wide font-medium mb-1 text-gray-700"
                         >
                           Collection time
                         </label>
@@ -284,6 +302,7 @@ export default function CeremonyEditor() {
         >
           New Ceremony
         </button>
+        {loading && <FullscreenSpinner />}
       </div>
     </>
   );

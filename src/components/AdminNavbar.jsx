@@ -6,13 +6,14 @@ import ReactDOM from "react-dom";
 import "./AdminNavbar.css";
 import "./Spinner.css";
 import { useAuth } from "@/components/AuthContext.jsx";
-import {
-  generateLabelsPDF,
-  generateManifestPDF,
-} from "@/components/PrintLabels.jsx";
+// import {
+//   generateLabelsPDF,
+//   generateManifestPDF,
+// } from "@/components/PrintLabels.js";
 import PrintReportOrder from "@/components/PrintReportOrder.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+const API_URL = "http://localhost:5144"
 
 function MenuItem({ printLabels, loading, children }) {
   return (
@@ -55,19 +56,19 @@ function AdminNavbar() {
     }
   }
 
-  async function printManifest() {
-    setLoading(true);
-    try {
-      let response = await fetch(`${API_URL}/orders`);
-      let orders = await response.json();
-      generateManifestPDF(orders);
-      // console.log("Backend result:", orders);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // async function printManifest() {
+  //   setLoading(true);
+  //   try {
+  //     let response = await fetch(`${API_URL}/admin/items/ceremony/4`);
+  //     let orders = await response.json();
+  //     generateManifestPDF(orders);
+  //     // console.log("Backend result:", orders);
+  //   } catch (err) {
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
 
   return (
     <nav className="navbar">
@@ -121,16 +122,13 @@ function AdminNavbar() {
               <NavLink to="/BulkOrder">Bulk Orders</NavLink>
               <NavLink to="/ImportBulk">Import Bulk Hire</NavLink>
               {loading && <FullscreenSpinner />}
-              <a onClick={printLabels} style={{ cursor: "pointer" }}>
-                PRINT LABELS
-              </a>
-              {loading && <FullscreenSpinner />}
-              <a onClick={printManifest} style={{ cursor: "pointer" }}>
-                PRINT MANIFEST
-              </a>
-              <a onClick={PrintReportOrder} style={{ cursor: "pointer" }}>
-                Print Report
-              </a>
+              {/*<a onClick={printLabels} style={{ cursor: "pointer" }}>*/}
+              {/*  PRINT LABELS*/}
+              {/*</a>*/}
+              {/*{loading && <FullscreenSpinner />}*/}
+              {/*<a onClick={printManifest} style={{ cursor: "pointer" }}>*/}
+              {/*  PRINT MANIFEST*/}
+              {/*</a>*/}
               <NavLink to="/PrintAddressLabels">PRINT ADDRESS LABELS</NavLink>
             </ul>
           </li>
