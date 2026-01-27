@@ -1,0 +1,443 @@
+.imf-page {
+  padding: 14px 18px;
+  background: #ffffff;
+}
+
+.imf-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding-top: 100px;
+}
+
+.imf-toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.imf-toolbar-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.imf-search {
+  width: 320px;
+  height: 36px;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.imf-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.imf-label {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.imf-date {
+  height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.imf-select {
+  height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.imf-clear {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.imf-print {
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 6px;
+  background: #2da44e;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.imf-title {
+  font-size: 14px;
+  opacity: 0.85;
+  margin: 6px 0 10px;
+}
+
+.imf-placeholder {
+  border: 1px dashed #d0d7de;
+  border-radius: 8px;
+  padding: 18px;
+  opacity: 0.8;
+}
+
+.imf-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.imf-table th,
+.imf-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.imf-table th {
+  background: #f6f8fa;
+  font-weight: 600;
+}
+
+.imf-table tr:hover {
+  background: #f9fafb;
+}
+
+.imf-table input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.imf-preview-wrap {
+  margin-top: 18px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 14px;
+}
+
+.imf-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.imf-preview-pages {
+  display: grid;
+  gap: 14px;
+}
+
+/* A4 preview block (screen preview) */
+.imf-a4-page {
+  width: 210mm;
+  height: 297mm;
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 14mm;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.imf-a4-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.imf-a4-line {
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+/* During html2canvas capture: force safe colors (avoid oklch) */
+.imf-print-page.imf-printing,
+.imf-print-page.imf-printing * {
+  color: #000 !important;
+  background: transparent !important;
+  border-color: #000 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.imf-print-page.imf-printing {
+  background: #fff !important;
+}
+
+/* ===== Print page base ===== */
+.imf-print-page {
+  width: 210mm;
+  height: 297mm;
+  background: #fff;
+  color: #000;
+  box-sizing: border-box;
+  padding: 14mm;
+  font-family: Arial, Helvetica, sans-serif;
+  position: relative;
+}
+
+.imf-form-title {
+  font-size: 18pt;
+  font-weight: 800;
+  margin-bottom: 6mm;
+}
+
+.imf-form-row {
+  display: flex;
+  gap: 10mm;
+  margin-bottom: 3mm;
+  font-size: 11pt;
+}
+
+.imf-form-row .label {
+  font-weight: 700;
+  min-width: 28mm;
+}
+
+.imf-form-row .value {
+  font-weight: 500;
+}
+
+/* ===== Items table (gown/hood/etc.) ===== */
+.imf-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6mm;
+  font-size: 11pt;
+}
+
+.imf-items-table th,
+.imf-items-table td {
+  border: 1px solid #000;
+  padding: 2.5mm 2.5mm;
+  vertical-align: top;
+}
+
+.imf-items-table th {
+  background: #f2f2f2;
+  font-weight: 800;
+  text-align: left;
+}
+
+.imf-items-table .col-item {
+  width: 55%;
+}
+.imf-items-table .col-size {
+  width: 15%;
+  text-align: center;
+}
+.imf-items-table .col-date {
+  width: 15%;
+  text-align: center;
+}
+
+/* ===== Notes / payment section ===== */
+.imf-section {
+  margin-top: 7mm;
+  font-size: 11pt;
+}
+
+.imf-line {
+  border-bottom: 1px solid #000;
+  height: 7mm;
+  margin: 2mm 0 4mm;
+}
+
+.imf-sign-row {
+  display: flex;
+  gap: 8mm;
+  margin-top: 6mm;
+}
+
+.imf-sign-row .sign-line {
+  flex: 1;
+}
+
+.imf-sign-row .sign-line .imf-line {
+  margin: 2mm 0 0;
+}
+
+/* ===== PrintPage internal layout (no inline styles) ===== */
+.imf-form {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.imf-form-heading {
+  text-align: center;
+  font-weight: 800;
+  font-size: 22px;
+  margin-top: 6px;
+  margin-bottom: 18px;
+}
+
+.imf-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 18mm;
+  margin-bottom: 6px;
+}
+
+.imf-left-block {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.imf-name {
+  font-weight: 800;
+}
+.imf-address {
+  font-weight: 700;
+}
+
+.imf-right-block {
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.imf-form-date {
+  font-weight: 700;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+.imf-right-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.imf-contact {
+  font-size: 12.5px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+/* Items table */
+.imf-items {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+  border: 0.75px solid #000;
+}
+
+.imf-td-center {
+  text-align: center;
+}
+
+.imf-paid-row {
+  padding: 10px 12px !important;
+}
+.imf-paid-row-inner {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+/* Note */
+.imf-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+}
+.imf-hr {
+  height: 1px;
+  background: #000;
+  margin: 8px 0;
+}
+
+/* Receipt box */
+.imf-receipt-box {
+  margin-top: 18px;
+  font-size: 12.5px;
+  border: 1px solid #000;
+  padding: 6px 10px;
+}
+
+.imf-receipt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #000;
+  padding-bottom: 10px;
+}
+
+.imf-fill-line {
+  flex: 1;
+  border-bottom: 1.5px solid #000;
+  max-width: 33mm;
+  height: 2.6em;
+  display: inline-block;
+}
+
+.imf-receipt-block {
+  margin-top: 14px;
+  padding-bottom: 70px;
+  border-bottom: 1px solid #000;
+}
+.imf-receipt-block-last {
+  border-bottom: none;
+  margin-bottom: 70px;
+  padding-bottom: 0;
+}
+
+/* Acknowledge + sign */
+.imf-ack {
+  margin-top: 16px;
+  font-size: 12.5px;
+  max-width: 120mm;
+}
+
+.imf-sign {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 12.5px;
+}
+
+.imf-footer {
+  position: absolute;
+  bottom: 10mm;
+  font-size: 9pt;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.imf-pagination {
+  margin: 14px 0 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.imf-pagination button {
+  padding: 4px 10px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.imf-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

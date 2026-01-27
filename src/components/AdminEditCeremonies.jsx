@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import AdminNavbar from "./AdminNavbar.jsx";
@@ -6,6 +6,7 @@ import "./AdminEditCeremonies.css";
 import DegreesInCeremony from "@/components/DegreesInCeremony.jsx";
 import {Printer} from "lucide-react";
 import PrintManifest from "@/components/PrintLabels.js";
+import JoditEditor from "jodit-react";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -19,10 +20,13 @@ export default function CeremonyEditor() {
     ceremonyDate: "",
     visible: false,
     collectionTime: "",
+    content: "",
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [degrees, setDegrees] = useState([]);
+  const editor = useRef(null);
+  const contentRef = useRef("");
 
   const handleDegreesUpdated = (updatedDegrees) => {
     setDegrees(updatedDegrees);
@@ -57,6 +61,7 @@ export default function CeremonyEditor() {
   // Start editing
   const handleEdit = (ceremony) => {
     setEditingId(ceremony.id);
+    contentRef.current = ceremony.content || "";
     setForm({
       id: ceremony.id,
       name: ceremony.name,
@@ -64,6 +69,7 @@ export default function CeremonyEditor() {
       dueDate: ceremony.dueDate,
       visible: ceremony.visible,
       collectionTime: ceremony.collectionTime,
+      content: ceremony.content || "",
     });
   };
 
@@ -83,6 +89,7 @@ export default function CeremonyEditor() {
       ceremonyDate: "",
       visible: false,
       collectionTime: "",
+      content: "",
     });
   };
 
@@ -100,26 +107,29 @@ export default function CeremonyEditor() {
   const handleSave = async () => {
     setLoading(true);
     try {
+      const payload = { ...form, content: contentRef.current ?? form.content }; // ✅
+
       let res;
-      if (
-        editingId &&
-        typeof editingId === "string" &&
-        editingId.startsWith("temp-")
-      ) {
-        res = await axios.post(`${API_URL}/admin/ceremonies`, form);
+      if (typeof editingId === "string" && editingId.startsWith("temp-")) {
+        res = await axios.post(`${API_URL}/admin/ceremonies`, payload);
         await axios.post(
           `${API_URL}/admin/ceremonies/${res.data.id}/degrees`,
           degrees
         );
       } else {
-        res = await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, form);
-        console.log("Form=", degrees);
+        res = await axios.put(
+          `${API_URL}/admin/ceremonies/${editingId}`,
+          payload
+        );
         await axios.post(
           `${API_URL}/admin/ceremonies/${editingId}/degrees`,
           degrees
         );
       }
-      setCeremonies(ceremonies.map((c) => (c.id === editingId ? res.data : c)));
+
+      setCeremonies((prev) =>
+        prev.map((c) => (c.id === editingId ? res.data : c))
+      );
       setEditingId(null);
       setForm({
         name: "",
@@ -127,7 +137,9 @@ export default function CeremonyEditor() {
         ceremonyDate: "",
         visible: false,
         collectionTime: "",
+        content: "",
       });
+      contentRef.current = "";
     } catch (err) {
       setError("Update failed: " + err.message);
     } finally {
@@ -137,6 +149,7 @@ export default function CeremonyEditor() {
 
   const addCeremony = () => {
     const tempId = "temp-" + crypto.randomUUID();
+    contentRef.current = "";
     setCeremonies([
       ...ceremonies,
       {
@@ -146,6 +159,7 @@ export default function CeremonyEditor() {
         ceremonyDate: "",
         visible: false,
         collectionTime: "",
+        content: "",
       },
     ]);
     setEditingId(tempId);
@@ -155,7 +169,18 @@ export default function CeremonyEditor() {
       ceremonyDate: null,
       visible: false,
       collectionTime: "",
+      content: "",
     });
+  };
+
+  const editorConfig = {
+    readonly: false,
+    height: 500,
+    toolbarAdaptive: false,
+    toolbarSticky: false,
+    askBeforePasteHTML: false,
+    askBeforePasteFromWord: false,
+    placeholder: "Enter ceremony description here...",
   };
 
   // if (loading) return <FullscreenSpinner />;
@@ -178,8 +203,8 @@ export default function CeremonyEditor() {
           </thead>
           <tbody>
             {ceremonies.map((ceremony) => (
-              <>
-                <tr key={ceremony.id} className="border">
+              <React.Fragment key={ceremony.id}>
+                <tr className="border">
                   {editingId === ceremony.id ? (
                     <>
                       <td className="p-2 border">
@@ -288,11 +313,33 @@ export default function CeremonyEditor() {
                           ceremonyId={ceremony.id}
                           onDegreesUpdated={handleDegreesUpdated}
                         />
+                        <div className="w-full mt-4">
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            Content related to ceremony
+                          </h3>
+
+                          <div className="border rounded bg-white">
+                            <JoditEditor
+                              ref={editor}
+                              value={form.content}
+                              config={editorConfig}
+                              onChange={(newContent) => {
+                                contentRef.current = newContent;
+                              }}
+                              onBlur={(newContent) => {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  content: newContent,
+                                }));
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </tbody>
         </table>

@@ -1,58 +1,93 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./BuyRegalia.css";
-import {
-  Search,
-  Filter,
-  Eye,
-  X,
-  Clock,
-  Package,
-  Truck,
-  CheckCircle,
-} from "lucide-react";
+import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
 import { getOrders, updateOrderStatus } from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
+import {
+  ORDER_STATUS,
+  normalizeStatus,
+  statusToClass,
+} from "../constants/status";
 
 function BuyRegalia() {
   const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("1");
+  const [filterStatus, setFilterStatus] = useState(0);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
+
+  // Date filters (YYYY-MM-DD from <input type="date" />)
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [bulkStatusUpdate, setBulkStatusUpdate] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [bulkStatusUpdate, setBulkStatusUpdate] = useState(0);
+  const [sortConfig, setSortConfig] = useState({
+    key: "id",
+    direction: "desc",
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
+  // ----------------------------
+  // Helpers: date parsing/filtering
+  // ----------------------------
+  const toStartOfDay = (d) => {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  };
+
+  const toEndOfDay = (d) => {
+    const x = new Date(d);
+    x.setHours(23, 59, 59, 999);
+    return x;
+  };
+
+  // Handles: ISO strings, "YYYY-MM-DD", and "dd/mm/yyyy"
+  const parseOrderDate = (value) => {
+    if (!value) return null;
+
+    const direct = new Date(value);
+    if (!isNaN(direct.getTime())) return direct;
+
+    const m = String(value).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) {
+      const [, dd, mm, yyyy] = m;
+      const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    return null;
+  };
+
+  // ----------------------------
+  // Fetch orders
+  // ----------------------------
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Load cached data first (if exists)
         const cachedOrders = localStorage.getItem("regaliaOrders_buy");
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
         }
 
-        // ALWAYS fetch fresh data from API
         const data = await getOrders();
 
         const processedData = Array.isArray(data)
           ? data
               .map((order) => {
-                // Keep ONLY buy items
                 const buyItems =
                   order.items?.filter((item) => !Boolean(item.hire)) || [];
 
-                // If no buy items → exclude entire order
                 if (buyItems.length === 0) return null;
 
                 return {
@@ -61,10 +96,9 @@ function BuyRegalia() {
                   status: normalizeStatus(order.status),
                 };
               })
-              .filter(Boolean) // remove null orders
+              .filter(Boolean)
           : [];
 
-        // Update state + cache
         setOrders(processedData);
         localStorage.setItem(
           "regaliaOrders_buy",
@@ -72,8 +106,6 @@ function BuyRegalia() {
         );
       } catch (err) {
         setError(err.message || "Failed to fetch orders");
-
-        // fallback to cache if API fails
         const cachedOrders = localStorage.getItem("regaliaOrders_buy");
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
@@ -86,42 +118,18 @@ function BuyRegalia() {
     fetchOrders();
   }, []);
 
-  function normalizeStatus(status) {
-    if (!status) return "pending";
-
-    const s = String(status).toLowerCase().trim();
-
-    switch (s) {
-      case "pending":
-        return "pending";
-      case "processing":
-        return "processing";
-      case "delivered":
-        return "delivered";
-      case "cancelled":
-      case "canceled":
-        return "cancelled";
-      default:
-        return "pending";
-    }
-  }
-
   const statusConfig = {
-    pending: { label: "Pending", icon: Clock },
-    processing: { label: "Processing", icon: Package },
-    delivered: { label: "Delivered", icon: Truck },
-    cancelled: { label: "Cancelled", icon: X },
+    [ORDER_STATUS.PENDING]: { label: "Pending", icon: Clock },
+    [ORDER_STATUS.PROCESSING]: { label: "Processing", icon: Package },
+    [ORDER_STATUS.DELIVERED]: { label: "Delivered", icon: Truck },
+    [ORDER_STATUS.CANCELLED]: { label: "Cancelled", icon: X },
   };
 
-  // Get unique item types from all orders
   const getItemTypes = () => {
     const types = new Set();
     orders.forEach((order) => {
       order.items?.forEach((item) => {
-        if (item.itemName) {
-          // Extract category/type from item name or use full name
-          types.add(item.itemName);
-        }
+        if (item.itemName) types.add(item.itemName);
       });
     });
     return Array.from(types).sort();
@@ -132,13 +140,11 @@ function BuyRegalia() {
       order.id === orderId ? { ...order, status: newStatus } : order
     );
     updateOrderStatus(orderId, newStatus);
-
     setOrders(updatedOrders);
     localStorage.setItem("regaliaOrders_buy", JSON.stringify(updatedOrders));
     setSelectedOrder(null);
   };
 
-  // Bulk status update
   const handleBulkStatusUpdate = async () => {
     if (!bulkStatusUpdate || selectedOrders.length === 0) {
       alert("Please select orders and a status to update");
@@ -147,7 +153,6 @@ function BuyRegalia() {
 
     const normalizedStatus = normalizeStatus(bulkStatusUpdate);
 
-    // Optimistic UI update
     const updatedOrders = orders.map((order) =>
       selectedOrders.includes(order.id)
         ? { ...order, status: normalizedStatus }
@@ -178,7 +183,6 @@ function BuyRegalia() {
     }
   };
 
-  // Sorting function
   const handleSort = (key) => {
     let direction = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") {
@@ -187,15 +191,11 @@ function BuyRegalia() {
     setSortConfig({ key, direction });
   };
 
-  // Get sort indicator
   const getSortIndicator = (columnKey) => {
-    if (sortConfig.key !== columnKey) {
-      return "↑↓";
-    }
+    if (sortConfig.key !== columnKey) return "↑↓";
     return sortConfig.direction === "asc" ? " ↑" : " ↓";
   };
 
-  // Toggle individual order selection
   const toggleOrderSelection = (orderId) => {
     setSelectedOrders((prev) =>
       prev.includes(orderId)
@@ -204,33 +204,15 @@ function BuyRegalia() {
     );
   };
 
-  // Toggle all visible (current page) orders
-  const toggleAllOrders = () => {
-    const visibleIds = paginatedOrders.map((order) => order.id);
-
-    const allVisibleSelected = visibleIds.every((id) =>
-      selectedOrders.includes(id)
-    );
-
-    if (allVisibleSelected) {
-      // remove only visible ones
-      setSelectedOrders((prev) =>
-        prev.filter((id) => !visibleIds.includes(id))
-      );
-    } else {
-      // add visible ones
-      setSelectedOrders((prev) =>
-        Array.from(new Set([...prev, ...visibleIds]))
-      );
-    }
-  };
-
-  const filteredOrders = React.useMemo(() => {
-    // First filter the orders
+  // ----------------------------
+  // Filter + Sort
+  // ----------------------------
+  const filteredOrders = useMemo(() => {
     const filtered = orders.filter((order) => {
       const fullName = `${order.firstName || ""} ${
         order.lastName || ""
       }`.toLowerCase();
+
       const matchesSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
         (order.id?.toString().toLowerCase() || "").includes(
@@ -241,34 +223,35 @@ function BuyRegalia() {
         ) ||
         (order.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
-      const statusMap = {
-        1: null,
-        2: "pending",
-        3: "processing",
-        4: "delivered",
-        5: "cancelled",
-      };
-
-      const selectedStatus = statusMap[filterStatus];
       const matchesFilter =
-        selectedStatus === null || order.status === selectedStatus;
+        filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
 
       const matchesPayment =
         (filterPaid && filterUnpaid) ||
         (filterPaid && order.paid) ||
         (filterUnpaid && !order.paid);
 
-      // Filter by item type
       const matchesItemType =
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
+      // Date match
+      const orderDateObj = parseOrderDate(order.orderDate);
+      const matchesDate =
+        (!dateFrom && !dateTo) ||
+        (orderDateObj &&
+          (!dateFrom || orderDateObj >= toStartOfDay(dateFrom)) &&
+          (!dateTo || orderDateObj <= toEndOfDay(dateTo)));
+
       return (
-        matchesSearch && matchesFilter && matchesPayment && matchesItemType
+        matchesSearch &&
+        matchesFilter &&
+        matchesPayment &&
+        matchesItemType &&
+        matchesDate
       );
     });
 
-    // Then sort the filtered results
     if (!sortConfig.key) return filtered;
 
     return [...filtered].sort((a, b) => {
@@ -284,19 +267,19 @@ function BuyRegalia() {
           bValue = `${b.firstName || ""} ${b.lastName || ""}`.toLowerCase();
           break;
         case "date":
-          aValue = a.orderDate ? new Date(a.orderDate).getTime() : 0;
-          bValue = b.orderDate ? new Date(b.orderDate).getTime() : 0;
+          aValue = a.orderDate
+            ? parseOrderDate(a.orderDate)?.getTime() || 0
+            : 0;
+          bValue = b.orderDate
+            ? parseOrderDate(b.orderDate)?.getTime() || 0
+            : 0;
           break;
         default:
           return 0;
       }
 
-      if (aValue < bValue) {
-        return sortConfig.direction === "asc" ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === "asc" ? 1 : -1;
-      }
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
   }, [
@@ -307,20 +290,20 @@ function BuyRegalia() {
     filterUnpaid,
     filterItemType,
     sortConfig,
+    dateFrom,
+    dateTo,
   ]);
 
   // ----------------------------
-  // PAGINATION
+  // Pagination
   // ----------------------------
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
 
-  // Keep currentPage in valid range when filtering reduces results
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
     if (currentPage < 1) setCurrentPage(1);
   }, [currentPage, totalPages]);
 
-  // Reset to page 1 whenever filters/search/sort change
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -330,25 +313,40 @@ function BuyRegalia() {
     filterUnpaid,
     filterItemType,
     sortConfig,
+    dateFrom,
+    dateTo,
   ]);
 
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
-  const getStatusCount = (status) => {
-    return orders.filter((o) => o.status === status).length;
+  const toggleAllOrders = () => {
+    const visibleIds = paginatedOrders.map((order) => order.id);
+    const allVisibleSelected = visibleIds.every((id) =>
+      selectedOrders.includes(id)
+    );
+
+    if (allVisibleSelected) {
+      setSelectedOrders((prev) =>
+        prev.filter((id) => !visibleIds.includes(id))
+      );
+    } else {
+      setSelectedOrders((prev) =>
+        Array.from(new Set([...prev, ...visibleIds]))
+      );
+    }
   };
 
-  // Add this function before the return statement
+  const getStatusCount = (status) =>
+    orders.filter((o) => o.status === status).length;
+
   const generateCSV = () => {
     if (filteredOrders.length === 0) {
       alert("No orders match the selected filters");
       return;
     }
 
-    // CSV Headers
     const headers = [
       "Order ID",
       "First Name",
@@ -413,10 +411,10 @@ function BuyRegalia() {
       <div className="nav-bar">
         <AdminNavbar />
       </div>
+
       <div className="buy-regalia-container">
         <div className="buy-regalia-wrapper">
           <div className="buy-regalia-header">
-            <h1 className="buy-regalia-title">Buy Regalia Orders</h1>
             <p className="buy-regalia-subtitle">
               Manage and track graduation regalia purchases
             </p>
@@ -427,7 +425,7 @@ function BuyRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Pending</p>
-                  <p>{getStatusCount("pending")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.PENDING)}</p>
                 </div>
                 <Clock className="stat-icon yellow" />
               </div>
@@ -436,7 +434,7 @@ function BuyRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Processing</p>
-                  <p>{getStatusCount("processing")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.PROCESSING)}</p>
                 </div>
                 <Package className="stat-icon blue" />
               </div>
@@ -445,7 +443,7 @@ function BuyRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Delivered</p>
-                  <p>{getStatusCount("delivered")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.DELIVERED)}</p>
                 </div>
                 <Truck className="stat-icon green" />
               </div>
@@ -454,7 +452,7 @@ function BuyRegalia() {
               <div className="stat-card-content">
                 <div className="stat-card-info">
                   <p>Cancelled</p>
-                  <p>{getStatusCount("cancelled")}</p>
+                  <p>{getStatusCount(ORDER_STATUS.CANCELLED)}</p>
                 </div>
                 <X className="stat-icon red" />
               </div>
@@ -474,20 +472,22 @@ function BuyRegalia() {
                   className="search-input with-icon"
                 />
               </div>
+
               <div className="filter-wrapper">
                 <Filter className="filter-icon" />
                 <select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  onChange={(e) => setFilterStatus(Number(e.target.value))}
                   className="filter-select"
                 >
-                  <option value="1">All Status</option>
-                  <option value="2">Pending</option>
-                  <option value="3">Processing</option>
-                  <option value="4">Delivered</option>
-                  <option value="5">Cancelled</option>
+                  <option value={ORDER_STATUS.ALL}>All Status</option>
+                  <option value={ORDER_STATUS.PENDING}>Pending</option>
+                  <option value={ORDER_STATUS.PROCESSING}>Processing</option>
+                  <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
+                  <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
                 </select>
               </div>
+
               <div className="filter-wrapper">
                 <select
                   value={filterItemType}
@@ -502,6 +502,41 @@ function BuyRegalia() {
                   ))}
                 </select>
               </div>
+
+              {/* DATE FILTERS */}
+              <div className="filter-wrapper">
+                <div>From</div>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="filter-select"
+                  title="From date"
+                />
+              </div>
+
+              <div className="filter-wrapper">
+                <div>To</div>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="filter-select"
+                  title="To date"
+                />
+              </div>
+
+              <button
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="ml-2 bg-gray-200 text-gray-800 px-3 py-1.5 rounded hover:bg-gray-300"
+                type="button"
+              >
+                Clear dates
+              </button>
+
               <div className="payment-filter-wrapper">
                 <label>
                   <input
@@ -520,6 +555,7 @@ function BuyRegalia() {
                   Unpaid
                 </label>
               </div>
+
               <button
                 onClick={generateCSV}
                 disabled={filteredOrders.length === 0}
@@ -551,9 +587,10 @@ function BuyRegalia() {
               <span style={{ fontWeight: "600" }}>
                 {selectedOrders.length} order(s) selected
               </span>
+
               <select
                 value={bulkStatusUpdate}
-                onChange={(e) => setBulkStatusUpdate(e.target.value)}
+                onChange={(e) => setBulkStatusUpdate(Number(e.target.value))}
                 style={{
                   padding: "0.5rem",
                   borderRadius: "4px",
@@ -561,11 +598,12 @@ function BuyRegalia() {
                 }}
               >
                 <option value="">Select new status...</option>
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
+                <option value={ORDER_STATUS.PENDING}>Pending</option>
+                <option value={ORDER_STATUS.PROCESSING}>Processing</option>
+                <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
+                <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
               </select>
+
               <button
                 onClick={handleBulkStatusUpdate}
                 style={{
@@ -580,6 +618,7 @@ function BuyRegalia() {
               >
                 Update Status
               </button>
+
               <button
                 onClick={() => setSelectedOrders([])}
                 style={{
@@ -616,34 +655,42 @@ function BuyRegalia() {
                         style={{ cursor: "pointer" }}
                       />
                     </th>
+
                     <th
                       onClick={() => handleSort("id")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
                       Order ID{getSortIndicator("id")}
                     </th>
+
                     <th
                       onClick={() => handleSort("name")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
                       Customer{getSortIndicator("name")}
                     </th>
+
                     <th>Items</th>
                     <th>Quantity</th>
+
                     <th
                       onClick={() => handleSort("date")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
                       Order Date{getSortIndicator("date")}
                     </th>
+
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {paginatedOrders.map((order) => {
                     const status = normalizeStatus(order.status);
-                    const config = statusConfig[status] || statusConfig.pending;
+                    const config =
+                      statusConfig[status] ||
+                      statusConfig[ORDER_STATUS.PENDING];
                     const StatusIcon = config.icon || Clock;
 
                     return (
@@ -663,15 +710,18 @@ function BuyRegalia() {
                             style={{ cursor: "pointer" }}
                           />
                         </td>
+
                         <td className="table-cell-nowrap">
                           <div className="order-id">{order.id}</div>
                         </td>
+
                         <td className="table-cell-nowrap">
                           <div className="student-name">
                             {order.firstName} {order.lastName}
                           </div>
                           <div className="student-id">{order.studentId}</div>
                         </td>
+
                         <td>
                           {order.items?.map((item, index) => (
                             <div key={index} className="item-row">
@@ -679,20 +729,26 @@ function BuyRegalia() {
                             </div>
                           )) || <span className="no-items-text">No items</span>}
                         </td>
+
                         <td className="table-cell-nowrap">
                           <div className="item-quantity">
                             {order.items?.length || 0}
                           </div>
                         </td>
+
                         <td className="table-cell-nowrap">
                           <div className="order-date">{order.orderDate}</div>
                         </td>
+
                         <td className="table-cell-nowrap">
-                          <span className={`status-badge ${status}`}>
+                          <span
+                            className={`status-badge ${statusToClass(status)}`}
+                          >
                             <StatusIcon className="status-icon" />
                             {config.label}
                           </span>
                         </td>
+
                         <td className="table-cell-nowrap">
                           <button
                             onClick={() => setSelectedOrder(order)}
@@ -708,6 +764,7 @@ function BuyRegalia() {
               </table>
             </div>
           </div>
+
           {/* Pagination */}
           <div
             style={{
@@ -747,7 +804,6 @@ function BuyRegalia() {
                 Prev
               </button>
 
-              {/* Page numbers*/}
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter((p) => {
                   if (totalPages <= 7) return true;
@@ -803,7 +859,7 @@ function BuyRegalia() {
             </div>
           </div>
 
-          {/* Order Detail Modal - keeping your existing modal code */}
+          {/* Order Detail Modal */}
           {selectedOrder && (
             <div className="modal-overlay">
               <div className="modal-content">
@@ -880,7 +936,9 @@ function BuyRegalia() {
                             </div>
                             <div className="info-row">
                               <span className="info-label">Fit:</span>
-                              <span className="info-value">{item.fitName || "N/A"}</span>
+                              <span className="info-value">
+                                {item.fitName || "N/A"}
+                              </span>
                             </div>
                             {item.hoodName && (
                               <div className="info-row">
@@ -938,8 +996,10 @@ function BuyRegalia() {
                           <div className="info-row">
                             <span className="info-label">Payment Method:</span>
                             <span className="info-value">
-                              {selectedOrder.paymentMethod
-                                ? "Card payment or A2A"
+                              {selectedOrder.paymentMethod === 1
+                                ? "Card payment"
+                                : selectedOrder.paymentMethod === 2
+                                ? "A2A"
                                 : "Purchased order"}
                             </span>
                           </div>
@@ -970,20 +1030,23 @@ function BuyRegalia() {
                       <h3 className="modal-section-title">Update Status</h3>
                       <div className="status-update-grid">
                         {Object.entries(statusConfig).map(
-                          ([status, config]) => {
+                          ([statusKey, config]) => {
+                            const numericStatus = Number(statusKey);
                             const StatusIcon = config.icon;
+
                             return (
                               <button
-                                key={status}
+                                key={numericStatus}
                                 onClick={() =>
-                                  updateStatus(selectedOrder.id, status)
+                                  updateStatus(selectedOrder.id, numericStatus)
                                 }
                                 className={`status-update-button ${
                                   normalizeStatus(selectedOrder.status) ===
-                                  status
+                                  numericStatus
                                     ? "active"
                                     : "inactive"
                                 }`}
+                                type="button"
                               >
                                 <StatusIcon className="status-update-icon" />
                                 <span className="status-update-label">

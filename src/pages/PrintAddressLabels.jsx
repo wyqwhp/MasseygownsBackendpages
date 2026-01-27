@@ -12,6 +12,136 @@ const FROM = {
   logoSrc: "/logo.jpg",
 };
 
+/**
+ * Each paper size is configured independently
+ */
+const PAPER_PRESETS = {
+  A4: {
+    jsPdf: { orientation: "portrait", unit: "mm", format: "a4" },
+    page: { widthMm: "210mm", minHeightMm: "297mm", paddingMm: "3mm" },
+    grid: { templateColumns: "repeat(2, 1fr)", gapMm: "3mm" },
+    label: {
+      heightMm: 66,
+      border: "1px solid #ddd",
+      radiusMm: "6px",
+      paddingMm: "3.5mm",
+      paddingTopMm: "1mm",
+    },
+    font: {
+      toNamePt: 11.66,
+      addrPt: 15,
+      cityPostPt: 20,
+      attnPt: 10,
+      phonePt: 5,
+      fromLabelPt: 5,
+      fromFooterPt: 5,
+      logoWidthMm: 52,
+      logoMaxHeightMm: 12,
+      cityPostLetterSpacingPx: 0.4,
+
+      toNamePaddingTopMm: 0.1,
+      addr1PaddingTopMm: 2.5,
+      addr2PaddingTopMm: 0.1,
+      addrMarginBottomMm: 2,
+      cityPostMarginTopMm: 0.1,
+      cityPostMarginBottomMm: 2.4,
+      fromAreaGapMm: 1.6,
+      fromLabelMarginBottomMm: 0.1,
+      fromFooterMarginTopMm: 0.2,
+      labelTopLineHeight: 1.3,
+      addrLineLineHeight: 0.85,
+    },
+    clamp: { enable: true, toNameLines: 2, addrLines: 2 },
+    special120: { enable: false },
+  },
+
+  A5: {
+    jsPdf: { orientation: "portrait", unit: "mm", format: "a5" },
+    page: { widthMm: "148mm", minHeightMm: "210mm", paddingMm: "3mm" },
+
+    // A5
+    grid: { templateColumns: "repeat(2, 1fr)", gapMm: "3mm" },
+
+    label: {
+      heightMm: 51,
+      border: "1px solid #ddd",
+      radiusMm: "3px",
+      paddingMm: "3mm",
+      paddingTopMm: "1mm",
+    },
+    font: {
+      toNamePt: 7.5,
+      addrPt: 11.66,
+      cityPostPt: 15,
+      attnPt: 6.6,
+      phonePt: 3.75,
+      fromLabelPt: 4.583,
+      fromFooterPt: 3.75,
+      logoWidthMm: 30,
+      logoMaxHeightMm: 8,
+      cityPostLetterSpacingPx: 0.4,
+
+      toNamePaddingTopMm: 0.1,
+      addr1PaddingTopMm: 0.1,
+      addr2PaddingTopMm: 0.1,
+      addrMarginBottomMm: 2,
+      cityPostMarginTopMm: 0.1,
+      cityPostMarginBottomMm: 2.4,
+      fromAreaGapMm: 1.6,
+      fromLabelMarginBottomMm: 0.1,
+      fromFooterMarginTopMm: 0.2,
+      labelTopLineHeight: 1.3,
+      addrLineLineHeight: 1,
+    },
+    clamp: { enable: true, toNameLines: 2, addrLines: 2 },
+    special120: { enable: false },
+  },
+
+  "120x90": {
+    jsPdf: { orientation: "landscape", unit: "mm", format: [120, 90] },
+    page: { widthMm: "120mm", minHeightMm: "90mm", paddingMm: "0mm" },
+    grid: { templateColumns: "1fr", gapMm: "0mm" },
+    label: {
+      heightMm: 90,
+      border: "0",
+      radiusMm: "0",
+      paddingMm: "3.5mm",
+      paddingTopMm: "1mm",
+    },
+    font: {
+      toNamePt: 20,
+      addrPt: 20,
+      cityPostPt: 23.32,
+      attnPt: 13.2,
+      phonePt: 7,
+      fromLabelPt: 10,
+      fromFooterPt: 7.5,
+      logoWidthMm: 52,
+      logoMaxHeightMm: 12,
+      cityPostLetterSpacingPx: 0.4,
+
+      toNamePaddingTopMm: 0.1,
+      addr1PaddingTopMm: 0.6,
+      addr2PaddingTopMm: 0.1,
+      addrMarginBottomMm: 0.1,
+      cityPostMarginTopMm: 0.1,
+      cityPostMarginBottomMm: 0.1,
+      fromAreaGapMm: 1.6,
+      fromLabelMarginBottomMm: 0.1,
+      fromFooterMarginTopMm: 0.2,
+
+      labelTopLineHeight: 0.1,
+      addrLineLineHeight: 0.1,
+    },
+    clamp: { enable: false, toNameLines: 0, addrLines: 0 },
+    special120: {
+      enable: true,
+      forceLineHeight: 1.7,
+      unclamp: true,
+    },
+  },
+};
+
 function chunkArray(arr, size) {
   if (!Array.isArray(arr) || size <= 0) return [];
   const out = [];
@@ -35,29 +165,31 @@ function formatDateForTable(value) {
   return String(value);
 }
 
+function getPreset(paper) {
+  return PAPER_PRESETS[paper] || PAPER_PRESETS.A4;
+}
+
 export default function PrintAddressLabels() {
   const [labels, setLabels] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Filters
-  const [type, setType] = useState("individual"); // individual | institution
+  const [type, setType] = useState("individual");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [name, setName] = useState("");
 
-  // Export option (must choose before exporting)
-  const [paper, setPaper] = useState(""); // "A4" | "A5" | ""
+  const [paper, setPaper] = useState("A4"); // "A4" | "A5" | "120x90"
 
   // Table pagination
   const [tablePage, setTablePage] = useState(1);
   const pageSize = 10;
 
-  // Hidden printable pages container (not visible on screen)
+  // Hidden printable pages container
   const pagesRef = useRef(null);
 
   const dateLabel = type === "individual" ? "Order date" : "Despatch date";
 
-  // Prevent overlapping requests: only last request updates UI
   const requestSeqRef = useRef(0);
 
   const loadLabels = async (opts) => {
@@ -68,7 +200,7 @@ export default function PrintAddressLabels() {
 
     try {
       const data = await fetchAddressLabels(payload);
-      if (mySeq !== requestSeqRef.current) return; // ignore stale responses
+      if (mySeq !== requestSeqRef.current) return;
       setLabels(Array.isArray(data) ? data : []);
       setTablePage(1);
     } catch (err) {
@@ -86,28 +218,23 @@ export default function PrintAddressLabels() {
     setName("");
   };
 
-  // Initial load
   useEffect(() => {
     loadLabels({ type, dateFrom, dateTo, name });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto search when typing name OR switching type (debounced)
   useEffect(() => {
     const t = setTimeout(() => {
       loadLabels({ type, dateFrom, dateTo, name });
     }, 350);
-
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, type]);
 
-  // If date filters change, auto search too (debounced)
   useEffect(() => {
     const t = setTimeout(() => {
       loadLabels({ type, dateFrom, dateTo, name });
     }, 350);
-
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFrom, dateTo]);
@@ -125,13 +252,56 @@ export default function PrintAddressLabels() {
     }));
   }, [labels]);
 
-  // Field mappers (backend now returns orderDate/orderNumber/orderType; orderNumber uses id for now)
   const getOrderDate = (l) => l.orderDate || l.order_date || "";
   const getOrderNumber = (l) =>
     l.orderNumber || l.order_number || l.sourceId || "";
-  // OrderType column removed from table, but labelType still used for keys
 
-  // Table (client-side pagination)
+  const getRowKey = (l) => `${l.labelType}-${l.sourceId}`;
+
+  const [selectedKeys, setSelectedKeys] = useState(new Set());
+
+  const toggleRow = (key) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedKeys(new Set());
+
+  useEffect(() => {
+    setSelectedKeys((prev) => {
+      if (!prev.size) return prev;
+      const valid = new Set(displayLabels.map(getRowKey));
+      const next = new Set();
+      prev.forEach((k) => {
+        if (valid.has(k)) next.add(k);
+      });
+      return next;
+    });
+  }, [displayLabels]);
+
+  const allKeys = useMemo(() => displayLabels.map(getRowKey), [displayLabels]);
+  const allSelected =
+    allKeys.length > 0 && selectedKeys.size === allKeys.length;
+  const someSelected =
+    selectedKeys.size > 0 && selectedKeys.size < allKeys.length;
+  const headerCheckboxRef = useRef(null);
+  useEffect(() => {
+    if (headerCheckboxRef.current)
+      headerCheckboxRef.current.indeterminate = someSelected;
+  }, [someSelected]);
+
+  const toggleSelectAll = () => {
+    setSelectedKeys(() => {
+      if (allSelected) return new Set();
+      return new Set(allKeys);
+    });
+  };
+
+  //  table
   const totalRows = displayLabels.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
   const tableRows = useMemo(() => {
@@ -139,30 +309,33 @@ export default function PrintAddressLabels() {
     return displayLabels.slice(start, start + pageSize);
   }, [displayLabels, tablePage]);
 
-  // Printable pages for export only
-  const labelsPerPage = paper === "A4" ? 9 : 6;
+  const selectedLabels = useMemo(() => {
+    if (!selectedKeys.size) return [];
+    return displayLabels.filter((l) => selectedKeys.has(getRowKey(l)));
+  }, [displayLabels, selectedKeys]);
+
+  const labelsPerPage = paper === "A4" ? 8 : paper === "A5" ? 6 : 1;
+
   const labelPages = useMemo(() => {
-    if (!paper) return [];
-    return chunkArray(displayLabels, labelsPerPage);
-  }, [displayLabels, labelsPerPage, paper]);
+    return chunkArray(selectedLabels, labelsPerPage);
+  }, [selectedLabels, labelsPerPage]);
 
   const exportPdf = async () => {
-    if (!paper) {
-      alert("Please select A4 or A5 before exporting PDF.");
-      return;
-    }
-
     try {
       if (!pagesRef.current) return;
 
+      if (!selectedKeys.size) {
+        alert("Please select at least one record to export.");
+        return;
+      }
+
       setLoading(true);
 
-      const isA4 = paper === "A4";
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: isA4 ? "a4" : "a5",
-      });
+      const preset = getPreset(paper);
+      const is120 = paper === "120x90";
+      const isA5 = paper === "A5";
+
+      const pdf = new jsPDF(preset.jsPdf);
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -178,105 +351,206 @@ export default function PrintAddressLabels() {
       sandbox.style.position = "fixed";
       sandbox.style.left = "-99999px";
       sandbox.style.top = "0";
-      sandbox.style.width = isA4 ? "210mm" : "148mm";
+      sandbox.style.width = preset.page.widthMm;
       sandbox.style.background = "#fff";
       sandbox.style.zIndex = "-1";
       document.body.appendChild(sandbox);
 
+      const f = preset.font;
+      const clamp = preset.clamp;
+
       const style = document.createElement("style");
       style.innerHTML = `
-        #pdf-export-sandbox, #pdf-export-sandbox * {
-          all: initial;
-          box-sizing: border-box;
-          font-family: Arial, Helvetica, sans-serif;
-          color: #000 !important;
-          background: #fff !important;
-        }
+  #pdf-export-sandbox {
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  #pdf-export-sandbox * {
+    box-sizing: border-box;
+    font-family: inherit;
+    color: #000 !important;
+    background: transparent;
+  }
 
-        #pdf-export-sandbox .pdf-page {
-          width: ${isA4 ? "210mm" : "148mm"};
-          min-height: ${isA4 ? "297mm" : "210mm"};
-          padding: 8mm;
-          background: #fff;
-        }
+  #pdf-export-sandbox .pdf-page {
+    display: block;
+    width: ${preset.page.widthMm};
+    min-height: ${preset.page.minHeightMm};
+    padding: ${preset.page.paddingMm};
+    background: #fff !important;
+  }
 
-        #pdf-export-sandbox .labels-grid {
-          display: grid;
-          grid-template-columns: ${isA4 ? "repeat(3, 1fr)" : "repeat(2, 1fr)"};
-          gap: 6mm;
-        }
+  #pdf-export-sandbox .labels-grid {
+    display: grid;
+    grid-template-columns: ${preset.grid.templateColumns};
+    gap: ${preset.grid.gapMm};
+    align-content: start;
+  }
 
-        #pdf-export-sandbox .label-card {
-          border: 1px solid #ddd;
-          border-radius: 6px;
-          padding: 4.5mm;
-          background: #fff;
-        }
+  #pdf-export-sandbox .label-card {
+    display: block;
+    border: ${preset.label.border};
+    border-radius: ${preset.label.radiusMm};
+    padding: ${
+      preset.label.paddingTopMm
+        ? `${preset.label.paddingTopMm} ${preset.label.paddingMm} ${preset.label.paddingMm} ${preset.label.paddingMm}`
+        : `${preset.label.paddingMm}`
+    };
+    background: #fff !important;
+  }
 
-        #pdf-export-sandbox .label-card-big {
-          min-height: 62mm;
-          display: flex;
-          flex-direction: column;
-        }
+  #pdf-export-sandbox .label-card-big {
+    height: ${preset.label.heightMm}mm;
+    display: flex;
+    flex-direction: column;
+    ${is120 ? "width: 120mm;" : ""}
+  }
 
-        #pdf-export-sandbox .to-name {
-          font-weight: 800;
-          font-size: 16pt;
-          line-height: 1.1;
-          margin-bottom: 2.5mm;
-        }
+  #pdf-export-sandbox .label-top {
+    line-height: ${f.labelTopLineHeight};
+  }
 
-        #pdf-export-sandbox .addr-line { line-height: 1.1; }
-        #pdf-export-sandbox .addr1 {
-          font-weight: 800;
-          font-size: 18pt;
-          margin-bottom: 1.5mm;
-        }
-        #pdf-export-sandbox .addr2 {
-          font-weight: 700;
-          font-size: 14pt;
-          margin-bottom: 1.5mm;
-        }
-        #pdf-export-sandbox .citypost {
-          font-weight: 900;
-          font-size: 22pt;
-          letter-spacing: 0.5px;
-          margin: 1mm 0 3mm;
-        }
+  #pdf-export-sandbox .addr-line {
+    line-height: ${f.addrLineLineHeight};
+  }
 
-        #pdf-export-sandbox .attn-row {
-          display: flex;
-          align-items: baseline;
-          justify-content: space-between;
-          gap: 6mm;
-          margin-bottom: 2.5mm;
-        }
-        #pdf-export-sandbox .attn-text { font-weight: 700; font-size: 12pt; }
-        #pdf-export-sandbox .phone-text { font-size: 10pt; opacity: 0.9; }
+  #pdf-export-sandbox .to-name {
+    font-weight: 800;
+    font-size: ${f.toNamePt}pt;
+    padding-top: ${f.toNamePaddingTopMm}mm;
+    ${
+      clamp.enable
+        ? `
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: ${clamp.toNameLines};
+    `
+        : `
+    display: block;
+    `
+    }
+  }
 
-        #pdf-export-sandbox .from-sep {
-          margin-top: auto;
-          border-top: 2px solid #111;
-          margin-bottom: 2.5mm;
-        }
+  #pdf-export-sandbox .addr1 {
+    font-weight: 700;
+    font-size: ${f.addrPt}pt;
+    margin-bottom: ${f.addrMarginBottomMm}mm;
+    padding-top: ${f.addr1PaddingTopMm}mm;
+    ${
+      clamp.enable
+        ? `
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: ${clamp.addrLines};
+    `
+        : `
+    display: block;
+    `
+    }
+  }
 
-        #pdf-export-sandbox .from-area {
-          display: flex;
-          flex-direction: column;
-          gap: 2mm;
-        }
-        #pdf-export-sandbox .from-label { font-weight: 700; font-size: 10pt; }
-        #pdf-export-sandbox .from-logo-big {
-          width: 55mm;
-          height: auto;
-          object-fit: contain;
-        }
-        #pdf-export-sandbox .from-footer {
-          font-size: 9.5pt;
-          line-height: 1.2;
-          font-weight: 600;
-        }
-      `;
+  #pdf-export-sandbox .addr2 {
+    font-weight: 700;
+    font-size: ${f.addrPt}pt;
+    margin-bottom: ${f.addrMarginBottomMm}mm;
+    padding-top: ${f.addr2PaddingTopMm}mm;
+    ${
+      clamp.enable
+        ? `
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: ${clamp.addrLines};
+    `
+        : `
+    display: block;
+    `
+    }
+  }
+
+  #pdf-export-sandbox .citypost {
+    font-weight: 700;
+    font-size: ${f.cityPostPt}pt;
+    letter-spacing: ${f.cityPostLetterSpacingPx}px;
+    margin: ${f.cityPostMarginTopMm}mm 0 ${f.cityPostMarginBottomMm}mm;
+    text-overflow: ellipsis;
+  }
+
+  
+  #pdf-export-sandbox .from-sep {
+    border-top: 2px solid #111111;
+    margin: 0.1mm 0 0.5mm;
+    width: ${isA5 ? "90%" : is120 ? "100%" : "245px"};
+  }
+
+  #pdf-export-sandbox .attn-block {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  #pdf-export-sandbox .attn-text {
+    font-weight: 700;
+    font-size: ${f.attnPt}pt;
+  }
+
+  #pdf-export-sandbox .phone-text {
+    font-size: ${f.phonePt}pt;
+    padding-left: 1mm;
+  }
+
+  #pdf-export-sandbox .from-area {
+    display: flex;
+    flex-direction: column;
+    gap: ${f.fromAreaGapMm}mm;
+  }
+
+  #pdf-export-sandbox .from-label {
+    font-weight: 700;
+    font-size: ${f.fromLabelPt}pt;
+    margin-bottom: ${f.fromLabelMarginBottomMm}mm;
+  }
+
+  #pdf-export-sandbox .from-logo-big {
+    width: ${f.logoWidthMm}mm;
+    max-height: ${f.logoMaxHeightMm}mm;
+    height: auto;
+    object-fit: contain;
+  }
+
+  #pdf-export-sandbox .from-footer {
+    font-size: ${f.fromFooterPt}pt;
+    line-height: 1.15;
+    font-weight: 600;
+    margin-top: ${f.fromFooterMarginTopMm}mm;
+  }
+
+  ${
+    preset.special120.enable
+      ? `
+  
+  #pdf-export-sandbox .to-name,
+  #pdf-export-sandbox .addr1,
+  #pdf-export-sandbox .addr2,
+  #pdf-export-sandbox .citypost,
+  #pdf-export-sandbox .attn-text,
+  #pdf-export-sandbox .phone-text {
+    line-height: ${preset.special120.forceLineHeight} !important;
+    padding-top: 0.6mm !important;
+  }
+
+  #pdf-export-sandbox .to-name,
+  #pdf-export-sandbox .addr1,
+  #pdf-export-sandbox .addr2,
+  #pdf-export-sandbox .attn-text {
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+    -webkit-box-orient: unset !important;
+  }
+`
+      : ""
+  }
+`;
       sandbox.appendChild(style);
 
       for (let i = 0; i < pageEls.length; i++) {
@@ -284,6 +558,10 @@ export default function PrintAddressLabels() {
 
         const clone = pageEls[i].cloneNode(true);
         sandbox.appendChild(clone);
+
+        clone
+          .querySelectorAll('style, link[rel="stylesheet"]')
+          .forEach((n) => n.remove());
 
         const imgs = Array.from(sandbox.querySelectorAll("img"));
         await Promise.all(
@@ -302,36 +580,30 @@ export default function PrintAddressLabels() {
           useCORS: true,
           backgroundColor: "#ffffff",
           onclone: (clonedDoc) => {
-            clonedDoc.documentElement.style.background = "#fff";
-            clonedDoc.body.style.background = "#fff";
-            clonedDoc.body.style.color = "#000";
-
-            const sandboxEl = clonedDoc.getElementById("pdf-export-sandbox");
-            const keep = new Set();
-            if (sandboxEl) {
-              sandboxEl.querySelectorAll("style").forEach((s) => keep.add(s));
-            }
-
+            clonedDoc.querySelectorAll("style").forEach((styleEl) => {
+              const txt = styleEl.textContent || "";
+              if (txt.includes("oklch(")) styleEl.remove();
+            });
             clonedDoc
-              .querySelectorAll('link[rel="stylesheet"], style')
-              .forEach((node) => {
-                if (!keep.has(node)) node.remove();
-              });
+              .querySelectorAll('link[rel="stylesheet"]')
+              .forEach((lnk) => lnk.remove());
 
-            const s = clonedDoc.createElement("style");
-            s.innerHTML = `
+            const safe = clonedDoc.createElement("style");
+            safe.innerHTML = `
               html, body { background:#fff !important; color:#000 !important; }
-              * { background:#fff !important; color:#000 !important; border-color:#ddd !important; }
+              * {
+                background-color: transparent !important;
+                color: #000 !important;
+                border-color: #ddd !important;
+                box-shadow: none !important;
+                filter: none !important;
+              }
             `;
-            clonedDoc.head.appendChild(s);
+            clonedDoc.head.appendChild(safe);
           },
         });
 
         const imgData = canvas.toDataURL("image/png");
-        if (!imgData || !imgData.startsWith("data:image/png")) {
-          throw new Error("Invalid image data from canvas");
-        }
-
         const imgProps = pdf.getImageProperties(imgData);
         const imgRatio = imgProps.width / imgProps.height;
 
@@ -397,10 +669,7 @@ export default function PrintAddressLabels() {
 
             <button
               className="btn btn-outline"
-              onClick={() => {
-                clearFilters();
-                // Auto-search will run via the effects
-              }}
+              onClick={clearFilters}
               disabled={loading}
             >
               Clear Filters
@@ -408,6 +677,7 @@ export default function PrintAddressLabels() {
 
             <div className="paper-choice" aria-label="Paper size choice">
               <span className="paper-choice-label">Paper:</span>
+
               <label className={`paper-pill ${paper === "A4" ? "active" : ""}`}>
                 <input
                   type="radio"
@@ -418,6 +688,7 @@ export default function PrintAddressLabels() {
                 />
                 A4
               </label>
+
               <label className={`paper-pill ${paper === "A5" ? "active" : ""}`}>
                 <input
                   type="radio"
@@ -428,21 +699,35 @@ export default function PrintAddressLabels() {
                 />
                 A5
               </label>
+
+              <label
+                className={`paper-pill ${paper === "120x90" ? "active" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="paper"
+                  value="120x90"
+                  checked={paper === "120x90"}
+                  onChange={() => setPaper("120x90")}
+                />
+                Small
+              </label>
             </div>
 
             <button
               className="btn btn-success"
               onClick={exportPdf}
-              disabled={loading || !paper}
-              title={!paper ? "Select A4 or A5 first" : "Export labels to PDF"}
+              disabled={loading}
+              title="Export labels to PDF"
             >
               Export PDF
             </button>
           </div>
 
           <div className="labels-toolbar-right">
-            <div className="toolbar-meta">Total: {totalRows} records</div>
-
+            <div className="toolbar-meta">
+              Total: {totalRows} records | Selected: {selectedKeys.size}
+            </div>
             <div className="tiny-filters">
               <div className="tiny-filter">
                 <span>Type</span>
@@ -451,8 +736,8 @@ export default function PrintAddressLabels() {
                   onChange={(e) => setType(e.target.value)}
                   className="tiny-select"
                 >
-                  <option value="individual">Individual</option>
-                  <option value="institution">Institution</option>
+                  <option value="individual">Individual Orders</option>
+                  <option value="institution">Bulk Orders</option>
                 </select>
               </div>
             </div>
@@ -463,6 +748,17 @@ export default function PrintAddressLabels() {
           <table className="labels-table">
             <thead>
               <tr>
+                <th style={{ width: 44 }}>
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all"
+                    title="Select all"
+                  />
+                </th>
+
                 <th style={{ width: 60 }}>#</th>
                 <th style={{ width: 130 }}>Order Date</th>
                 <th style={{ width: 150 }}>Order Number</th>
@@ -478,36 +774,48 @@ export default function PrintAddressLabels() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="table-empty">
+                  <td colSpan={10} className="table-empty">
                     Loading…
                   </td>
                 </tr>
               ) : tableRows.length ? (
-                tableRows.map((l, idx) => (
-                  <tr key={`${l.labelType}-${l.sourceId}`}>
-                    <td>{(tablePage - 1) * pageSize + idx + 1}</td>
-                    <td>{formatDateForTable(getOrderDate(l)) || "-"}</td>
-                    <td className="td-mono">
-                      {String(getOrderNumber(l) || "-")}
-                    </td>
-                    <td className="td-strong">{l.toName || "-"}</td>
-                    <td>
-                      <div className="addr-cell">
-                        <div>{l.address1 || "-"}</div>
-                        {l.address2 ? (
-                          <div className="muted">{l.address2}</div>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td>{l.city || "-"}</td>
-                    <td>{l.postcode || "-"}</td>
-                    <td>{l.attn || "-"}</td>
-                    <td>{l.phone || "-"}</td>
-                  </tr>
-                ))
+                tableRows.map((l, idx) => {
+                  const k = getRowKey(l);
+                  return (
+                    <tr key={`${l.labelType}-${l.sourceId}`}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedKeys.has(k)}
+                          onChange={() => toggleRow(k)}
+                          aria-label="Select row"
+                        />
+                      </td>
+
+                      <td>{(tablePage - 1) * pageSize + idx + 1}</td>
+                      <td>{formatDateForTable(getOrderDate(l)) || "-"}</td>
+                      <td className="td-mono">
+                        {String(getOrderNumber(l) || "-")}
+                      </td>
+                      <td className="td-strong">{l.toName || "-"}</td>
+                      <td>
+                        <div className="addr-cell">
+                          <div>{l.address1 || "-"}</div>
+                          {l.address2 ? (
+                            <div className="muted">{l.address2}</div>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td>{l.city || "-"}</td>
+                      <td>{l.postcode || "-"}</td>
+                      <td>{l.attn || "-"}</td>
+                      <td>{l.phone || "-"}</td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={9} className="table-empty">
+                  <td colSpan={10} className="table-empty">
                     No results.
                   </td>
                 </tr>
@@ -536,6 +844,14 @@ export default function PrintAddressLabels() {
               Next
             </button>
           </div>
+
+          {selectedKeys.size > 0 ? (
+            <div style={{ marginTop: 10 }}>
+              <button className="btn btn-outline" onClick={clearSelection}>
+                Clear Selection
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="print-dom-hidden" aria-hidden="true">
@@ -544,13 +860,18 @@ export default function PrintAddressLabels() {
               <div className="pdf-page" key={`page-${pageIndex}`}>
                 <div
                   className={`labels-grid ${
-                    paper === "A5" ? "grid-a5" : "grid-a4"
+                    paper === "A4"
+                      ? "grid-a4"
+                      : paper === "A5"
+                      ? "grid-a5"
+                      : "grid-120"
                   }`}
                 >
                   {pageLabels.map((l) => (
                     <AddressLabelCard
                       key={`${l.labelType}-${l.sourceId}`}
                       label={l}
+                      paper={paper}
                     />
                   ))}
                 </div>
@@ -576,19 +897,19 @@ function AddressLabelCard({ label }) {
 
   return (
     <div className="label-card label-card-big">
-      <div className="to-name">{toName}</div>
+      <div className="label-top">
+        <div className="to-name">{toName}</div>
 
-      <div className="addr-line addr1">{address1}</div>
-      {address2 ? <div className="addr-line addr2">{address2}</div> : null}
+        <div className="addr-line addr1">{address1}</div>
+        {address2 ? <div className="addr-line addr2">{address2}</div> : null}
 
-      <div className="addr-line citypost">{cityPost}</div>
+        <div className="addr-line citypost">{cityPost}</div>
 
-      {(attn || phone) && (
-        <div className="attn-row">
-          <div className="attn-text">{attn ? `Attn: ${attn}` : ""}</div>
-          <div className="phone-text">{phone || ""}</div>
+        <div className="attn-block">
+          <div className="attn-text">Attn: {attn}</div>
+          <div className="phone-text"> {phone}</div>
         </div>
-      )}
+      </div>
 
       <div className="from-sep" />
 

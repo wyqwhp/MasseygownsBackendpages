@@ -1,7 +1,5 @@
-import React from "react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { NavLink } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import ReactDOM from "react-dom";
 import "./AdminNavbar.css";
 import "./Spinner.css";
@@ -15,20 +13,6 @@ import PrintReportOrder from "@/components/PrintReportOrder.jsx";
 // const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 const API_URL = "http://localhost:5144"
 
-function MenuItem({ printLabels, loading, children }) {
-  return (
-    <a
-      onClick={!loading ? printLabels : undefined}
-      style={{
-        cursor: loading ? "not-allowed" : "pointer",
-        opacity: loading ? 0.6 : 1,
-      }}
-    >
-      {children ? children : loading ? "PRINTING..." : "PRINT LABELS"}
-    </a>
-  );
-}
-
 function FullscreenSpinner() {
   return ReactDOM.createPortal(
     <div className="spinner-overlay">
@@ -38,23 +22,101 @@ function FullscreenSpinner() {
   );
 }
 
+// ----------------------------
+// CONFIG: Top menu + Sub-tabs
+// ----------------------------
+const NAV = [
+  {
+    key: "orders",
+    label: "ORDERS",
+    match: (path) =>
+      ["/BuyRegalia", "/HireRegalia"].some((p) => path.startsWith(p)),
+    to: "/BuyRegalia",
+    sub: [
+      { label: "buy orders", to: "/BuyRegalia" },
+      { label: "hire orders", to: "/HireRegalia" },
+    ],
+  },
+  {
+    key: "enquiries",
+    label: "ENQUIRIES",
+    match: (path) => path.startsWith("/adminqueries"),
+    to: "/adminqueries",
+    sub: [],
+  },
+  {
+    key: "items",
+    label: "ITEMS",
+    match: (path) =>
+      path.startsWith("/adminedititems") || path.startsWith("/editDelivery"),
+    to: "/adminedititems",
+    sub: [
+      { label: "items", to: "/adminedititems" },
+      { label: "delivery", to: "/editDelivery" },
+    ],
+  },
+  {
+    key: "content",
+    label: "CONTENT",
+    match: (path) =>
+      [
+        "/admineditceremonies",
+        "/admineditdegrees",
+        "/HoodEditor",
+        "/HomepageEdit",
+        "/EmailEdit",
+        "/adminusers",
+      ].some((p) => path.startsWith(p)),
+    to: "/admineditceremonies",
+    sub: [
+      { label: "ceremonies", to: "/admineditceremonies" },
+      { label: "degrees", to: "/admineditdegrees" },
+      { label: "hood qualifications", to: "/HoodEditor" },
+      { label: "text & image", to: "/HomepageEdit" },
+      { label: "cms templates", to: "/EmailEdit" },
+      { label: "users", to: "/adminusers" },
+    ],
+  },
+  {
+    key: "database",
+    label: "DATABASE",
+    match: (path) =>
+      ["/IndOrder", "/BulkOrder", "/ImportBulk", "/PrintAddressLabels", "/InternalManagementForm"].some(
+        (p) => path.startsWith(p)
+      ),
+    to: "/IndOrder",
+    sub: [
+      { label: "individual orders", to: "/IndOrder" },
+      { label: "bulk orders", to: "/BulkOrder" },
+      { label: "import bulk hire", to: "/ImportBulk" },
+      { label: "print address labels", to: "/PrintAddressLabels" },
+      { label: "internal management forms", to: "/InternalManagementForm" },
+    ],
+  },
+];
+
 function AdminNavbar() {
   const { logout } = useAuth();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
 
-  async function printLabels() {
-    setLoading(true);
-    try {
-      let response = await fetch(`${API_URL}/orders`);
-      let orders = await response.json();
-      generateLabelsPDF(orders);
-      console.log("Backend result:", orders);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const activeSection = useMemo(() => {
+    const path = location.pathname;
+    return NAV.find((s) => s.match(path)) || NAV[0];
+  }, [location.pathname]);
+
+  // async function printLabels() {
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch(`${API_URL}/orders`);
+  //     const orders = await response.json();
+  //     generateLabelsPDF(orders);
+  //   } catch (err) {
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
 
   // async function printManifest() {
   //   setLoading(true);
@@ -71,77 +133,93 @@ function AdminNavbar() {
   // }
 
   return (
-    <nav className="navbar">
-      <div className="navbar-left">
-        <Link to="/">
-          <img src="/logo.jpg" alt="MasseyGowns" className="logo" />
-        </Link>
-        <ul className="navbar-menu">
-          <li className="has-dropdown">
-            <a>EDIT CONTENT</a>
-            <ul className="dropdown-panel">
-              <li className="dropdown-item">
-                <NavLink to="/admineditceremonies">Ceremonies</NavLink>
-              </li>
-              <li className="dropdown-item">
-                <NavLink to="/admineditdegrees">Degrees</NavLink>
-              </li>
-              <li className="dropdown-item">
-                <NavLink to="/adminedititems">Items</NavLink>
-              </li>
-              <li className="dropdown-item">
-                <NavLink to="/HoodEditor">Hood Qualifications</NavLink>
-              </li>
-              <li className="dropdown-item">
-                <NavLink to="/HomepageEdit">Text & Image</NavLink>
-              </li>
-              <li className="dropdown-item">
-                <NavLink to="/EmailEdit">CMS Templates</NavLink>
-              </li>
-              <li className="dropdown-item">
-                <NavLink to="/adminusers">Users</NavLink>
-              </li>
-              <li className="dropdown-item">
-                <NavLink to="/editDelivery">Delivery</NavLink>
-              </li>
-            </ul>
-          </li>
-          <li>
-            <NavLink to="/adminqueries">QUERIES</NavLink>
-          </li>
-          <li>
-            <NavLink to="/BuyRegalia">SHOW BUY ORDERS</NavLink>
-          </li>
-          <li>
-            <NavLink to="/HireRegalia">SHOW HIRE ORDERS</NavLink>
-          </li>
-          <li className="has-dropdown">
-            <a>DATABASE</a>
-            <ul className="dropdown-panel">
-              <NavLink to="/IndOrder">Individual Orders</NavLink>
-              <NavLink to="/BulkOrder">Bulk Orders</NavLink>
-              <NavLink to="/ImportBulk">Import Bulk Hire</NavLink>
-              {loading && <FullscreenSpinner />}
-              {/*<a onClick={printLabels} style={{ cursor: "pointer" }}>*/}
-              {/*  PRINT LABELS*/}
-              {/*</a>*/}
-              {/*{loading && <FullscreenSpinner />}*/}
-              {/*<a onClick={printManifest} style={{ cursor: "pointer" }}>*/}
-              {/*  PRINT MANIFEST*/}
-              {/*</a>*/}
-              <NavLink to="/PrintAddressLabels">PRINT ADDRESS LABELS</NavLink>
-            </ul>
-          </li>
-          <li>
-            <i
-              onClick={logout}
-              className="fa fa-sign-out logout-icon"
-              style={{ cursor: "pointer" }}
-            ></i>
-          </li>
-        </ul>
+    <header className="admin-nav">
+      {/* TOP DARK BAR */}
+      <div className="admin-topbar">
+        <div className="admin-topbar-left">
+          <Link to="/" className="admin-brand">
+            <img src="/logo.jpg" alt="MasseyGowns" className="admin-logo" />
+          </Link>
+
+          <nav className="admin-primary">
+            {NAV.map((item) => (
+              <NavLink
+                key={item.key}
+                to={item.to}
+                className={({ isActive }) =>
+                  "admin-primary-link" +
+                  (item.match(location.pathname) ? " is-active" : "")
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+
+        <div className="admin-topbar-right">
+          <button
+            className="admin-icon-btn"
+            onClick={logout}
+            title="Logout"
+            type="button"
+          >
+            <i className="fa fa-sign-out" />
+          </button>
+        </div>
       </div>
-    </nav>
+
+      {/* SECOND LIGHT BAR (SUB TABS) */}
+      <div className="admin-subbar">
+        <div className="admin-subbar-inner">
+          <nav className="admin-subtabs">
+            {(activeSection.sub || []).map((t) => (
+              <NavLink
+                key={t.to}
+                to={t.to}
+                className={({ isActive }) =>
+                  "admin-subtab" + (isActive ? " is-active" : "")
+                }
+              >
+                {t.label}
+              </NavLink>
+            ))}
+
+            {/* Example: action buttons shown when REPORTS is active (like “print orders”) */}
+            {activeSection.key === "database" && (
+              <>
+                {/*<button*/}
+                {/*  className="admin-subtab admin-subtab-btn"*/}
+                {/*  onClick={printLabels}*/}
+                {/*  disabled={loading}*/}
+                {/*  type="button"*/}
+                {/*>*/}
+                {/*  print labels*/}
+                {/*</button>*/}
+                {/*<button*/}
+                {/*  className="admin-subtab admin-subtab-btn"*/}
+                {/*  onClick={printManifest}*/}
+                {/*  disabled={loading}*/}
+                {/*  type="button"*/}
+                {/*>*/}
+                {/*  print manifest*/}
+                {/*</button>*/}
+                <button
+                  className="admin-subtab admin-subtab-btn"
+                  onClick={PrintReportOrder}
+                  disabled={loading}
+                  type="button"
+                >
+                  print report
+                </button>
+              </>
+            )}
+          </nav>
+        </div>
+      </div>
+
+      {loading && <FullscreenSpinner />}
+    </header>
   );
 }
 
