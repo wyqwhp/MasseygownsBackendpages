@@ -10,8 +10,8 @@ import { useAuth } from "@/components/AuthContext.jsx";
 // } from "@/components/PrintLabels.js";
 import PrintReportOrder from "@/components/PrintReportOrder.jsx";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE;
-const API_URL = "http://localhost:5144"
+const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+// const API_URL = "http://localhost:5144"
 
 function FullscreenSpinner() {
   return ReactDOM.createPortal(
