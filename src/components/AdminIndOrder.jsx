@@ -17,8 +17,13 @@ import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import "./AdminIndOrder.css";
 import { SelectViewport } from "@radix-ui/react-select";
 
+<<<<<<< HEAD
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL =  "http://localhost:5144"
+=======
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144"
+>>>>>>> 1d2b522105d7cc0c790a62197bdeecba4128cb46
 
 export default function AdminIndOrder() {
   const [formData, setFormData] = useState({
@@ -33,6 +38,7 @@ export default function AdminIndOrder() {
     phone: "",
     clientId: "",
     ceremonyId: "",
+    ceremony: "",
     gownSize: "",
     hatSize: "",
     gownType: "",
@@ -50,6 +56,7 @@ export default function AdminIndOrder() {
     adminChgs: "",
     pOrder: "",
     payBy: "",
+    referenceNo: "",
   });
   const [orders, setOrders] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -136,6 +143,8 @@ export default function AdminIndOrder() {
       packNote: order.message,
       clientId: order.studentId,
       ceremonyId: order.ceremonyId,
+      ceremony: order.ceremony,
+      referenceNo: order.referenceNo,
       // gownType: order.items?.[0]?.itemName ?? ""
     });
     retrieveItems(order);
@@ -172,7 +181,7 @@ export default function AdminIndOrder() {
     }
 
     axios
-      .get(`${API_URL}/orders`)
+      .get(`${API_URL}/orders?numbers=true`)
       .then((res) => {
         setOrders(res.data);
         localStorage.setItem("orders", JSON.stringify(res.data));
@@ -228,8 +237,13 @@ export default function AdminIndOrder() {
           <CardContent>
             <form
               onSubmit={handleSubmit}
-              className="grid grid-cols-4 md:grid-cols-4 gap-3 w-275 text-xs"
+
             >
+              <div className="pb-2 font-bold text-3xl inline-block px-3 py-1
+                text-white bg-green-700 border border-gray-300 rounded-md shadow-sm mb-3">
+                {formData.ceremony}
+              </div>
+              <div className="grid grid-cols-4 md:grid-cols-4 gap-2 w-275 text-xs">
               <div>
                 <Label htmlFor="surname">Surname</Label>
                 <Input
@@ -257,7 +271,7 @@ export default function AdminIndOrder() {
                 <Input
                   id="orderNumber"
                   name="orderNumber"
-                  value={formData.orderNumber}
+                  value={formData.referenceNo}
                   onChange={handleChange}
                   readOnly
                 />
@@ -309,16 +323,16 @@ export default function AdminIndOrder() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="ceremonyId">Ceremony Id</Label>
-                <Input
-                  id="ceremonyId"
-                  name="ceremonyId"
-                  value={formData.ceremonyId}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              {/*<div>*/}
+              {/*  <Label htmlFor="ceremonyId">Ceremony Id</Label>*/}
+              {/*  <Input*/}
+              {/*    id="ceremonyId"*/}
+              {/*    name="ceremonyId"*/}
+              {/*    value={formData.ceremonyId}*/}
+              {/*    onChange={handleChange}*/}
+              {/*    required*/}
+              {/*  />*/}
+              {/*</div>*/}
 
               <hr className="col-span-full border-t border-gray-300 my-4" />
 
@@ -639,6 +653,7 @@ export default function AdminIndOrder() {
               <Button className="mt-4 row-start-11 col-start-4 bg-green-700 hover:bg-green-800">
                 New
               </Button>
+              </div>
             </form>
           </CardContent>
         </Card>

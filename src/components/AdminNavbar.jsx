@@ -4,13 +4,14 @@ import ReactDOM from "react-dom";
 import "./AdminNavbar.css";
 import "./Spinner.css";
 import { useAuth } from "@/components/AuthContext.jsx";
-import {
-  generateLabelsPDF,
-  generateManifestPDF,
-} from "@/components/PrintLabels.jsx";
+// import {
+//   generateLabelsPDF,
+//   generateManifestPDF,
+// } from "@/components/PrintLabels.js";
 import PrintReportOrder from "@/components/PrintReportOrder.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+// const API_URL = "http://localhost:5144"
 
 function FullscreenSpinner() {
   return ReactDOM.createPortal(
@@ -104,31 +105,32 @@ function AdminNavbar() {
     return NAV.find((s) => s.match(path)) || NAV[0];
   }, [location.pathname]);
 
-  async function printLabels() {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/orders`);
-      const orders = await response.json();
-      generateLabelsPDF(orders);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // async function printLabels() {
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch(`${API_URL}/orders`);
+  //     const orders = await response.json();
+  //     generateLabelsPDF(orders);
+  //   } catch (err) {
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
 
-  async function printManifest() {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/orders`);
-      const orders = await response.json();
-      generateManifestPDF(orders);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // async function printManifest() {
+  //   setLoading(true);
+  //   try {
+  //     let response = await fetch(`${API_URL}/admin/items/ceremony/4`);
+  //     let orders = await response.json();
+  //     generateManifestPDF(orders);
+  //     // console.log("Backend result:", orders);
+  //   } catch (err) {
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
 
   return (
     <header className="admin-nav">
@@ -186,22 +188,22 @@ function AdminNavbar() {
             {/* Example: action buttons shown when REPORTS is active (like “print orders”) */}
             {activeSection.key === "database" && (
               <>
-                <button
-                  className="admin-subtab admin-subtab-btn"
-                  onClick={printLabels}
-                  disabled={loading}
-                  type="button"
-                >
-                  print labels
-                </button>
-                <button
-                  className="admin-subtab admin-subtab-btn"
-                  onClick={printManifest}
-                  disabled={loading}
-                  type="button"
-                >
-                  print manifest
-                </button>
+                {/*<button*/}
+                {/*  className="admin-subtab admin-subtab-btn"*/}
+                {/*  onClick={printLabels}*/}
+                {/*  disabled={loading}*/}
+                {/*  type="button"*/}
+                {/*>*/}
+                {/*  print labels*/}
+                {/*</button>*/}
+                {/*<button*/}
+                {/*  className="admin-subtab admin-subtab-btn"*/}
+                {/*  onClick={printManifest}*/}
+                {/*  disabled={loading}*/}
+                {/*  type="button"*/}
+                {/*>*/}
+                {/*  print manifest*/}
+                {/*</button>*/}
                 <button
                   className="admin-subtab admin-subtab-btn"
                   onClick={PrintReportOrder}

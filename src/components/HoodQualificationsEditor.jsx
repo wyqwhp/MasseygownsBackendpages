@@ -22,6 +22,7 @@ export default function HoodQualificationsEditor() {
     const [hoods, setHoods] = useState({
         bachelor: [],
         master: [],
+        phd: [],
         'bachelor set': [],
         'master set': []
     });
@@ -85,6 +86,20 @@ export default function HoodQualificationsEditor() {
                 setHoods(prev => ({
                     ...prev,
                     'bachelor set': res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/admin/hoods/9`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    'phd': res.data
                 }));
                 setLoading(false);
             })
@@ -156,6 +171,16 @@ export default function HoodQualificationsEditor() {
                         Master Hoods
                     </button>
                     <button
+                        onClick={() => setActiveTab('phd')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'phd'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Phd Hoods
+                    </button>
+                    <button
                         onClick={() => setActiveTab('bachelor set')}
                         className={`px-6 py-3 font-medium transition-colors ${
                             activeTab === 'bachelor set'
@@ -195,6 +220,14 @@ export default function HoodQualificationsEditor() {
                         Add
                     </button>
                 </div>
+                <div className="flex gap-2 mb-2">
+                    <span className="w-96 px-1 py-0 font-bold">
+                        Full Name
+                    </span>
+                    <span className="w-64 px-1 py-0 font-bold">
+                        Short Name
+                    </span>
+                </div>
 
                 {/* List of items */}
                 <div className="space-y-2">
@@ -213,7 +246,13 @@ export default function HoodQualificationsEditor() {
                                     type="text"
                                     value={item.name}
                                     onChange={(e) => updateItem(item.id, e.target.value)}
-                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-96 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <input
+                                    type="text"
+                                    value={item.shortName}
+                                    onChange={(e) => updateItem(item.id, e.target.value)}
+                                    className="w-64 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                                 <button
                                     onClick={() => editItem(item.id)}
