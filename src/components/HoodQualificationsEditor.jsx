@@ -19,6 +19,7 @@ export default function HoodQualificationsEditor() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [newItem, setNewItem] = useState('');
+    const [newShortName, setNewShortName] = useState('');
     const [hoods, setHoods] = useState({
         bachelor: [],
         master: [],
@@ -111,7 +112,7 @@ export default function HoodQualificationsEditor() {
 
     const addItem = async () => {
         if (newItem.trim()) {
-            const addedItem = {name: newItem.trim(), itemId: TAB_IDS[activeTab]};
+            const addedItem = {name: newItem.trim(), shortName: newShortName.trim(), itemId: TAB_IDS[activeTab]};
             const res = await axios
                 .post(`${API_URL}/admin/hoods`, addedItem);
             setCurrentList(list => [...list, res.data].sort((a, b) => a.name.localeCompare(b.name)));
@@ -208,9 +209,17 @@ export default function HoodQualificationsEditor() {
                         type="text"
                         value={newItem}
                         onChange={(e) => setNewItem(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addItem()}
+                        // onKeyPress={(e) => e.key === 'Enter' && addItem()}
                         placeholder={`Add new ${activeTab} qualification...`}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                        className="w-100 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                    />
+                    <input
+                        type="text"
+                        value={newShortName}
+                        onChange={(e) => setNewShortName(e.target.value)}
+                        // onKeyPress={(e) => e.key === 'Enter' && addItem()}
+                        placeholder={`Add new ${activeTab} short name`}
+                        className="w-60 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <button
                         onClick={addItem}

@@ -20,6 +20,7 @@ import PrintAddressLabels from "@/pages/PrintAddressLabels.jsx";
 import InternalManagementForm from "@/components/AdminInternalManagementForm.jsx";
 import HoodQualificationsEditor from "./components/HoodQualificationsEditor.jsx";
 import AdminEditDelivery from "./components/AdminEditDelivery.jsx";
+import AdminEditSku from "@/components/AdminEditSku.jsx";
 
 function App() {
   return (
@@ -175,6 +176,14 @@ function App() {
         element={
           <Authentication>
             <AdminEditDelivery />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/SkuEditor"
+        element={
+          <Authentication>
+              <AdminEditSku />
           </Authentication>
         }
       />

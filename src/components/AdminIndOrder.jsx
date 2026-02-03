@@ -10,15 +10,15 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Printer } from "lucide-react";
 import AdminNavbar from "./AdminNavbar.jsx";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import "./AdminIndOrder.css";
 import { SelectViewport } from "@radix-ui/react-select";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-const API_URL = "http://localhost:5144"
+const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144"
 
 export default function AdminIndOrder() {
   const [formData, setFormData] = useState({
@@ -52,6 +52,7 @@ export default function AdminIndOrder() {
     pOrder: "",
     payBy: "",
     referenceNo: "",
+    qualification: "",
   });
   const [orders, setOrders] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -75,8 +76,9 @@ export default function AdminIndOrder() {
         gownType: "",
         gownSize: "",
         hatType: "",
-        hatSize: "",
+        hatSize: undefined,
         hoodType: "",
+        qualification: "",
       }));
       console.log("HatId=", hatId);
       console.log("GownId=", gownId);
@@ -86,8 +88,9 @@ export default function AdminIndOrder() {
     let gownType = "";
     let gownSize = "";
     let hatType = "";
-    let hatSize = "";
+    let hatSize = undefined;
     let hoodType = "";
+    let qualification = "";
     setHatId("");
     setGownId("");
 
@@ -304,6 +307,7 @@ export default function AdminIndOrder() {
                   value={formData.phone}
                   onChange={handleChange}
                   required
+                  className="w-36"
                 />
               </div>
 
@@ -315,6 +319,7 @@ export default function AdminIndOrder() {
                   value={formData.clientId}
                   onChange={handleChange}
                   required
+                  className="w-36"
                 />
               </div>
 
@@ -329,7 +334,7 @@ export default function AdminIndOrder() {
               {/*  />*/}
               {/*</div>*/}
 
-              <hr className="col-span-full border-t border-gray-300 my-4" />
+              {/*<hr className="col-span-full border-t border-gray-300 my-4" />*/}
 
               <div className="row-start-4">
                 <Label htmlFor="gowntype">Gown Type</Label>
@@ -352,7 +357,7 @@ export default function AdminIndOrder() {
                     }
                   }}
                 >
-                  <SelectTrigger className="!bg-white">
+                  <SelectTrigger className="!bg-white w-36">
                     <SelectValue placeholder="Select a gown type" />
                   </SelectTrigger>
 
@@ -369,14 +374,14 @@ export default function AdminIndOrder() {
               </div>
 
               <div className="row-start-4">
-                <Label htmlFor="gownsize">Gown Size</Label>
+                <Label htmlFor="gownsize">Gown</Label>
                 <Select
                   value={formData.gownSize}
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, gownSize: value }))
                   }
                 >
-                  <SelectTrigger className="!bg-white">
+                  <SelectTrigger className="!bg-white w-36">
                     <SelectValue placeholder="Select a gown size" />
                   </SelectTrigger>
 
@@ -393,58 +398,50 @@ export default function AdminIndOrder() {
               </div>
 
               <div className="row-start-4">
-                <Label htmlFor="hattype">Hat Type</Label>
+                <Label htmlFor="hattype">Hat</Label>
                 <Select
-                  // value={formData.hatType}
-                  value={String(hatId)}
-                  onValueChange={(id) => {
-                    const hat = items.find((g) => g.id === Number(id));
-                    console.log("Hat=", hat);
-                    console.log("Id=", id);
-                    if (hat) {
-                      setHatId(hat.id);
-                      setFormData((prev) => ({
-                        ...prev,
-                        hatType: hat.name,
-                        hatSize: "",
-                      }));
+                    value={formData.hatSize}
+                    onValueChange={(value) => {
+                        setFormData((prev) => ({...prev, hatSize: value}))
+                        console.log("Selected hatSize:", value, typeof value);
+                      }
                     }
-                  }}
+
                 >
-                  <SelectTrigger className="!bg-white">
-                    <SelectValue placeholder="Select a hat type" />
+                  <SelectTrigger className="!bg-white w-36">
+                    <SelectValue placeholder="Select a hat size" />
                   </SelectTrigger>
 
-                  <SelectContent>
-                    {items
-                      .filter((g) => g.category === "Headwear")
-                      .map((g) => (
-                        <SelectItem key={g.id} value={String(g.id)}>
-                          {g.name}
-                        </SelectItem>
-                      ))}
+                  <SelectContent className="max-h-[40vh] overflow-y-auto">
+                    {sizes
+                        .filter((g) => g.itemId === 3 || g.itemId === 8)
+                        .map((g) => (
+                            <SelectItem key={g.id} value={g.labelsize}>
+                              {g.labelsize}
+                            </SelectItem>
+                        ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="row-start-4">
-                <Label htmlFor="hatsize">Hat Size</Label>
+                <Label htmlFor="hoodType">Hood</Label>
                 <Select
-                  value={formData.hatSize}
+                  value={formData.hoodType}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, hatSize: value }))
+                    setFormData((prev) => ({ ...prev, hoodType: value }))
                   }
                 >
-                  <SelectTrigger className="!bg-white">
-                    <SelectValue placeholder="Select a hat size" />
+                  <SelectTrigger className="!bg-white w-36">
+                    <SelectValue placeholder="Select a hood type" />
                   </SelectTrigger>
 
-                  <SelectContent>
-                    {sizes
-                      .filter((g) => g.itemId === hatId)
-                      .map((g) => (
-                        <SelectItem key={g.id} value={g.size}>
-                          {g.size}
+                  <SelectContent className="max-h-[40vh] overflow-y-auto">
+                    {hoods
+                      .map((g) =>
+                          (
+                        <SelectItem key={g.id} value={String(g.id)}>
+                          {g.shortName}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -452,21 +449,21 @@ export default function AdminIndOrder() {
               </div>
 
               <div className="row-start-5">
-                <Label htmlFor="hoodtype">Hood Type</Label>
+                <Label htmlFor="qualification">Qualification</Label>
                 <Select
-                  value={formData.hoodType}
+                  value={formData.qualification}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, hoodType: value }))
+                    setFormData((prev) => ({ ...prev, qualification: value }))
                   }
                 >
                   <SelectTrigger className="!bg-white">
-                    <SelectValue placeholder="Select a hood type" />
+                    <SelectValue placeholder="Select a qualification" />
                   </SelectTrigger>
 
                   <SelectContent>
                     <SelectViewport className="max-h-64">
                       {hoods
-                        .filter((g) => g.itemId === Number(4))
+                        // .filter((g) => g.itemId === Number(4))
                         .map((g) => (
                           <SelectItem key={g.id} value={g.name}>
                             {g.name}
@@ -480,6 +477,7 @@ export default function AdminIndOrder() {
               <div className="row-start-5">
                 <Label htmlFor="height">Height</Label>
                 <Input
+                  className="w-24"
                   id="height"
                   name="height"
                   value={formData.height}
@@ -490,6 +488,7 @@ export default function AdminIndOrder() {
               <div className="row-start-5">
                 <Label htmlFor="headSize">Head Size</Label>
                 <Input
+                  className="w-24"
                   id="headSize"
                   name="headSize"
                   value={formData.headSize}
@@ -497,16 +496,30 @@ export default function AdminIndOrder() {
                 />
               </div>
 
-              <hr className="col-span-full border-t border-gray-300 my-4" />
+              {/*<hr className="col-span-full border-t border-gray-300 my-4" />*/}
 
               <div className="row-start-7">
                 <Label htmlFor="orderType">Order Type</Label>
-                <Input
+                <Select
                   id="orderType"
                   name="orderType"
                   value={formData.orderType}
                   onChange={handleChange}
-                />
+                >
+
+                  <SelectTrigger className="!bg-white">
+                    <SelectValue placeholder="Select order type" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="refund">Refund</SelectItem>
+                    <SelectItem value="hire">Hire</SelectItem>
+                    <SelectItem value="sale">Sale</SelectItem>
+                    <SelectItem value="sundry">Sundry</SelectItem>
+                    <SelectItem value="sundry_costs">Sundry Costs</SelectItem>
+                    <SelectItem value="cancel">Cancel</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="row-start-7">
@@ -583,12 +596,12 @@ export default function AdminIndOrder() {
               </div>
 
               <div className="row-start-9">
-                <Label htmlFor="refund">Refund</Label>
+                <Label htmlFor="payBy">Pay By</Label>
                 <Input
-                  id="refund"
-                  name="refund"
-                  value={formData.refund}
-                  onChange={handleChange}
+                    id="payBy"
+                    name="payBy"
+                    value={formData.payBy}
+                    onChange={handleChange}
                 />
               </div>
 
@@ -613,15 +626,44 @@ export default function AdminIndOrder() {
               </div>
 
               <div className="row-start-9">
-                <Label htmlFor="payBy">Pay By</Label>
+                <Label htmlFor="refund">Refund</Label>
                 <Input
-                  id="payBy"
-                  name="payBy"
-                  value={formData.payBy}
-                  onChange={handleChange}
+                    id="refund"
+                    name="refund"
+                    value={formData.refund}
+                    onChange={handleChange}
                 />
               </div>
+
               <Button
+                  className="mt-4 row-start-10 col-start-1 bg-green-700 hover:bg-green-800"
+                  onClick={goPrev}
+              >
+                <Printer /> Worksheet
+              </Button>
+
+              <Button
+                  className="mt-4 row-start-10 col-start-2 bg-green-700 hover:bg-green-800"
+                  onClick={goPrev}
+              >
+                <Printer /> Address
+              </Button>
+
+                <Button
+                    className="mt-4 row-start-10 col-start-3 bg-green-700 hover:bg-green-800"
+                    onClick={goPrev}
+                >
+                  <Printer /> Receipt
+                </Button>
+
+                <Button
+                    className="mt-4 row-start-10 col-start-4 bg-green-700 hover:bg-green-800"
+                    onClick={goPrev}
+                >
+                  <Printer /> Xero invoice
+                </Button>
+
+                <Button
                 className="mt-4 row-start-11 col-start-1 bg-green-700 hover:bg-green-800"
                 onClick={goPrev}
                 disabled={currentIndex === 0}

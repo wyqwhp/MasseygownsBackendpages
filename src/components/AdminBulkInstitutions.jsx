@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PrintReportOrder from "@/components/PrintReportOrder.jsx";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -40,6 +41,10 @@ export default function AdminBulkOrder() {
     invoiceEmail: "",
     priceCode: "",
     freight: 0,
+    gown_count: 0,
+    hat_count: 0,
+    hood_count: 0,
+    ucol_count: 0,
   };
   const [formData, setFormData] = useState({ emptyFormRecord });
   const [ceremonies, setCeremonies] = useState([]);
@@ -88,6 +93,10 @@ export default function AdminBulkOrder() {
       invoiceEmail: ceremony.invoiceEmail || "",
       priceCode: ceremony.priceCode || null,
       freight: ceremony.freight,
+      gown_count: ceremony.gown_count || 0,
+      hat_count: ceremony.hat_count || 0,
+      hood_count: ceremony.hood_count || 0,
+      ucol_count: ceremony.ucol_count || 0,
     });
   };
 
@@ -103,6 +112,7 @@ export default function AdminBulkOrder() {
     // hasPrintedRef.current = true;
 
     const cached = localStorage.getItem("ceremonies");
+    // const cached = null;
 
     if (cached) {
       const ceremonies = JSON.parse(cached);
@@ -191,6 +201,7 @@ export default function AdminBulkOrder() {
   };
 
   const goNext = () => {
+    console.log("Ceremonies=", sortedCeremonies);
     if (
         editingId &&
         typeof editingId === "string" &&
@@ -253,7 +264,7 @@ export default function AdminBulkOrder() {
               className="grid grid-cols-4 md:grid-cols-4 gap-3 w-275 text-xs"
             >
               <div>
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Ceremony</Label>
                 <Input
                   id="name"
                   name="name"
@@ -283,23 +294,23 @@ export default function AdminBulkOrder() {
                 />
               </div>
 
+              <div>
+                <Label htmlFor="organiser">Organiser</Label>
+                <Input
+                    id="organiser"
+                    name="organiser"
+                    value={formData.organiser}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+
               <div className="row-start-2">
                 <Label htmlFor="city">City</Label>
                 <Input
                   id="city"
                   name="city"
                   value={formData.city}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="row-start-2">
-                <Label htmlFor="courieraddress">Courier Address</Label>
-                <Input
-                  id="courieraddress"
-                  name="courierAddress"
-                  value={formData.courierAddress}
                   onChange={handleChange}
                   required
                 />
@@ -316,16 +327,49 @@ export default function AdminBulkOrder() {
                 />
               </div>
 
+              <div className="row-start-2">
+                <Label htmlFor="postaladdress2">Postal Address 2</Label>
+                <Input
+                    id="postaladdress2"
+                    name="postalAddress2"
+                    value={formData.postalAddress2}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+
+              <div className="row-start-2">
+                <Label htmlFor="postaladdress3">Postal Address 3</Label>
+                <Input
+                    id="postaladdress3"
+                    name="postalAddress3"
+                    value={formData.postalAddress3}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+
+              <div className="row-start-3">
+                <Label htmlFor="courieraddress">Courier Address</Label>
+                <Input
+                    id="courieraddress"
+                    name="courierAddress"
+                    value={formData.courierAddress}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+
               <div className="row-start-3">
                 <Label htmlFor="email">Email</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onBlur={(e) => e.target.reportValidity()}
-                  required
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    onBlur={(e) => e.target.reportValidity()}
+                    required
                 />
               </div>
 
@@ -356,6 +400,18 @@ export default function AdminBulkOrder() {
               <hr className="row-start-4 col-span-full border-t border-gray-300 my-4" />
 
               <div className="row-start-5">
+                <Label htmlFor="ceremonyNo">Ceremony No</Label>
+                <Input
+                    id="ceremonyNo"
+                    name="ceremonyNo"
+                    type="text"
+                    value={formData.ceremonyNo}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+
+              <div className="row-start-5">
                 <Label htmlFor="ceremonydate">Ceremony Date</Label>
                 <Input
                   id="ceremonydate"
@@ -368,12 +424,12 @@ export default function AdminBulkOrder() {
               </div>
 
               <div className="row-start-5">
-                <Label htmlFor="duedate">Due Date</Label>
+                <Label htmlFor="ceremonydate2">Ceremony Date 2</Label>
                 <Input
-                  id="duedate"
-                  name="dueDate"
+                  id="ceremonydate2"
+                  name="ceremonydate2"
                   type="date"
-                  value={formData.dueDate}
+                  value={formData.ceremonyDate2}
                   onChange={handleChange}
                   required
                 />
@@ -391,7 +447,7 @@ export default function AdminBulkOrder() {
                 />
               </div>
 
-              <div className="row-start-5">
+              <div className="row-start-6">
                 <Label htmlFor="datesent">Date Sent</Label>
                 <Input
                   id="datesent"
@@ -427,28 +483,83 @@ export default function AdminBulkOrder() {
                 />
               </div>
 
-              <hr className="row-start-7 col-span-full border-t border-gray-300 my-4" />
-
-              <div className="row-start-8">
-                <Label htmlFor="organiser">Organiser</Label>
+              {/*<hr className="row-start-7 col-span-full border-t border-gray-300 my-4" />*/}
+              <div className="row-start-7">
+                <Label htmlFor="gowns">Gowns</Label>
                 <Input
-                  id="organiser"
-                  name="organiser"
-                  value={formData.organiser}
-                  onChange={handleChange}
-                  required
+                    id="gowns"
+                    name="gowns"
+                    type="number"
+                    value={formData.gown_count}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+
+              <div className="row-start-7">
+                <Label htmlFor="hoods">Hoods</Label>
+                <Input
+                    id="hoods"
+                    name="hoods"
+                    type="number"
+                    value={formData.hood_count}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+
+              <div className="row-start-7">
+                <Label htmlFor="hats">Hats</Label>
+                <Input
+                    id="hats"
+                    name="hats"
+                    type="number"
+                    value={formData.hat_count}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+
+              <div className="row-start-7">
+                <Label htmlFor="ucols">Sashes</Label>
+                <Input
+                    id="ucols"
+                    name="ucols"
+                    type="number"
+                    value={formData.ucol_count}
+                    onChange={handleChange}
+                    required
                 />
               </div>
 
               <div className="row-start-8">
                 <Label htmlFor="pricecode">Price Code</Label>
-                <Input
+                <Select
                   id="pricecode"
                   name="priceCode"
                   value={formData.priceCode}
-                  onChange={handleChange}
-                  required
-                />
+                  onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, priceCode: value }))
+                  }
+                >
+                  <SelectTrigger className="!bg-white">
+                    <SelectValue placeholder="Select price code" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="bluegown">Blue Gown</SelectItem>
+                    <SelectItem value="free">Free</SelectItem>
+                    <SelectItem value="rncgps">RNCGPs</SelectItem>
+                    <SelectItem value="standardhire">Standard Hire</SelectItem>
+                    <SelectItem value="branch">Branch</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="nelsonnmit">Nelson NMIT</SelectItem>
+                    <SelectItem value="polytech">Polytech</SelectItem>
+                    <SelectItem value="qrc">QRC</SelectItem>
+                    <SelectItem value="school">School</SelectItem>
+                    <SelectItem value="familymembers">Family Members</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="row-start-8">
@@ -462,11 +573,50 @@ export default function AdminBulkOrder() {
                 />
               </div>
 
-              <hr className="row-start-9 col-span-full border-t border-gray-300 my-4" />
+              {/*<hr className="row-start-9 col-span-full border-t border-gray-300 my-4" />*/}
+
+              <div className="row-start-10 col-start-1 flex justify-around mt-4">
+                <Button onClick=""
+                        className={`${navButtonClass} w-30`}>
+                  <Printer /> Worksheet
+                </Button>
+
+                <Button className={`${navButtonClass} w-30`}
+                        onClick=""
+                >
+                  <Printer /> Packing Docs
+                </Button>
+              </div>
+
+              <div className="row-start-10 col-start-2 flex justify-around mt-4">
+                <Button onClick=""
+                        className={`${navButtonClass} w-24`}>
+                  <Printer /> Labels
+                </Button>
+
+                <Button className={`${navButtonClass} w-24`}
+                        onClick=""
+                >
+                  <Printer /> Address
+                </Button>
+              </div>
+
+              <div className="row-start-10 col-start-3 flex justify-around mt-4">
+                <Button onClick=""
+                        className={`${navButtonClass} w-24`}>
+                  <Printer /> Invoice
+                </Button>
+
+                <Button className={`${navButtonClass} w-24`}
+                        onClick=""
+                >
+                  <Printer /> Xero
+                </Button>
+              </div>
 
               <div className="row-start-11 col-start-1 flex justify-around mt-4">
                 <Button
-                    className={navButtonClass}
+                    className={`${navButtonClass} w-30`}
                     onClick={goPrev}
                     disabled={currentIndex === 0}
                 >
@@ -474,7 +624,7 @@ export default function AdminBulkOrder() {
                 </Button>
 
                 <Button
-                    className={navButtonClass}
+                    className={`${navButtonClass} w-30`}
                     onClick={goNext}
                     disabled={currentIndex === ceremonies.length - 1}
                 >
@@ -484,11 +634,11 @@ export default function AdminBulkOrder() {
 
               <div className="row-start-11 col-start-2 flex justify-around mt-4">
                 <Button onClick={handleCopy}
-                        className={`${navButtonClass}`}>
+                        className={`${navButtonClass} w-24`}>
                   <Copy />
                 </Button>
 
-                <Button className={`${navButtonClass} `}
+                <Button className={`${navButtonClass} w-24`}
                         onClick={handleNew}
                 >
                   <PlusCircle />
