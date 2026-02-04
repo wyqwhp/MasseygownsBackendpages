@@ -235,7 +235,6 @@ export default function AdminIndOrder() {
           <CardContent>
             <form
               onSubmit={handleSubmit}
-              className="grid grid-cols-4 md:grid-cols-4 gap-3 w-275 text-xs"
             >
               <div className="pb-2 font-bold text-3xl inline-block px-3 py-1
                 text-white bg-green-700 border border-gray-300 rounded-md shadow-sm mb-3">
