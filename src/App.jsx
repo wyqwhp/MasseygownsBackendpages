@@ -9,6 +9,8 @@ import AdminEditItems from "./components/AdminEditItems.jsx";
 import AdminUsers from "./components/AdminUsers.jsx";
 import BuyRegalia from "./pages/BuyRegalia";
 import HireRegalia from "./pages/HireRegalia";
+import CasualHireRegalia from "./pages/CasualHireRegalia.jsx";
+import AbandonedOrders from "./pages/AbandonedOrders.jsx";
 import UpdatePic from "@/components/UpdatePic.jsx";
 import HomepageEdit from "./components/HomepageEdit.jsx";
 import HomePage from "@/pages/HomePage.jsx";
@@ -79,6 +81,22 @@ function App() {
         element={
           <Authentication>
             <HireRegalia />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/CasualHireRegalia"
+        element={
+          <Authentication>
+            <CasualHireRegalia />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/AbandonedOrders"
+        element={
+          <Authentication>
+            <AbandonedOrders />
           </Authentication>
         }
       />

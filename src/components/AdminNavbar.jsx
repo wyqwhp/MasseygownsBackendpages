@@ -30,11 +30,13 @@ const NAV = [
     key: "orders",
     label: "ORDERS",
     match: (path) =>
-      ["/BuyRegalia", "/HireRegalia"].some((p) => path.startsWith(p)),
+      ["/BuyRegalia", "/HireRegalia", "CasualHireRegalia", "/AbandonedOrders"].some((p) => path.startsWith(p)),
     to: "/BuyRegalia",
     sub: [
       { label: "buy orders", to: "/BuyRegalia" },
       { label: "hire orders", to: "/HireRegalia" },
+      { label: "casual hire orders", to: "/CasualHireRegalia" },
+      { label: "abandoned orders", to: "/AbandonedOrders" },
     ],
   },
   {
@@ -46,7 +48,7 @@ const NAV = [
   },
   {
     key: "items",
-    label: "ITEMS",
+    label: "REGALIA EDIT",
     match: (path) =>
       path.startsWith("/adminedititems") || path.startsWith("/editDelivery"),
     to: "/adminedititems",
@@ -56,8 +58,8 @@ const NAV = [
     ],
   },
   {
-    key: "content",
-    label: "CONTENT",
+    key: "txtEdit",
+    label: "TEXT EDIT",
     match: (path) =>
       [
         "/admineditceremonies",
@@ -187,7 +189,6 @@ function AdminNavbar() {
               </NavLink>
             ))}
 
-            {/* Example: action buttons shown when REPORTS is active (like “print orders”) */}
             {activeSection.key === "database" && (
               <>
                 {/*<button*/}
