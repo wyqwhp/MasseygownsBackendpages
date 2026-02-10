@@ -1,4 +1,4 @@
-import {getCMSTemplate} from "../api/TemplateApi.js";
+import {getCMSTemplate} from "../../api/TemplateApi.js";
 import React, {useEffect, useRef, useState} from "react";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import axios from "axios";
@@ -15,11 +15,13 @@ function formatNZDate(dateStr) {
     return `${day}-${months[month - 1]}-${year}`;
 }
 
-export default function PrintReportOrder({ceremony}) {
+export default function PrintReportOrder({ceremony, onDone}) {
     // ----------------------------
     // SAMPLE DATA FOR PREVIEW
     // ----------------------------
     let sampleData = {};
+
+    console.log("Inside Print=", ceremony);
 
     const fillData = (countItem) => {
         sampleData = {
@@ -43,6 +45,14 @@ export default function PrintReportOrder({ceremony}) {
             ucolDespatched: countItem.ucol_count,
             ucolReturned: 0,
             city: ceremony.city,
+            gown_count: ceremony.gown_count,
+            hat_count: ceremony.hat_count,
+            hood_count: ceremony.hood_count,
+            ucol_count: ceremony.ucol_count,
+            gown: ceremony.gown ?? 0,
+            hat: ceremony.hat ?? 0,
+            hood: ceremony.hood ?? 0,
+            ucol: ceremony.ucol ?? 0,
             // postcode: "0632",
             // country: "NZ",
             // invoiceNumber: "41782315",
@@ -76,6 +86,7 @@ export default function PrintReportOrder({ceremony}) {
             });
 
         printedRef.current = true;
+        onDone?.();
     }, []);
 
     function PrintPDF(doc) {
@@ -137,7 +148,7 @@ export default function PrintReportOrder({ceremony}) {
 
     const updateTemplateWithData = async () => {
         try {
-            const template = await getCMSTemplate({Name: "Order Report"});
+            const template = await getCMSTemplate({Name: "Bulk Invoice"});
             let output = template.bodyHtml;
             Object.keys(sampleData).forEach((key) => {
                 output = output.replaceAll(`{{${key}}}`, sampleData[key]);

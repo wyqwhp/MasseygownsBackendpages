@@ -8,7 +8,7 @@ import { useAuth } from "@/components/AuthContext.jsx";
 //   generateLabelsPDF,
 //   generateManifestPDF,
 // } from "@/components/PrintLabels.js";
-import PrintReportOrder from "@/components/PrintReportOrder.jsx";
+import PrintReportOrder from "@/components/ReportPrint/PrintReportOrder.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144"

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent} from "@/components/ui/card";
-import { ChevronsLeft, ChevronsRight, Copy, PlusCircle, Save, Printer } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Copy, PlusCircle, Save, Printer, FileDown } from "lucide-react";
 import AdminNavbar from "./AdminNavbar.jsx";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
@@ -14,8 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import PrintReportOrder from "@/components/PrintReportOrder.jsx";
+import PrintReportOrder from "@/components/ReportPrint/PrintReportOrder.jsx";
+import PrintBulkInvoice from "@/components/ReportPrint/PrintBulkInvoice.jsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.jsx";
+import PrintBulkAddressLabels from "@/pages/PrintBulkAddressLabels.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -55,6 +57,8 @@ export default function AdminBulkOrder() {
   const [changed, setChanged] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showPrint, setShowPrint] = useState(false);
+  const [showPrintInvoice, setShowPrintInvoice] = useState(false);
+  const [showPrintBulkAddressLabels, setShowPrintBulkAddressLabels] = useState(false);
   // const hasPrintedRef = useRef(false);
   const navButtonClass =
       "bg-green-700 hover:bg-green-800 w-20 h-10 p-0 flex items-center justify-center";
@@ -64,6 +68,8 @@ export default function AdminBulkOrder() {
         (a.name ?? "").localeCompare(b.name ?? "", undefined, { sensitivity: "base" })
     );
   }, [ceremonies]);
+
+  const [paper, setPaper] = useState("A4");
 
   const currentIndex = sortedCeremonies.findIndex(
       c => c.id === currentId
@@ -97,7 +103,12 @@ export default function AdminBulkOrder() {
       hat_count: ceremony.hat_count || 0,
       hood_count: ceremony.hood_count || 0,
       ucol_count: ceremony.ucol_count || 0,
+      gown: ceremony.gown || 0,
+      hat: ceremony.hat || 0,
+      hood: ceremony.hood || 0,
+      ucol: ceremony.ucol_sash || 0,
     });
+    console.log("Ceremony=", ceremony);
   };
 
   useEffect(() => {
@@ -128,6 +139,7 @@ export default function AdminBulkOrder() {
         setCeremonies(res.data);
         localStorage.setItem("ceremonies", JSON.stringify(res.data));
         if (!cached) updateForm(res.data[0]);
+        console.log("From API=", res.data[0]);
         setLoading(false);
       })
       .catch((err) => {
@@ -165,6 +177,17 @@ export default function AdminBulkOrder() {
   const handlePrint = () => {
     setShowPrint(false);
     setTimeout(() => setShowPrint(true), 0);
+  }
+
+  const handlePrintInvoice = () => {
+    setShowPrintInvoice(false);
+    setTimeout(() => setShowPrintInvoice(true), 0);
+  }
+
+  const handlePrintBulkAddressLabels = () => {
+    setShowPrintBulkAddressLabels(false);
+    console.log("Print Bulk Address called");
+    setTimeout(() => setShowPrintBulkAddressLabels(true), 0);
   }
 
   const handleSubmit = async (e) => {
@@ -270,7 +293,6 @@ export default function AdminBulkOrder() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -281,6 +303,7 @@ export default function AdminBulkOrder() {
                   name="idCode"
                   value={formData.idCode}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
@@ -291,6 +314,7 @@ export default function AdminBulkOrder() {
                   name="institutionName"
                   value={formData.institutionName}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
@@ -301,7 +325,6 @@ export default function AdminBulkOrder() {
                     name="organiser"
                     value={formData.organiser}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -312,7 +335,6 @@ export default function AdminBulkOrder() {
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -323,7 +345,6 @@ export default function AdminBulkOrder() {
                   name="postalAddress"
                   value={formData.postalAddress}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -334,7 +355,6 @@ export default function AdminBulkOrder() {
                     name="postalAddress2"
                     value={formData.postalAddress2}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -345,7 +365,6 @@ export default function AdminBulkOrder() {
                     name="postalAddress3"
                     value={formData.postalAddress3}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -356,7 +375,6 @@ export default function AdminBulkOrder() {
                     name="courierAddress"
                     value={formData.courierAddress}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -369,7 +387,6 @@ export default function AdminBulkOrder() {
                     value={formData.email}
                     onChange={handleChange}
                     onBlur={(e) => e.target.reportValidity()}
-                    required
                 />
               </div>
 
@@ -382,7 +399,6 @@ export default function AdminBulkOrder() {
                   value={formData.invoiceEmail}
                   onChange={handleChange}
                   onBlur={(e) => e.target.reportValidity()}
-                  required
                 />
               </div>
 
@@ -393,7 +409,6 @@ export default function AdminBulkOrder() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -407,7 +422,6 @@ export default function AdminBulkOrder() {
                     type="text"
                     value={formData.ceremonyNo}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -419,7 +433,6 @@ export default function AdminBulkOrder() {
                   type="date"
                   value={formData.ceremonyDate}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -431,7 +444,6 @@ export default function AdminBulkOrder() {
                   type="date"
                   value={formData.ceremonyDate2}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -443,7 +455,6 @@ export default function AdminBulkOrder() {
                   type="date"
                   value={formData.despatchDate}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -455,7 +466,6 @@ export default function AdminBulkOrder() {
                   type="date"
                   value={formData.dateSent}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -467,7 +477,6 @@ export default function AdminBulkOrder() {
                   type="date"
                   value={formData.returnDate}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -479,7 +488,6 @@ export default function AdminBulkOrder() {
                   type="date"
                   value={formData.dateReturned}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
@@ -492,7 +500,6 @@ export default function AdminBulkOrder() {
                     type="number"
                     value={formData.gown_count}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -504,7 +511,6 @@ export default function AdminBulkOrder() {
                     type="number"
                     value={formData.hood_count}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -516,7 +522,6 @@ export default function AdminBulkOrder() {
                     type="number"
                     value={formData.hat_count}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -528,7 +533,6 @@ export default function AdminBulkOrder() {
                     type="number"
                     value={formData.ucol_count}
                     onChange={handleChange}
-                    required
                 />
               </div>
 
@@ -569,48 +573,89 @@ export default function AdminBulkOrder() {
                   name="freight"
                   value={formData.freight}
                   onChange={handleChange}
-                  required
                 />
               </div>
 
               {/*<hr className="row-start-9 col-span-full border-t border-gray-300 my-4" />*/}
 
               <div className="row-start-10 col-start-1 flex justify-around mt-4">
-                <Button onClick=""
+                <Button onClick={handlePrint}
+                        type="button"
                         className={`${navButtonClass} w-30`}>
                   <Printer /> Worksheet
                 </Button>
 
                 <Button className={`${navButtonClass} w-30`}
-                        onClick=""
+                        // onClick={handlePrint}
+                        disabled={true}
+                        type="button"
                 >
                   <Printer /> Packing Docs
                 </Button>
               </div>
 
               <div className="row-start-10 col-start-2 flex justify-around mt-4">
-                <Button onClick=""
+                <Button
+                        disabled={true}
+                        type="button"
                         className={`${navButtonClass} w-24`}>
                   <Printer /> Labels
                 </Button>
 
+
+
+              </div>
+
+              <div className="row-start-10 col-start-3 flex justify-around gap-0 mt-4" aria-label="Paper size choice">
+                <div className="paper-choice flex gap-3 mt-1 items-center w-36">
+                  <label className={`flex ${paper === "A4" ? "active" : ""}`}>
+                    <input
+                        type="radio"
+                        name="paper"
+                        value="A4"
+                        checked={paper === "A4"}
+                        onChange={() => setPaper("A4")}
+                    />
+                    A4
+                  </label>
+
+                  <label className={`flex ${paper === "A5" ? "active" : ""}`}>
+                    <input
+                        type="radio"
+                        name="paper"
+                        value="A5"
+                        checked={paper === "A5"}
+                        onChange={() => setPaper("A5")}
+                    />
+                    A5
+                  </label>
+
+                  <label className={`flex ${paper === "120x90" ? "active" : ""}`}>
+                    <input
+                        type="radio"
+                        name="paper"
+                        value="120x90"
+                        checked={paper === "120x90"}
+                        onChange={() => setPaper("120x90")}
+                    />
+                    Small
+                  </label>
+                </div>
+
                 <Button className={`${navButtonClass} w-24`}
-                        onClick=""
+                        onClick={handlePrintBulkAddressLabels}
+                        type="button"
+                        disabled={false}
                 >
                   <Printer /> Address
                 </Button>
               </div>
 
-              <div className="row-start-10 col-start-3 flex justify-around mt-4">
-                <Button onClick=""
+              <div className="row-start-10 col-start-4 flex justify-around mt-4">
+                <Button onClick={handlePrintInvoice}
+                        type="button"
                         className={`${navButtonClass} w-24`}>
                   <Printer /> Invoice
-                </Button>
-
-                <Button className={`${navButtonClass} w-24`}
-                        onClick=""
-                >
-                  <Printer /> Xero
                 </Button>
               </div>
 
@@ -618,6 +663,7 @@ export default function AdminBulkOrder() {
                 <Button
                     className={`${navButtonClass} w-30`}
                     onClick={goPrev}
+                    type="button"
                     disabled={currentIndex === 0}
                 >
                   <ChevronsLeft />
@@ -626,6 +672,7 @@ export default function AdminBulkOrder() {
                 <Button
                     className={`${navButtonClass} w-30`}
                     onClick={goNext}
+                    type="button"
                     disabled={currentIndex === ceremonies.length - 1}
                 >
                   <ChevronsRight />
@@ -634,11 +681,13 @@ export default function AdminBulkOrder() {
 
               <div className="row-start-11 col-start-2 flex justify-around mt-4">
                 <Button onClick={handleCopy}
+                        type="button"
                         className={`${navButtonClass} w-24`}>
                   <Copy />
                 </Button>
 
                 <Button className={`${navButtonClass} w-24`}
+                        type="button"
                         onClick={handleNew}
                 >
                   <PlusCircle />
@@ -646,19 +695,20 @@ export default function AdminBulkOrder() {
               </div>
 
               <Button
-                  className={`${navButtonClass} row-start-11 col-start-3 mt-4 place-self-center`}
-                  onClick={handlePrint}
-              >
-                <Printer/>
-              </Button>
-
-              <Button
                   type="submit"
-                  className={`${navButtonClass} row-start-11 col-start-4 mt-4 place-self-center`}
+                  className={`${navButtonClass} row-start-11 col-start-3 mt-4 place-self-center`}
                   disabled={!changed}
                   onClick={handleSubmit}
               >
                 <Save/>
+              </Button>
+
+              <Button className={`${navButtonClass} w-24 row-start-11 col-start-4 mt-4 place-self-center`}
+                      // onClick={handlePrint()}
+                      type="button"
+                      disabled={true}
+              >
+                <FileDown /> Xero
               </Button>
 
             </form>
@@ -666,6 +716,9 @@ export default function AdminBulkOrder() {
         </Card>
       </div>
       {showPrint && <PrintReportOrder ceremony={formData}/>}
+      {showPrintInvoice && <PrintBulkInvoice ceremony={formData} onDone={() => setShowPrintInvoice(false)}/>}
+      {showPrintBulkAddressLabels && <PrintBulkAddressLabels ceremony={formData} paper={paper}
+                                                             onDone={() => setShowPrintBulkAddressLabels(false)}/>}
     </>
   );
 }

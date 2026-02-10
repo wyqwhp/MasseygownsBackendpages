@@ -4,7 +4,8 @@ import "../components/EmailEdit.css";
 import PaymentEmailTemplateEditor from "../components/PaymentEmailTemplateEditor";
 import AdminNavbar from "@/components/AdminNavbar";
 import OrderCompletedEditor from "../components/OrderCompletedEditor";
-import ReportOrderTemplate from "../components/ReportOrderTemplate";
+import ReportOrderTemplate from "../components/ReportTemplates/ReportOrderTemplate.jsx";
+import ReportBulkInvoiceTemplate from "../components/ReportTemplates/ReporBulkInvoiceTemplate.jsx";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 
@@ -70,6 +71,14 @@ export default function EmailTemplatesPage() {
       return (
           <ReportOrderTemplate
             template={selected}
+          />
+      );
+    }
+
+    if (selected.name === "Bulk Invoice") {
+      return (
+          <ReportBulkInvoiceTemplate
+              template={selected}
           />
       );
     }

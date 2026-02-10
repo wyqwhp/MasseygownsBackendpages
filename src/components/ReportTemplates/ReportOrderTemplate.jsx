@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import JoditEditor from "jodit-react";
 import "./ReportOrderTemplate.css";
-import {getCMSTemplate, saveCMSTemplate} from "../api/TemplateApi.js";
+import {getCMSTemplate, saveCMSTemplate} from "../../api/TemplateApi.js";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 
-export default function PurchaseOrderEmailTemplate(template) {
+export default function ReportOrderTemplate(template) {
     const editor = useRef(null);
     const LOCAL_KEY = "template_order_report";
 

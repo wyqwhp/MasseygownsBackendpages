@@ -6,31 +6,6 @@ const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 const WIDTH = 64;
 const HEIGHT = 24.3;
 
-// import { useState } from "react";
-// import axios from "axios";
-
-// function PrintOrdersWrapper() {
-
-//   async function PrintOrders() {
-//     setLoading(true);
-//     try {
-//       let response = await fetch(`${API_URL}/orders`);
-//       let orders = await response.json();
-//       generateLabelsPDF(orders);
-//       // console.log(data);
-//     } finally {
-//       setLoading(false);
-//     }
-//
-//     return (
-//       <div>
-//         {/*<button onClick={loadData}>Fetch Backend</button>*/}
-//         {loading && <div className="loader"></div>}
-//       </div>
-//     );
-//   }
-// }
-
 export default async function PrintManifest (ceremony) {
   // const [loading, setLoading] = useState(true);
   // const [orders, setOrders] = useState([]);
