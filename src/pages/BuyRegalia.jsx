@@ -16,6 +16,7 @@ function BuyRegalia() {
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
+  const [filterOrderType, setFilterOrderType] = useState("all");
 
   // Date filters (YYYY-MM-DD from <input type="date" />)
   const [dateFrom, setDateFrom] = useState("");
@@ -85,15 +86,31 @@ function BuyRegalia() {
         const processedData = Array.isArray(data)
           ? data
               .map((order) => {
-                const buyItems =
-                  order.items?.filter((item) => !Boolean(item.hire)) || [];
-
+                // 1) keep only BUY items (hire === false)
+                const buyItems = (order.items ?? []).filter(
+                  (item) => item?.hire === false,
+                );
                 if (buyItems.length === 0) return null;
+
+                // purchaseOrder parsing
+                const poRaw = (order.purchaseOrder ?? "")
+                  .toString()
+                  .trim()
+                  .toUpperCase();
+
+                // 2) "Real" purchase order = PN + at least one digit (PN123...)
+                const isPurchaseOrder = /^PN\d+$/.test(poRaw);
+
+                // 3) Remove unpaid NORMAL orders (normal = just "PN" or empty)
+                // keep if paid OR isPurchaseOrder
+                const keepOrder = order.paid === true || isPurchaseOrder;
+                if (!keepOrder) return null;
 
                 return {
                   ...order,
                   items: buyItems,
                   status: normalizeStatus(order.status),
+                  isPurchaseOrder,
                 };
               })
               .filter(Boolean)
@@ -102,7 +119,7 @@ function BuyRegalia() {
         setOrders(processedData);
         localStorage.setItem(
           "regaliaOrders_buy",
-          JSON.stringify(processedData)
+          JSON.stringify(processedData),
         );
       } catch (err) {
         setError(err.message || "Failed to fetch orders");
@@ -137,7 +154,7 @@ function BuyRegalia() {
 
   const updateStatus = (orderId, newStatus) => {
     const updatedOrders = orders.map((order) =>
-      order.id === orderId ? { ...order, status: newStatus } : order
+      order.id === orderId ? { ...order, status: newStatus } : order,
     );
     updateOrderStatus(orderId, newStatus);
     setOrders(updatedOrders);
@@ -156,7 +173,7 @@ function BuyRegalia() {
     const updatedOrders = orders.map((order) =>
       selectedOrders.includes(order.id)
         ? { ...order, status: normalizedStatus }
-        : order
+        : order,
     );
 
     setOrders(updatedOrders);
@@ -170,7 +187,7 @@ function BuyRegalia() {
       alert(
         `Updated ${selectedOrders.length} order(s) to ${
           statusConfig[normalizedStatus]?.label || normalizedStatus
-        }`
+        }`,
       );
 
       setSelectedOrders([]);
@@ -178,7 +195,7 @@ function BuyRegalia() {
     } catch (err) {
       console.error("Bulk status update failed:", err.response?.data || err);
       alert(
-        "Some updates failed on the server. UI updated locally. Please refresh to verify."
+        "Some updates failed on the server. UI updated locally. Please refresh to verify.",
       );
     }
   };
@@ -200,7 +217,7 @@ function BuyRegalia() {
     setSelectedOrders((prev) =>
       prev.includes(orderId)
         ? prev.filter((id) => id !== orderId)
-        : [...prev, orderId]
+        : [...prev, orderId],
     );
   };
 
@@ -216,10 +233,10 @@ function BuyRegalia() {
       const matchesSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
         (order.id?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase()
+          searchTerm.toLowerCase(),
         ) ||
         (order.studentId?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase()
+          searchTerm.toLowerCase(),
         ) ||
         (order.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
@@ -235,6 +252,19 @@ function BuyRegalia() {
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
+      const poValue = (order.purchaseOrder ?? "")
+        .toString()
+        .trim()
+        .toUpperCase();
+
+      const isNormalOrder = poValue === "" || poValue === "PN";
+      const isPurchaseOrder = !isNormalOrder;
+
+      const matchesOrderType =
+        filterOrderType === "all" ||
+        (filterOrderType === "normal" && isNormalOrder) ||
+        (filterOrderType === "purchase" && isPurchaseOrder);
+
       // Date match
       const orderDateObj = parseOrderDate(order.orderDate);
       const matchesDate =
@@ -248,7 +278,8 @@ function BuyRegalia() {
         matchesFilter &&
         matchesPayment &&
         matchesItemType &&
-        matchesDate
+        matchesDate &&
+        matchesOrderType
       );
     });
 
@@ -289,6 +320,7 @@ function BuyRegalia() {
     filterPaid,
     filterUnpaid,
     filterItemType,
+    filterOrderType,
     sortConfig,
     dateFrom,
     dateTo,
@@ -312,6 +344,7 @@ function BuyRegalia() {
     filterPaid,
     filterUnpaid,
     filterItemType,
+    filterOrderType,
     sortConfig,
     dateFrom,
     dateTo,
@@ -324,16 +357,16 @@ function BuyRegalia() {
   const toggleAllOrders = () => {
     const visibleIds = paginatedOrders.map((order) => order.id);
     const allVisibleSelected = visibleIds.every((id) =>
-      selectedOrders.includes(id)
+      selectedOrders.includes(id),
     );
 
     if (allVisibleSelected) {
       setSelectedOrders((prev) =>
-        prev.filter((id) => !visibleIds.includes(id))
+        prev.filter((id) => !visibleIds.includes(id)),
       );
     } else {
       setSelectedOrders((prev) =>
-        Array.from(new Set([...prev, ...visibleIds]))
+        Array.from(new Set([...prev, ...visibleIds])),
       );
     }
   };
@@ -348,7 +381,7 @@ function BuyRegalia() {
     }
 
     const headers = [
-      "Order ID",
+      "Reference Number",
       "First Name",
       "Last Name",
       "Student ID",
@@ -363,7 +396,7 @@ function BuyRegalia() {
     const rows = filteredOrders.flatMap((order) =>
       order.items?.length
         ? order.items.map((item) => [
-            order.id,
+            order.referenceNo,
             order.firstName,
             order.lastName,
             order.studentId,
@@ -376,7 +409,7 @@ function BuyRegalia() {
           ])
         : [
             [
-              order.id,
+              order.referenceNo,
               order.firstName,
               order.lastName,
               order.studentId,
@@ -387,7 +420,7 @@ function BuyRegalia() {
               order.status,
               order.paid ? "Paid" : "Unpaid",
             ],
-          ]
+          ],
     );
 
     const csvContent = [
@@ -466,7 +499,7 @@ function BuyRegalia() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by order ID, customer name, or student ID..."
+                  placeholder="Search by reference number, customer name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -537,7 +570,7 @@ function BuyRegalia() {
                 Clear dates
               </button>
 
-              <div className="payment-filter-wrapper">
+              {/* <div className="payment-filter-wrapper">
                 <label>
                   <input
                     type="checkbox"
@@ -554,6 +587,19 @@ function BuyRegalia() {
                   />
                   Unpaid
                 </label>
+              </div> */}
+
+              <div className="filter-wrapper">
+                <select
+                  value={filterOrderType}
+                  onChange={(e) => setFilterOrderType(e.target.value)}
+                  className="filter-select"
+                  title="Order type"
+                >
+                  <option value="all">All Orders</option>
+                  <option value="normal">Normal Orders</option>
+                  <option value="purchase">Purchase Orders</option>
+                </select>
               </div>
 
               <button
@@ -648,7 +694,7 @@ function BuyRegalia() {
                         checked={
                           paginatedOrders.length > 0 &&
                           paginatedOrders.every((o) =>
-                            selectedOrders.includes(o.id)
+                            selectedOrders.includes(o.id),
                           )
                         }
                         onChange={toggleAllOrders}
@@ -660,7 +706,7 @@ function BuyRegalia() {
                       onClick={() => handleSort("id")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
-                      Order ID{getSortIndicator("id")}
+                      Reference Number{getSortIndicator("id")}
                     </th>
 
                     <th
@@ -712,7 +758,7 @@ function BuyRegalia() {
                         </td>
 
                         <td className="table-cell-nowrap">
-                          <div className="order-id">{order.id}</div>
+                          <div className="order-id">{order.referenceNo}</div>
                         </td>
 
                         <td className="table-cell-nowrap">
@@ -867,7 +913,9 @@ function BuyRegalia() {
                   <div className="modal-header">
                     <div>
                       <h2 className="modal-title">Order Details</h2>
-                      <p className="modal-order-id">{selectedOrder.id}</p>
+                      <p className="modal-order-id">
+                        {selectedOrder.referenceNo}
+                      </p>
                     </div>
                     <button
                       onClick={() => setSelectedOrder(null)}
@@ -982,7 +1030,7 @@ function BuyRegalia() {
                             {selectedOrder.orderDate}
                           </span>
                         </div>
-                        <div className="info-row">
+                        {/* <div className="info-row">
                           <span className="info-label">Payment Status:</span>
                           <span
                             className={`info-value ${
@@ -991,7 +1039,7 @@ function BuyRegalia() {
                           >
                             {selectedOrder.paid ? "Paid" : "Unpaid"}
                           </span>
-                        </div>
+                        </div> */}
                         {selectedOrder.paymentMethod && (
                           <div className="info-row">
                             <span className="info-label">Payment Method:</span>
@@ -999,8 +1047,8 @@ function BuyRegalia() {
                               {selectedOrder.paymentMethod === 1
                                 ? "Card payment"
                                 : selectedOrder.paymentMethod === 2
-                                ? "A2A"
-                                : "Purchased order"}
+                                  ? "A2A"
+                                  : "Purchased order"}
                             </span>
                           </div>
                         )}
@@ -1054,7 +1102,7 @@ function BuyRegalia() {
                                 </span>
                               </button>
                             );
-                          }
+                          },
                         )}
                       </div>
                     </div>

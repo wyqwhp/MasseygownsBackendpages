@@ -18,7 +18,7 @@ function FullscreenSpinner() {
     <div className="spinner-overlay">
       <div className="spinner-center"></div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -30,11 +30,18 @@ const NAV = [
     key: "orders",
     label: "ORDERS",
     match: (path) =>
-      ["/BuyRegalia", "/HireRegalia"].some((p) => path.startsWith(p)),
+      [
+        "/BuyRegalia",
+        "/HireRegalia",
+        "/CasualHireRegalia",
+        "/AbandonedOrders",
+      ].some((p) => path.startsWith(p)),
     to: "/BuyRegalia",
     sub: [
       { label: "buy orders", to: "/BuyRegalia" },
       { label: "hire orders", to: "/HireRegalia" },
+      { label: "casual hire orders", to: "/CasualHireRegalia" },
+      { label: "abandoned orders", to: "/AbandonedOrders" },
     ],
   },
   {
@@ -46,7 +53,7 @@ const NAV = [
   },
   {
     key: "items",
-    label: "ITEMS",
+    label: "REGALIA EDIT",
     match: (path) =>
       path.startsWith("/adminedititems") || path.startsWith("/editDelivery"),
     to: "/adminedititems",
@@ -56,8 +63,8 @@ const NAV = [
     ],
   },
   {
-    key: "content",
-    label: "CONTENT",
+    key: "txtEdit",
+    label: "TEXT EDIT",
     match: (path) =>
       [
         "/admineditceremonies",
@@ -83,9 +90,13 @@ const NAV = [
     key: "database",
     label: "DATABASE",
     match: (path) =>
-      ["/IndOrder", "/BulkOrder", "/ImportBulk", "/PrintAddressLabels", "/InternalManagementForm"].some(
-        (p) => path.startsWith(p)
-      ),
+      [
+        "/IndOrder",
+        "/BulkOrder",
+        "/ImportBulk",
+        "/PrintAddressLabels",
+        "/InternalManagementForm",
+      ].some((p) => path.startsWith(p)),
     to: "/IndOrder",
     sub: [
       { label: "individual orders", to: "/IndOrder" },
@@ -104,8 +115,10 @@ function AdminNavbar() {
 
   const activeSection = useMemo(() => {
     const path = location.pathname;
-    return NAV.find((s) => s.match(path)) || NAV[0];
+    return NAV.find((s) => s.match(path)) || null;
   }, [location.pathname]);
+
+  const showSubbar = Boolean(activeSection && activeSection.sub?.length);
 
   // async function printLabels() {
   //   setLoading(true);
@@ -148,7 +161,7 @@ function AdminNavbar() {
               <NavLink
                 key={item.key}
                 to={item.to}
-                className={({ isActive }) =>
+                className={() =>
                   "admin-primary-link" +
                   (item.match(location.pathname) ? " is-active" : "")
                 }
@@ -172,40 +185,23 @@ function AdminNavbar() {
       </div>
 
       {/* SECOND LIGHT BAR (SUB TABS) */}
-      <div className="admin-subbar">
-        <div className="admin-subbar-inner">
-          <nav className="admin-subtabs">
-            {(activeSection.sub || []).map((t) => (
-              <NavLink
-                key={t.to}
-                to={t.to}
-                className={({ isActive }) =>
-                  "admin-subtab" + (isActive ? " is-active" : "")
-                }
-              >
-                {t.label}
-              </NavLink>
-            ))}
+      {showSubbar && (
+        <div className="admin-subbar">
+          <div className="admin-subbar-inner">
+            <nav className="admin-subtabs">
+              {activeSection.sub.map((t) => (
+                <NavLink
+                  key={t.to}
+                  to={t.to}
+                  className={({ isActive }) =>
+                    "admin-subtab" + (isActive ? " is-active" : "")
+                  }
+                >
+                  {t.label}
+                </NavLink>
+              ))}
 
-            {/* Example: action buttons shown when REPORTS is active (like “print orders”) */}
-            {activeSection.key === "database" && (
-              <>
-                {/*<button*/}
-                {/*  className="admin-subtab admin-subtab-btn"*/}
-                {/*  onClick={printLabels}*/}
-                {/*  disabled={loading}*/}
-                {/*  type="button"*/}
-                {/*>*/}
-                {/*  print labels*/}
-                {/*</button>*/}
-                {/*<button*/}
-                {/*  className="admin-subtab admin-subtab-btn"*/}
-                {/*  onClick={printManifest}*/}
-                {/*  disabled={loading}*/}
-                {/*  type="button"*/}
-                {/*>*/}
-                {/*  print manifest*/}
-                {/*</button>*/}
+              {activeSection.key === "database" && (
                 <button
                   className="admin-subtab admin-subtab-btn"
                   onClick={PrintReportOrder}
@@ -214,11 +210,11 @@ function AdminNavbar() {
                 >
                   print report
                 </button>
-              </>
-            )}
-          </nav>
+              )}
+            </nav>
+          </div>
         </div>
-      </div>
+      )}
 
       {loading && <FullscreenSpinner />}
     </header>

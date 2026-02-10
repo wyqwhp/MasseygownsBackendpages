@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import "./HireRegalia.css";
+import React, { useEffect, useMemo, useState } from "react";
+import "./AbandonedOrders.css";
 import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
 import { getOrders, updateOrderStatus } from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
@@ -9,14 +9,13 @@ import {
   statusToClass,
 } from "../constants/status";
 
-function HireRegalia() {
+function AbandonedOrders() {
   const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState(ORDER_STATUS.ALL);
+  const [filterStatus, setFilterStatus] = useState(0);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
-  const [filterOrderType, setFilterOrderType] = useState("all");
 
   // Date filters (YYYY-MM-DD from <input type="date" />)
   const [dateFrom, setDateFrom] = useState("");
@@ -28,13 +27,10 @@ function HireRegalia() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [bulkStatusUpdate, setBulkStatusUpdate] = useState(0);
-
-  // default: sort by latest order id first
   const [sortConfig, setSortConfig] = useState({
     key: "id",
     direction: "desc",
   });
-
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
@@ -70,65 +66,41 @@ function HireRegalia() {
     return null;
   };
 
+  // ----------------------------
+  // Fetch orders
+  // ----------------------------
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Load cached data first (if exists)
-        const cachedOrders = localStorage.getItem("regaliaOrders_hire");
+        const cachedOrders = localStorage.getItem("regaliaOrders");
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
         }
 
-        // ALWAYS fetch fresh data from API
         const data = await getOrders();
 
         const processedData = Array.isArray(data)
           ? data
-              .map((order) => {
-                // 1) keep only Hire items (hire === true)
-                const buyItems = (order.items ?? []).filter(
-                  (item) => item?.hire === true,
-                );
-                if (buyItems.length === 0) return null;
+              .filter((order) => {
+                const po = (order.purchaseOrder ?? "").toString().toUpperCase();
 
-                // purchaseOrder parsing
-                const poRaw = (order.purchaseOrder ?? "")
-                  .toString()
-                  .trim()
-                  .toUpperCase();
-
-                // 2) "Real" purchase order = PN + at least one digit (PN123...)
-                const isPurchaseOrder = /^PN\d+$/.test(poRaw);
-
-                // 3) Remove unpaid NORMAL orders (normal = just "PN" or empty)
-                // keep if paid OR isPurchaseOrder
-                const keepOrder = order.paid === true || isPurchaseOrder;
-                if (!keepOrder) return null;
-
-                return {
-                  ...order,
-                  items: buyItems,
-                  status: normalizeStatus(order.status),
-                  isPurchaseOrder,
-                };
+                // keep ONLY unpaid normal orders
+                return po === "PN" && order.paid === false;
               })
-              .filter(Boolean)
+              .map((order) => ({
+                ...order,
+                status: normalizeStatus(order.status),
+              }))
           : [];
 
-        // Update state + cache
         setOrders(processedData);
-        localStorage.setItem(
-          "regaliaOrders_hire",
-          JSON.stringify(processedData),
-        );
+        localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
       } catch (err) {
         setError(err.message || "Failed to fetch orders");
-
-        // fallback to cache if API fails
-        const cachedOrders = localStorage.getItem("regaliaOrders_hire");
+        const cachedOrders = localStorage.getItem("regaliaOrders");
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
         }
@@ -147,7 +119,6 @@ function HireRegalia() {
     [ORDER_STATUS.CANCELLED]: { label: "Cancelled", icon: X },
   };
 
-  // Get unique item types from all orders
   const getItemTypes = () => {
     const types = new Set();
     orders.forEach((order) => {
@@ -162,51 +133,42 @@ function HireRegalia() {
     const updatedOrders = orders.map((order) =>
       order.id === orderId ? { ...order, status: newStatus } : order,
     );
-
-    // fire-and-forget (same as your BuyRegalia)
     updateOrderStatus(orderId, newStatus);
-
     setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders_hire", JSON.stringify(updatedOrders));
+    localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
     setSelectedOrder(null);
   };
 
-  // Bulk status update (numeric)
   const handleBulkStatusUpdate = async () => {
-    if (
-      bulkStatusUpdate === 0 ||
-      bulkStatusUpdate === ORDER_STATUS.ALL ||
-      selectedOrders.length === 0
-    ) {
+    if (!bulkStatusUpdate || selectedOrders.length === 0) {
       alert("Please select orders and a status to update");
       return;
     }
 
-    const newStatus = bulkStatusUpdate; // already numeric
+    const normalizedStatus = normalizeStatus(bulkStatusUpdate);
 
-    // Optimistic UI update
     const updatedOrders = orders.map((order) =>
       selectedOrders.includes(order.id)
-        ? { ...order, status: newStatus }
+        ? { ...order, status: normalizedStatus }
         : order,
     );
 
     setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders_hire", JSON.stringify(updatedOrders));
+    localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
 
     try {
       for (const orderId of selectedOrders) {
-        await updateOrderStatus(orderId, newStatus);
+        await updateOrderStatus(orderId, normalizedStatus);
       }
 
       alert(
         `Updated ${selectedOrders.length} order(s) to ${
-          statusConfig[newStatus]?.label || newStatus
+          statusConfig[normalizedStatus]?.label || normalizedStatus
         }`,
       );
 
       setSelectedOrders([]);
-      setBulkStatusUpdate(0);
+      setBulkStatusUpdate("");
     } catch (err) {
       console.error("Bulk status update failed:", err.response?.data || err);
       alert(
@@ -215,7 +177,6 @@ function HireRegalia() {
     }
   };
 
-  // Sorting function
   const handleSort = (key) => {
     let direction = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") {
@@ -224,13 +185,11 @@ function HireRegalia() {
     setSortConfig({ key, direction });
   };
 
-  // Get sort indicator
   const getSortIndicator = (columnKey) => {
     if (sortConfig.key !== columnKey) return "↑↓";
     return sortConfig.direction === "asc" ? " ↑" : " ↓";
   };
 
-  // Toggle individual order selection
   const toggleOrderSelection = (orderId) => {
     setSelectedOrders((prev) =>
       prev.includes(orderId)
@@ -239,19 +198,24 @@ function HireRegalia() {
     );
   };
 
-  const filteredOrders = React.useMemo(() => {
+  // ----------------------------
+  // Filter + Sort
+  // ----------------------------
+  const filteredOrders = useMemo(() => {
     const filtered = orders.filter((order) => {
       const fullName = `${order.firstName || ""} ${
         order.lastName || ""
       }`.toLowerCase();
 
-      const q = searchTerm.toLowerCase();
-
       const matchesSearch =
-        fullName.includes(q) ||
-        (order.id?.toString().toLowerCase() || "").includes(q) ||
-        (order.studentId?.toString().toLowerCase() || "").includes(q) ||
-        (order.email?.toLowerCase() || "").includes(q);
+        fullName.includes(searchTerm.toLowerCase()) ||
+        (order.id?.toString().toLowerCase() || "").includes(
+          searchTerm.toLowerCase(),
+        ) ||
+        (order.studentId?.toString().toLowerCase() || "").includes(
+          searchTerm.toLowerCase(),
+        ) ||
+        (order.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
       const matchesFilter =
         filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
@@ -264,18 +228,6 @@ function HireRegalia() {
       const matchesItemType =
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
-
-      const poValue = (order.purchaseOrder ?? "")
-        .toString()
-        .trim()
-        .toUpperCase();
-      const isNormalOrder = poValue === "" || poValue === "PN";
-      const isPurchaseOrder = !isNormalOrder;
-
-      const matchesOrderType =
-        filterOrderType === "all" ||
-        (filterOrderType === "normal" && isNormalOrder) ||
-        (filterOrderType === "purchase" && isPurchaseOrder);
 
       // Date match
       const orderDateObj = parseOrderDate(order.orderDate);
@@ -290,8 +242,7 @@ function HireRegalia() {
         matchesFilter &&
         matchesPayment &&
         matchesItemType &&
-        matchesDate &&
-        matchesOrderType
+        matchesDate
       );
     });
 
@@ -310,8 +261,12 @@ function HireRegalia() {
           bValue = `${b.firstName || ""} ${b.lastName || ""}`.toLowerCase();
           break;
         case "date":
-          aValue = a.orderDate ? new Date(a.orderDate).getTime() : 0;
-          bValue = b.orderDate ? new Date(b.orderDate).getTime() : 0;
+          aValue = a.orderDate
+            ? parseOrderDate(a.orderDate)?.getTime() || 0
+            : 0;
+          bValue = b.orderDate
+            ? parseOrderDate(b.orderDate)?.getTime() || 0
+            : 0;
           break;
         default:
           return 0;
@@ -328,14 +283,13 @@ function HireRegalia() {
     filterPaid,
     filterUnpaid,
     filterItemType,
-    filterOrderType,
     sortConfig,
     dateFrom,
     dateTo,
   ]);
 
   // ----------------------------
-  // PAGINATION
+  // Pagination
   // ----------------------------
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
 
@@ -352,7 +306,6 @@ function HireRegalia() {
     filterPaid,
     filterUnpaid,
     filterItemType,
-    filterOrderType,
     sortConfig,
     dateFrom,
     dateTo,
@@ -440,7 +393,9 @@ function HireRegalia() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Hire_Orders_${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `Purchased_Orders_${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -453,12 +408,11 @@ function HireRegalia() {
         <AdminNavbar />
       </div>
 
-      <div className="hire-regalia-container">
-        <div className="hire-regalia-wrapper">
-          <div className="hire-regalia-header">
-            {/* <h1 className="hire-regalia-title">Hire Regalia Orders</h1> */}
-            <p className="hire-regalia-subtitle">
-              Manage and track graduation regalia purchases
+      <div className="buy-regalia-container">
+        <div className="buy-regalia-wrapper">
+          <div className="buy-regalia-header">
+            <p className="buy-regalia-subtitle">
+              Manage and track graduation regalia staff purchases
             </p>
           </div>
 
@@ -598,19 +552,6 @@ function HireRegalia() {
                 </label>
               </div> */}
 
-              <div className="filter-wrapper">
-                <select
-                  value={filterOrderType}
-                  onChange={(e) => setFilterOrderType(e.target.value)}
-                  className="filter-select"
-                  title="Order type"
-                >
-                  <option value="all">All Orders</option>
-                  <option value="normal">Normal Orders</option>
-                  <option value="purchase">Purchase Orders</option>
-                </select>
-              </div>
-
               <button
                 onClick={generateCSV}
                 disabled={filteredOrders.length === 0}
@@ -652,7 +593,7 @@ function HireRegalia() {
                   border: "1px solid #d1d5db",
                 }}
               >
-                <option value={0}>Select new status...</option>
+                <option value="">Select new status...</option>
                 <option value={ORDER_STATUS.PENDING}>Pending</option>
                 <option value={ORDER_STATUS.PROCESSING}>Processing</option>
                 <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
@@ -710,26 +651,31 @@ function HireRegalia() {
                         style={{ cursor: "pointer" }}
                       />
                     </th>
+
                     <th
                       onClick={() => handleSort("id")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
                       Reference Number{getSortIndicator("id")}
                     </th>
+
                     <th
                       onClick={() => handleSort("name")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
                       Customer{getSortIndicator("name")}
                     </th>
+
                     <th>Items</th>
                     <th>Quantity</th>
+
                     <th
                       onClick={() => handleSort("date")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
                       Order Date{getSortIndicator("date")}
                     </th>
+
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -803,7 +749,6 @@ function HireRegalia() {
                           <button
                             onClick={() => setSelectedOrder(order)}
                             className="action-button"
-                            type="button"
                           >
                             <Eye className="action-icon" />
                           </button>
@@ -851,7 +796,6 @@ function HireRegalia() {
                   background: currentPage === 1 ? "#f3f4f6" : "white",
                   cursor: currentPage === 1 ? "not-allowed" : "pointer",
                 }}
-                type="button"
               >
                 Prev
               </button>
@@ -885,7 +829,6 @@ function HireRegalia() {
                           cursor: "pointer",
                           fontWeight: p === currentPage ? "700" : "500",
                         }}
-                        type="button"
                       >
                         {p}
                       </button>
@@ -906,7 +849,6 @@ function HireRegalia() {
                   cursor:
                     currentPage === totalPages ? "not-allowed" : "pointer",
                 }}
-                type="button"
               >
                 Next
               </button>
@@ -928,7 +870,6 @@ function HireRegalia() {
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="modal-close-button"
-                      type="button"
                     >
                       <X className="modal-close-icon" />
                     </button>
@@ -1007,7 +948,9 @@ function HireRegalia() {
                             )}
                             <div className="info-row">
                               <span className="info-label">Type:</span>
-                              <span className="info-value">Hire</span>
+                              <span className="info-value">
+                                {item.hire === true ? "Hire" : "Buy"}
+                              </span>
                             </div>
                             <div className="info-row">
                               <span className="info-label">Quantity:</span>
@@ -1035,16 +978,6 @@ function HireRegalia() {
                           <span className="info-label">Order Date:</span>
                           <span className="info-value">
                             {selectedOrder.orderDate}
-                          </span>
-                        </div>
-                        <div className="info-row">
-                          <span className="info-label">Payment Status:</span>
-                          <span
-                            className={`info-value ${
-                              selectedOrder.paid ? "success" : ""
-                            }`}
-                          >
-                            {selectedOrder.paid ? "Paid" : "Unpaid"}
                           </span>
                         </div>
                         {selectedOrder.paymentMethod && (
@@ -1119,7 +1052,6 @@ function HireRegalia() {
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="close-button"
-                      type="button"
                     >
                       Close
                     </button>
@@ -1128,14 +1060,10 @@ function HireRegalia() {
               </div>
             </div>
           )}
-
-          {/* Optional: show loading/error (if you want) */}
-          {/* {loading && <div style={{ padding: 12 }}>Loading...</div>} */}
-          {/* {error && <div style={{ padding: 12, color: "red" }}>{error}</div>} */}
         </div>
       </div>
     </>
   );
 }
 
-export default HireRegalia;
+export default AbandonedOrders;
