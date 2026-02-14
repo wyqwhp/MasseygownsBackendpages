@@ -12,7 +12,7 @@ import {
 function AbandonedOrders() {
   const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState(0);
+  // const [filterStatus, setFilterStatus] = useState(0);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
@@ -209,6 +209,8 @@ function AbandonedOrders() {
 
       const matchesSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
+        (order.referenceNo?.toString().toLowerCase() || "").includes(q) ||
+        (order.purchaseOrder?.toString().toLowerCase() || "").includes(q) ||
         (order.id?.toString().toLowerCase() || "").includes(
           searchTerm.toLowerCase(),
         ) ||
@@ -217,8 +219,8 @@ function AbandonedOrders() {
         ) ||
         (order.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
-      const matchesFilter =
-        filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
+      // const matchesFilter =
+      //   filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
 
       const matchesPayment =
         (filterPaid && filterUnpaid) ||
@@ -239,7 +241,7 @@ function AbandonedOrders() {
 
       return (
         matchesSearch &&
-        matchesFilter &&
+        // matchesFilter &&
         matchesPayment &&
         matchesItemType &&
         matchesDate
@@ -279,7 +281,7 @@ function AbandonedOrders() {
   }, [
     orders,
     searchTerm,
-    filterStatus,
+    // filterStatus,
     filterPaid,
     filterUnpaid,
     filterItemType,
@@ -302,7 +304,7 @@ function AbandonedOrders() {
     setCurrentPage(1);
   }, [
     searchTerm,
-    filterStatus,
+    // filterStatus,
     filterPaid,
     filterUnpaid,
     filterItemType,
@@ -469,7 +471,7 @@ function AbandonedOrders() {
                 />
               </div>
 
-              <div className="filter-wrapper">
+              {/* <div className="filter-wrapper">
                 <Filter className="filter-icon" />
                 <select
                   value={filterStatus}
@@ -482,7 +484,7 @@ function AbandonedOrders() {
                   <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
                   <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
                 </select>
-              </div>
+              </div> */}
 
               <div className="filter-wrapper">
                 <select
@@ -676,7 +678,7 @@ function AbandonedOrders() {
                       Order Date{getSortIndicator("date")}
                     </th>
 
-                    <th>Status</th>
+                    {/* <th>Status</th> */}
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -736,14 +738,14 @@ function AbandonedOrders() {
                           <div className="order-date">{order.orderDate}</div>
                         </td>
 
-                        <td className="table-cell-nowrap">
+                        {/* <td className="table-cell-nowrap">
                           <span
                             className={`status-badge ${statusToClass(status)}`}
                           >
                             <StatusIcon className="status-icon" />
                             {config.label}
                           </span>
-                        </td>
+                        </td> */}
 
                         <td className="table-cell-nowrap">
                           <button
@@ -1014,7 +1016,7 @@ function AbandonedOrders() {
                       </div>
                     )}
 
-                    <div>
+                    {/* <div>
                       <h3 className="modal-section-title">Update Status</h3>
                       <div className="status-update-grid">
                         {Object.entries(statusConfig).map(
@@ -1045,7 +1047,7 @@ function AbandonedOrders() {
                           },
                         )}
                       </div>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div className="modal-footer">

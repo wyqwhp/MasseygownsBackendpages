@@ -88,11 +88,8 @@ function HireRegalia() {
         const processedData = Array.isArray(data)
           ? data
               .map((order) => {
-                // 1) keep only Hire items (hire === true)
-                const buyItems = (order.items ?? []).filter(
-                  (item) => item?.hire === true,
-                );
-                if (buyItems.length === 0) return null;
+                // 1) keep only orders where orderType = 1 (regular hire)
+                if (parseInt(order.orderType) !== 1) return null;
 
                 // purchaseOrder parsing
                 const poRaw = (order.purchaseOrder ?? "")
@@ -110,7 +107,6 @@ function HireRegalia() {
 
                 return {
                   ...order,
-                  items: buyItems,
                   status: normalizeStatus(order.status),
                   isPurchaseOrder,
                 };
@@ -249,6 +245,8 @@ function HireRegalia() {
 
       const matchesSearch =
         fullName.includes(q) ||
+        (order.referenceNo?.toString().toLowerCase() || "").includes(q) ||
+        (order.purchaseOrder?.toString().toLowerCase() || "").includes(q) ||
         (order.id?.toString().toLowerCase() || "").includes(q) ||
         (order.studentId?.toString().toLowerCase() || "").includes(q) ||
         (order.email?.toLowerCase() || "").includes(q);
@@ -1015,6 +1013,12 @@ function HireRegalia() {
                                 {item.quantity}
                               </span>
                             </div>
+                            <div className="info-row">
+                              <span className="info-label">Price:</span>
+                              <span className="info-value">
+                                {item.quantity}
+                              </span>
+                            </div>
                             {index < selectedOrder.items.length - 1 && (
                               <hr
                                 style={{
@@ -1031,6 +1035,12 @@ function HireRegalia() {
                     <div>
                       <h3 className="modal-section-title">Order Information</h3>
                       <div className="info-card">
+                        <div className="info-row">
+                          <span className="info-label">Ceremony:</span>
+                          <span className="info-value">
+                            {selectedOrder.ceremony}
+                          </span>
+                        </div>
                         <div className="info-row">
                           <span className="info-label">Order Date:</span>
                           <span className="info-value">

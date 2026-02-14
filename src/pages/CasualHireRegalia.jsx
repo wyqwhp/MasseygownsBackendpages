@@ -84,18 +84,37 @@ function PurchaseOrders() {
 
         const processedData = Array.isArray(data)
           ? data
-              .filter(
-                (order) =>
-                  order.purchaseOrder !== null &&
-                  order.purchaseOrder.toString().toUpperCase() !== "PN"
-              )
-              .map((order) => ({
-                ...order,
-                status: normalizeStatus(order.status),
-              }))
+              .map((order) => {
+                // 1) keep only casual hire orders where orderType = 3
+                if (parseInt(order.orderType) !== 3) {
+                  return null;
+                }
+
+                // purchaseOrder parsing
+                const poRaw = (order.purchaseOrder ?? "")
+                  .toString()
+                  .trim()
+                  .toUpperCase();
+
+                // 2) "Real" purchase order = PN + at least one digit (PN123...)
+                const isPurchaseOrder = /^PN\d+$/.test(poRaw);
+
+                // 3) Remove unpaid NORMAL orders (normal = just "PN" or empty)
+                // keep if paid OR isPurchaseOrder
+                const keepOrder = order.paid === true || isPurchaseOrder;
+                if (!keepOrder) return null;
+
+                return {
+                  ...order,
+                  status: normalizeStatus(order.status),
+                  isPurchaseOrder,
+                };
+              })
+              .filter(Boolean)
           : [];
 
         setOrders(processedData);
+
         localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
       } catch (err) {
         setError(err.message || "Failed to fetch orders");
@@ -130,7 +149,7 @@ function PurchaseOrders() {
 
   const updateStatus = (orderId, newStatus) => {
     const updatedOrders = orders.map((order) =>
-      order.id === orderId ? { ...order, status: newStatus } : order
+      order.id === orderId ? { ...order, status: newStatus } : order,
     );
     updateOrderStatus(orderId, newStatus);
     setOrders(updatedOrders);
@@ -149,7 +168,7 @@ function PurchaseOrders() {
     const updatedOrders = orders.map((order) =>
       selectedOrders.includes(order.id)
         ? { ...order, status: normalizedStatus }
-        : order
+        : order,
     );
 
     setOrders(updatedOrders);
@@ -163,7 +182,7 @@ function PurchaseOrders() {
       alert(
         `Updated ${selectedOrders.length} order(s) to ${
           statusConfig[normalizedStatus]?.label || normalizedStatus
-        }`
+        }`,
       );
 
       setSelectedOrders([]);
@@ -171,7 +190,7 @@ function PurchaseOrders() {
     } catch (err) {
       console.error("Bulk status update failed:", err.response?.data || err);
       alert(
-        "Some updates failed on the server. UI updated locally. Please refresh to verify."
+        "Some updates failed on the server. UI updated locally. Please refresh to verify.",
       );
     }
   };
@@ -193,7 +212,7 @@ function PurchaseOrders() {
     setSelectedOrders((prev) =>
       prev.includes(orderId)
         ? prev.filter((id) => id !== orderId)
-        : [...prev, orderId]
+        : [...prev, orderId],
     );
   };
 
@@ -208,11 +227,13 @@ function PurchaseOrders() {
 
       const matchesSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
+        (order.referenceNo?.toString().toLowerCase() || "").includes(q) ||
+        (order.purchaseOrder?.toString().toLowerCase() || "").includes(q) ||
         (order.id?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase()
+          searchTerm.toLowerCase(),
         ) ||
         (order.studentId?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase()
+          searchTerm.toLowerCase(),
         ) ||
         (order.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
@@ -317,16 +338,16 @@ function PurchaseOrders() {
   const toggleAllOrders = () => {
     const visibleIds = paginatedOrders.map((order) => order.id);
     const allVisibleSelected = visibleIds.every((id) =>
-      selectedOrders.includes(id)
+      selectedOrders.includes(id),
     );
 
     if (allVisibleSelected) {
       setSelectedOrders((prev) =>
-        prev.filter((id) => !visibleIds.includes(id))
+        prev.filter((id) => !visibleIds.includes(id)),
       );
     } else {
       setSelectedOrders((prev) =>
-        Array.from(new Set([...prev, ...visibleIds]))
+        Array.from(new Set([...prev, ...visibleIds])),
       );
     }
   };
@@ -341,7 +362,7 @@ function PurchaseOrders() {
     }
 
     const headers = [
-      "Order ID",
+      "Reference Number",
       "First Name",
       "Last Name",
       "Student ID",
@@ -380,7 +401,7 @@ function PurchaseOrders() {
               order.status,
               order.paid ? "Paid" : "Unpaid",
             ],
-          ]
+          ],
     );
 
     const csvContent = [
@@ -461,7 +482,7 @@ function PurchaseOrders() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by order ID, customer name, or student ID..."
+                  placeholder="Search by referenceNo, customer name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -643,7 +664,7 @@ function PurchaseOrders() {
                         checked={
                           paginatedOrders.length > 0 &&
                           paginatedOrders.every((o) =>
-                            selectedOrders.includes(o.id)
+                            selectedOrders.includes(o.id),
                           )
                         }
                         onChange={toggleAllOrders}
@@ -655,7 +676,7 @@ function PurchaseOrders() {
                       onClick={() => handleSort("id")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
-                      Order ID{getSortIndicator("id")}
+                      Reference Number{getSortIndicator("id")}
                     </th>
 
                     <th
@@ -707,7 +728,7 @@ function PurchaseOrders() {
                         </td>
 
                         <td className="table-cell-nowrap">
-                          <div className="order-id">{order.id}</div>
+                          <div className="order-id">{order.referenceNo}</div>
                         </td>
 
                         <td className="table-cell-nowrap">
@@ -862,7 +883,7 @@ function PurchaseOrders() {
                   <div className="modal-header">
                     <div>
                       <h2 className="modal-title">Order Details</h2>
-                      <p className="modal-order-id">{selectedOrder.id}</p>
+                      <p className="modal-order-id">{selectedOrder.referenceNo}</p>
                     </div>
                     <button
                       onClick={() => setSelectedOrder(null)}
@@ -984,8 +1005,8 @@ function PurchaseOrders() {
                               {selectedOrder.paymentMethod === 1
                                 ? "Card payment"
                                 : selectedOrder.paymentMethod === 2
-                                ? "A2A"
-                                : "Purchased order"}
+                                  ? "A2A"
+                                  : "Purchased order"}
                             </span>
                           </div>
                         )}
@@ -1039,7 +1060,7 @@ function PurchaseOrders() {
                                 </span>
                               </button>
                             );
-                          }
+                          },
                         )}
                       </div>
                     </div>
