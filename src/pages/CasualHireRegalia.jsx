@@ -16,6 +16,7 @@ function PurchaseOrders() {
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
+  const [filterOrderType, setFilterOrderType] = useState("all");
 
   // Date filters (YYYY-MM-DD from <input type="date" />)
   const [dateFrom, setDateFrom] = useState("");
@@ -249,6 +250,18 @@ function PurchaseOrders() {
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
+      const poValue = (order.purchaseOrder ?? "")
+        .toString()
+        .trim()
+        .toUpperCase();
+      const isNormalOrder = poValue === "" || poValue === "PN";
+      const isPurchaseOrder = !isNormalOrder;
+
+      const matchesOrderType =
+        filterOrderType === "all" ||
+        (filterOrderType === "normal" && isNormalOrder) ||
+        (filterOrderType === "purchase" && isPurchaseOrder);
+
       // Date match
       const orderDateObj = parseOrderDate(order.orderDate);
       const matchesDate =
@@ -262,7 +275,8 @@ function PurchaseOrders() {
         matchesFilter &&
         matchesPayment &&
         matchesItemType &&
-        matchesDate
+        matchesDate &&
+        matchesOrderType
       );
     });
 
@@ -303,6 +317,7 @@ function PurchaseOrders() {
     filterPaid,
     filterUnpaid,
     filterItemType,
+    filterOrderType,
     sortConfig,
     dateFrom,
     dateTo,
@@ -326,6 +341,7 @@ function PurchaseOrders() {
     filterPaid,
     filterUnpaid,
     filterItemType,
+    filterOrderType,
     sortConfig,
     dateFrom,
     dateTo,
@@ -553,7 +569,7 @@ function PurchaseOrders() {
                 Clear dates
               </button>
 
-              <div className="payment-filter-wrapper">
+              {/* <div className="payment-filter-wrapper">
                 <label>
                   <input
                     type="checkbox"
@@ -570,6 +586,19 @@ function PurchaseOrders() {
                   />
                   Unpaid
                 </label>
+              </div> */}
+
+              <div className="filter-wrapper">
+                <select
+                  value={filterOrderType}
+                  onChange={(e) => setFilterOrderType(e.target.value)}
+                  className="filter-select"
+                  title="Order type"
+                >
+                  <option value="all">All Orders</option>
+                  <option value="normal">Normal Orders</option>
+                  <option value="purchase">Purchase Orders</option>
+                </select>
               </div>
 
               <button
@@ -883,7 +912,9 @@ function PurchaseOrders() {
                   <div className="modal-header">
                     <div>
                       <h2 className="modal-title">Order Details</h2>
-                      <p className="modal-order-id">{selectedOrder.referenceNo}</p>
+                      <p className="modal-order-id">
+                        {selectedOrder.referenceNo}
+                      </p>
                     </div>
                     <button
                       onClick={() => setSelectedOrder(null)}
