@@ -505,7 +505,7 @@ function BuyRegalia() {
               </div>
 
               <div className="filter-wrapper">
-                <Filter className="filter-icon" />
+                {/* <Filter className="filter-icon" /> */}
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(Number(e.target.value))}

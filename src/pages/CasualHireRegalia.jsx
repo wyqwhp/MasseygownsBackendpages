@@ -498,7 +498,7 @@ function PurchaseOrders() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by referenceNo, customer name, or student ID..."
+                  placeholder="Search by reference number, customer name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -506,7 +506,7 @@ function PurchaseOrders() {
               </div>
 
               <div className="filter-wrapper">
-                <Filter className="filter-icon" />
+                {/* <Filter className="filter-icon" /> */}
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(Number(e.target.value))}
