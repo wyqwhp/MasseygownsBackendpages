@@ -1,7 +1,7 @@
 import {getCMSTemplate} from "../../api/TemplateApi.js";
 import React, {useEffect, useRef, useState} from "react";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
-import axios from "axios";
+import {LOGO} from "@/logo.js";
 
 const PRINT_API_URL = import.meta.env.VITE_PRINT_PDF;
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
@@ -15,34 +15,43 @@ function formatNZDate(dateStr) {
     return `${day}-${months[month - 1]}-${year}`;
 }
 
-export default function PrintReportOrder({ceremony}) {
+const money = new Intl.NumberFormat('en-NZ', {
+    style: 'currency',
+    currency: 'NZD',
+});
+
+export default function PrintIndBuyWorksheet({order, onDone}) {
     // ----------------------------
     // SAMPLE DATA FOR PREVIEW
     // ----------------------------
     let sampleData = {};
 
-    const fillData = (countItem) => {
+    console.log("Inside Print=", order);
+
+    const fillData = () => {
         sampleData = {
-            idCode: ceremony.idCode,
-            Name: ceremony.name,
-            CourierAddress: ceremony.courierAddress,
-            ceremonyDate: formatNZDate(ceremony.ceremonyDate),
-            phone: ceremony.phone,
-            organiser: ceremony.organiser,
-            email: ceremony.email,
-            despatchDate: formatNZDate(ceremony.despatchDate),
+            OrderAccess: order.id,
+            idCode: order.idCode,
+            foreName: order.foreName,
+            surname: order.surname.toUpperCase(),
+            address: order.address,
+            city: order.city,
+            phone: order.phone,
+            organiser: order.organiser,
+            email: order.email,
+            orderDate: formatNZDate(order.orderDate),
+            OrderNo: order.referenceNo,
+            ceremony: order.ceremony,
+            // ceremonyDate: formatNZDate(order.ceremonyDate),
+            // despatchDate: formatNZDate(order.despatchDate),
             // amountDue: 3000,
-            freight: ceremony.freight ?? 0,
-            returnDate: formatNZDate(ceremony.returnDate),
-            gownsDespatched: countItem.gown_count,
-            gownsReturned: 0,
-            hatsDespatched: countItem.hat_count,
-            hatsReturned: 0,
-            hoodsDespatched: countItem.hood_count,
-            hoodsReturned: 0,
-            ucolDespatched: countItem.ucol_count,
-            ucolReturned: 0,
-            city: ceremony.city,
+            freight: money.format(order.freight ?? 0),
+            donation: money.format(order.donation ?? 0),
+            hatLabel: order.hatLabel ?? "",
+            gownLabel: order.gownLabel ?? "",
+            hoodLabel: order.hoodLabel ?? "",
+            // returnDate: formatNZDate(order.returnDate),
+
             // postcode: "0632",
             // country: "NZ",
             // invoiceNumber: "41782315",
@@ -51,6 +60,7 @@ export default function PrintReportOrder({ceremony}) {
             // Notes: "Xero INV-12572",
         }
     };
+    console.log("Freight2=", order.freight);
 
     const printedRef = useRef(false);
     const [loading, setLoading] = useState(true);
@@ -60,22 +70,28 @@ export default function PrintReportOrder({ceremony}) {
     useEffect(() => {
         if (printedRef.current) return;
 
-        axios
-            .get(`${API_URL}/admin/ceremonies/bulk/${ceremony.id}`)
-            .then((res) => {
-                setCountItems(res.data);
+        // axios
+        //     .get(`${API_URL}/admin/ceremonies/bulk/${ceremony.id}`)
+        //     .then((res) => {
+        //         setCountItems(res.data);
+        //
+        //         console.log("Count Item=",res.data);
+        //         setLoading(false);
+        //         fillData(ceremony);
+        //         updateTemplateWithData();
+        //     })
+        //     .catch((err) => {
+        //         setError(err.message);
+        //         setLoading(false);
+        //     });
 
-                console.log("Count Item=",res.data);
-                setLoading(false);
-                fillData(res.data);
-                updateTemplateWithData();
-            })
-            .catch((err) => {
-                setError(err.message);
-                setLoading(false);
-            });
+        console.log("Order=", order);
+
+        fillData();
+        updateTemplateWithData();
 
         printedRef.current = true;
+        onDone?.();
     }, []);
 
     function PrintPDF(doc) {
@@ -92,8 +108,6 @@ export default function PrintReportOrder({ceremony}) {
                      ${doc}
                 </body>
             </html>`;
-
-            // console.log("HTML=", html);
 
             const response = await fetch(`${PRINT_API_URL}/api/pdf/print`, {
                 method: 'POST',
@@ -122,7 +136,7 @@ export default function PrintReportOrder({ceremony}) {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'BulkWorksheet.pdf';
+                a.download = 'IndividualBuyWorksheet.pdf';
                 a.click();
                 window.URL.revokeObjectURL(url);
                 console.log('PDF downloaded successfully');
@@ -137,11 +151,14 @@ export default function PrintReportOrder({ceremony}) {
 
     const updateTemplateWithData = async () => {
         try {
-            const template = await getCMSTemplate({Name: "Order Report"});
+            const template = await getCMSTemplate({Name: "Individual Buy Worksheet"});
             let output = template.bodyHtml;
             Object.keys(sampleData).forEach((key) => {
                 output = output.replaceAll(`{{${key}}}`, sampleData[key]);
             });
+            // console.log("Logo1=", output);
+            output = output.replace("logo.jpg", `${LOGO}`);
+            // console.log("Logo2=", output);
 
             PrintPDF(output);
         } catch (err) {

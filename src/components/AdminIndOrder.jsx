@@ -16,6 +16,10 @@ import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import "./AdminIndOrder.css";
 import { SelectViewport } from "@radix-ui/react-select";
+import PrintIndBuyWorksheet from "@/components/ReportPrint/PrintIndBuyWorksheet.jsx";
+import PrintIndCasualWorksheet from "@/components/ReportPrint/PrintIndCasualWorksheet.jsx";
+import PrintIndAddressLabels from "@/components/ReportPrint/PrintIndAddressLabels.jsx";
+import PrintIndReceipt from "@/components/ReportPrint/PrintIndReceipt.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -64,6 +68,11 @@ export default function AdminIndOrder() {
   const [hoods, setHoods] = useState([]);
   const [gownId, setGownId] = useState("");
   const [hatId, setHatId] = useState("");
+  const [showCasualHirePrint, setShowCasualHirePrint] = useState(false);
+  const [showBuyPrint, setShowBuyPrint] = useState(false);
+  const [showPrintIndAddressLabels, setShowPrintIndAddressLabels] = useState(false);
+  const [showReceiptPrint, setShowReceiptPrint] = useState(false);
+  const [paper, setPaper] = useState("A4");
 
   const getLabel = (name) => name.split("-")[1]?.trim() || name;
 
@@ -101,6 +110,10 @@ export default function AdminIndOrder() {
         console.log("Degree=", i.itemName);
         gownSize = i.sizeName;
         console.log("Size=", i.sizeName);
+        setFormData((prev) => ({
+          ...prev,
+          gownLabel: i.labelsize,
+        }));
       }
 
       if (
@@ -109,14 +122,27 @@ export default function AdminIndOrder() {
       ) {
         hatType = i.itemName;
 
-        setHatId(i.itemId);
+        setHatId(i.sizeId);
         // setHatId(3);
-        console.log("HatType=", i.itemId);
+        console.log("HatType=", i.sizeId);
         hatSize = i.sizeName;
+
+        setFormData((prev) => ({
+          ...prev,
+          hatType,
+          hatSize,
+          hatId: i.sizeId,
+          hatLabel: i.labelsize,
+        }));
       }
 
       if (i.itemName?.startsWith("Hood")) {
         hoodType = i.hoodName;
+        console.log("Hood short=", i.hoodShort);
+        setFormData((prev) => ({
+          ...prev,
+          hoodLabel: i.hoodShort,
+        }));
       }
     }
 
@@ -124,27 +150,31 @@ export default function AdminIndOrder() {
       ...prev,
       gownType,
       gownSize,
-      hatType,
-      hatSize,
       hoodType,
     }));
   };
 
   const updateForm = (order) => {
     setFormData({
+      id: order.id,
       surname: order.lastName,
       foreName: order.firstName,
       orderNumber: order.id,
+      orderDate: order.orderDate,
       email: order.email,
       phone: order.phone,
       address: order.address,
+      city: order.city,
       packNote: order.message,
       clientId: order.studentId,
       ceremonyId: order.ceremonyId,
       ceremony: order.ceremony,
       referenceNo: order.referenceNo,
+      note: order.note,
+      freight: order.freight ?? 0,
       // gownType: order.items?.[0]?.itemName ?? ""
     });
+    console.log("Freight=", order.freight);
     retrieveItems(order);
   };
 
@@ -221,6 +251,26 @@ export default function AdminIndOrder() {
       return newIndex;
     });
   };
+
+  const handlePrintBuy = () => {
+    setShowBuyPrint(false);
+    setTimeout(() => setShowBuyPrint(true), 0);
+  };
+
+  const handlePrintCasualHire = () => {
+    setShowCasualHirePrint(false);
+    setTimeout(() => setShowCasualHirePrint(true), 0);
+  }
+
+  const handlePrintAddress = () => {
+    setShowPrintIndAddressLabels(false);
+    setTimeout(() => setShowPrintIndAddressLabels(true), 0);
+  }
+
+  const handlePrintReceipt = () => {
+    setShowReceiptPrint(false);
+    setTimeout(() => setShowReceiptPrint(true), 0);
+  }
 
   if (items.length === 0 || sizes.length === 0 || hoods.length === 0)
     return <FullscreenSpinner />;
@@ -399,13 +449,12 @@ export default function AdminIndOrder() {
               <div className="row-start-4">
                 <Label htmlFor="hattype">Hat</Label>
                 <Select
-                    value={formData.hatSize}
+                    value={formData.hatId}
                     onValueChange={(value) => {
-                        setFormData((prev) => ({...prev, hatSize: value}))
+                        setFormData((prev) => ({...prev, hatId: value}))
                         console.log("Selected hatSize:", value, typeof value);
                       }
                     }
-
                 >
                   <SelectTrigger className="!bg-white w-36">
                     <SelectValue placeholder="Select a hat size" />
@@ -415,7 +464,7 @@ export default function AdminIndOrder() {
                     {sizes
                         .filter((g) => g.itemId === 3 || g.itemId === 8)
                         .map((g) => (
-                            <SelectItem key={g.id} value={g.labelsize}>
+                            <SelectItem key={g.id} value={g.id}>
                               {g.labelsize}
                             </SelectItem>
                         ))}
@@ -634,23 +683,73 @@ export default function AdminIndOrder() {
                 />
               </div>
 
-              <Button
-                  className="mt-4 row-start-10 col-start-1 bg-green-700 hover:bg-green-800"
-                  onClick={goPrev}
-              >
-                <Printer /> Worksheet
-              </Button>
+              <div className="row-start-10 col-start-1 flex justify-around">
+                <Button
+                    className="mt-4 bg-green-700 hover:bg-green-800"
+                    onClick={handlePrintBuy}
+                >
+                  <Printer /> Buy
+                </Button>
 
-              <Button
-                  className="mt-4 row-start-10 col-start-2 bg-green-700 hover:bg-green-800"
-                  onClick={goPrev}
-              >
-                <Printer /> Address
-              </Button>
+                <Button
+                    className="mt-4 bg-green-700 hover:bg-green-800"
+                    onClick={handlePrintCasualHire}
+                >
+                  <Printer /> Casual Hire
+                </Button>
+              </div>
+
+              <div className="row-start-10 col-start-2 flex justify-around gap-0 mt-4" aria-label="Paper size choice">
+                <div className="paper-choice flex gap-3 mt-0 items-center w-36">
+                  <label className={`flex ${paper === "A4" ? "active" : ""}`}>
+                    <input
+                        type="radio"
+                        name="paper"
+                        value="A4"
+                        checked={paper === "A4"}
+                        onChange={() => setPaper("A4")}
+                    />
+                    A4
+                  </label>
+
+                  <label className={`flex ${paper === "A5" ? "active" : ""}`}>
+                    <input
+                        type="radio"
+                        name="paper"
+                        value="A5"
+                        checked={paper === "A5"}
+                        onChange={() => setPaper("A5")}
+                    />
+                    A5
+                  </label>
+
+                  <label className={`flex ${paper === "120x90" ? "active" : ""}`}>
+                    <input
+                        type="radio"
+                        name="paper"
+                        value="120x90"
+                        checked={paper === "120x90"}
+                        onChange={() => setPaper("120x90")}
+                    />
+                    Small
+                  </label>
+                </div>
+
+                <Button
+                    className="bg-green-700 hover:bg-green-800"
+                    onClick={handlePrintAddress}
+                    type="button"
+                    disabled={false}
+                >
+                  <Printer /> Address
+                </Button>
+              </div>
 
                 <Button
                     className="mt-4 row-start-10 col-start-3 bg-green-700 hover:bg-green-800"
-                    onClick={goPrev}
+                    onClick={handlePrintReceipt}
+                    type="button"
+                    disabled={false}
                 >
                   <Printer /> Receipt
                 </Button>
@@ -658,6 +757,9 @@ export default function AdminIndOrder() {
                 <Button
                     className="mt-4 row-start-10 col-start-4 bg-green-700 hover:bg-green-800"
                     onClick={goPrev}
+                    type="button"
+                    disabled="true"
+                    hidden={true}
                 >
                   <Printer /> Xero invoice
                 </Button>
@@ -665,6 +767,7 @@ export default function AdminIndOrder() {
                 <Button
                 className="mt-4 row-start-11 col-start-1 bg-green-700 hover:bg-green-800"
                 onClick={goPrev}
+                type="button"
                 disabled={currentIndex === 0}
               >
                 <ChevronsLeft />
@@ -673,6 +776,7 @@ export default function AdminIndOrder() {
               <Button
                 className="mt-4 row-start-11 col-start-2 bg-green-700 hover:bg-green-800"
                 onClick={goNext}
+                type="button"
                 disabled={currentIndex === orders.length - 1}
               >
                 <ChevronsRight />
@@ -694,6 +798,12 @@ export default function AdminIndOrder() {
           </CardContent>
         </Card>
       </div>
+      {showBuyPrint && <PrintIndBuyWorksheet order={formData} onDone={() => setShowBuyPrint(false)} />}
+      {showCasualHirePrint && <PrintIndCasualWorksheet order={formData} onDone={() => setShowCasualHirePrint(true)} />}
+      {showPrintIndAddressLabels && <PrintIndAddressLabels order={formData} paper={paper}
+                                                             onDone={() => setShowPrintIndAddressLabels(false)}/>}
+      {showReceiptPrint && <PrintIndReceipt order={formData} paper={paper}
+                                                             onDone={() => setShowReceiptPrint(false)}/>}
     </>
   );
 }

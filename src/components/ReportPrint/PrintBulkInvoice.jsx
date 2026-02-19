@@ -133,7 +133,7 @@ export default function PrintReportOrder({ceremony, onDone}) {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'report.pdf';
+                a.download = 'BulkInvoice.pdf';
                 a.click();
                 window.URL.revokeObjectURL(url);
                 console.log('PDF downloaded successfully');

@@ -2,6 +2,7 @@ import {getCMSTemplate} from "../../api/TemplateApi.js";
 import React, {useEffect, useRef, useState} from "react";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import axios from "axios";
+import {LOGO} from "@/logo.js";
 
 const PRINT_API_URL = import.meta.env.VITE_PRINT_PDF;
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
@@ -15,11 +16,13 @@ function formatNZDate(dateStr) {
     return `${day}-${months[month - 1]}-${year}`;
 }
 
-export default function PrintReportOrder({ceremony}) {
+export default function PrintBulkPackingDocs({ceremony, onDone}) {
     // ----------------------------
     // SAMPLE DATA FOR PREVIEW
     // ----------------------------
     let sampleData = {};
+
+    console.log("Inside Print=", ceremony);
 
     const fillData = (countItem) => {
         sampleData = {
@@ -43,6 +46,14 @@ export default function PrintReportOrder({ceremony}) {
             ucolDespatched: countItem.ucol_count,
             ucolReturned: 0,
             city: ceremony.city,
+            gown_count: ceremony.gown_count,
+            hat_count: ceremony.hat_count,
+            hood_count: ceremony.hood_count,
+            ucol_count: ceremony.ucol_count,
+            gown: ceremony.gown ?? 0,
+            hat: ceremony.hat ?? 0,
+            hood: ceremony.hood ?? 0,
+            ucol: ceremony.ucol ?? 0,
             // postcode: "0632",
             // country: "NZ",
             // invoiceNumber: "41782315",
@@ -76,6 +87,7 @@ export default function PrintReportOrder({ceremony}) {
             });
 
         printedRef.current = true;
+        onDone?.();
     }, []);
 
     function PrintPDF(doc) {
@@ -122,7 +134,7 @@ export default function PrintReportOrder({ceremony}) {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'BulkWorksheet.pdf';
+                a.download = 'BulkPackingDocs.pdf';
                 a.click();
                 window.URL.revokeObjectURL(url);
                 console.log('PDF downloaded successfully');
@@ -137,11 +149,12 @@ export default function PrintReportOrder({ceremony}) {
 
     const updateTemplateWithData = async () => {
         try {
-            const template = await getCMSTemplate({Name: "Order Report"});
+            const template = await getCMSTemplate({Name: "Bulk Packing Docs"});
             let output = template.bodyHtml;
             Object.keys(sampleData).forEach((key) => {
                 output = output.replaceAll(`{{${key}}}`, sampleData[key]);
             });
+            output = output.replace("logo.jpg", `${LOGO}`);
 
             PrintPDF(output);
         } catch (err) {

@@ -1,18 +1,13 @@
 import jsPDF from "jspdf";
-// import React, {useEffect} from "react";
 import "./Spinner.css";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+// const API_URL = "http://localhost:5144"
+
 const WIDTH = 64;
 const HEIGHT = 24.3;
 
 export default async function PrintManifest (ceremony) {
-  // const [loading, setLoading] = useState(true);
-  // const [orders, setOrders] = useState([]);
-
-
-  // useEffect(() => {
-  //   axios
   try {
     const response = await fetch(`${API_URL}/admin/items/ceremony/${ceremony.id}`);
     const orders = await response.json();
@@ -74,7 +69,6 @@ function generateLabelsPDF(orders) {
 function generateManifestPDF(orders, ceremony) {
   console.log("Orders=", orders);
 
-
   const doc = new jsPDF();
   doc.setFontSize(16);
   doc.text("Master List", 10, 20);
@@ -107,4 +101,49 @@ function generateManifestPDF(orders, ceremony) {
   });
   doc.setLineDash([]);
   doc.save("manifest.pdf");
+}
+
+export function printBulkLabels(bulkCeremonyId) {
+  console.log("BulkCeremonyId=", bulkCeremonyId);
+  const doc = new jsPDF();
+
+  const getLabels = function (bulkCeremony) {
+    let i= 0, j = 0;
+    let x = 20, y = 20;
+
+    console.log("BulkCeremony=", bulkCeremony);
+
+    bulkCeremony.forEach((label) => {
+      doc.setFontSize(10);
+
+      console.log("HoodType=", label.hoodType);
+
+      doc.text(String(label.idCode) == 'null'?"":String(label.idCode), x, y);
+      doc.text(label.hoodType, x, y + 6);
+
+      if (++j == 3) {
+        j = 0; i++; x = 20;
+      } else {
+        x = (j) * WIDTH + 20;
+      }
+
+      if (i % 11 == 0 && i > 0) {
+        i = 0;
+        doc.addPage();
+        y = 20;
+      } else {
+        y = (i) * HEIGHT + 20;
+      }
+    });
+    doc.save("BulkLabels.pdf");
+  }
+
+  fetch(`${API_URL}/admin/bulkorders/${bulkCeremonyId}`)
+      .then(res => res.json())
+      .then(data => {
+        getLabels(data);
+      })
+      .catch(err => {
+        console.error(err);
+      })
 }

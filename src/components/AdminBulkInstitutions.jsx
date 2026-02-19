@@ -17,7 +17,11 @@ import {
 import PrintReportOrder from "@/components/ReportPrint/PrintReportOrder.jsx";
 import PrintBulkInvoice from "@/components/ReportPrint/PrintBulkInvoice.jsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.jsx";
-import PrintBulkAddressLabels from "@/pages/PrintBulkAddressLabels.jsx";
+import PrintBulkAddressLabels from "@/components/ReportPrint/PrintBulkAddressLabels.jsx";
+import {printBulkLabels} from "@/components/PrintLabels.js";
+import {exportToCSV} from "@/components/ExportToXero.js";
+import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.jsx";
+// import {component} from "jodit/types/core/decorators/index.js";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -59,6 +63,7 @@ export default function AdminBulkOrder() {
   const [showPrint, setShowPrint] = useState(false);
   const [showPrintInvoice, setShowPrintInvoice] = useState(false);
   const [showPrintBulkAddressLabels, setShowPrintBulkAddressLabels] = useState(false);
+  const [showPrintPackingDocs, setShowPrintPackingDocs] = useState(false);
   // const hasPrintedRef = useRef(false);
   const navButtonClass =
       "bg-green-700 hover:bg-green-800 w-20 h-10 p-0 flex items-center justify-center";
@@ -184,10 +189,18 @@ export default function AdminBulkOrder() {
     setTimeout(() => setShowPrintInvoice(true), 0);
   }
 
+  const handlePrintPackingDocs = () => {
+    setShowPrintPackingDocs(false);
+    setTimeout(() => setShowPrintPackingDocs(true), 0);
+  }
+
   const handlePrintBulkAddressLabels = () => {
     setShowPrintBulkAddressLabels(false);
-    console.log("Print Bulk Address called");
     setTimeout(() => setShowPrintBulkAddressLabels(true), 0);
+  }
+
+  const handlePrintLabels = () => {
+    printBulkLabels(formData.id);
   }
 
   const handleSubmit = async (e) => {
@@ -586,8 +599,8 @@ export default function AdminBulkOrder() {
                 </Button>
 
                 <Button className={`${navButtonClass} w-30`}
-                        // onClick={handlePrint}
-                        disabled={true}
+                        onClick={handlePrintPackingDocs}
+                        disabled={false}
                         type="button"
                 >
                   <Printer /> Packing Docs
@@ -596,7 +609,8 @@ export default function AdminBulkOrder() {
 
               <div className="row-start-10 col-start-2 flex justify-around mt-4">
                 <Button
-                        disabled={true}
+                        disabled={false}
+                        onClick={handlePrintLabels}
                         type="button"
                         className={`${navButtonClass} w-24`}>
                   <Printer /> Labels
@@ -704,9 +718,9 @@ export default function AdminBulkOrder() {
               </Button>
 
               <Button className={`${navButtonClass} w-24 row-start-11 col-start-4 mt-4 place-self-center`}
-                      // onClick={handlePrint()}
+                      onClick={exportToCSV}
                       type="button"
-                      disabled={true}
+                      disabled={false}
               >
                 <FileDown /> Xero
               </Button>
@@ -719,6 +733,7 @@ export default function AdminBulkOrder() {
       {showPrintInvoice && <PrintBulkInvoice ceremony={formData} onDone={() => setShowPrintInvoice(false)}/>}
       {showPrintBulkAddressLabels && <PrintBulkAddressLabels ceremony={formData} paper={paper}
                                                              onDone={() => setShowPrintBulkAddressLabels(false)}/>}
+      {showPrintPackingDocs && <PrintBulkPackingDocs ceremony={formData} onDone={() => setShowPrintPackingDocs(false)}/>}
     </>
   );
 }

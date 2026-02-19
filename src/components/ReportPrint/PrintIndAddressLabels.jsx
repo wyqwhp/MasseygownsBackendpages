@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import "./PrintAddressLabels.css";
+import "../../pages/PrintAddressLabels.css";
 
 const FROM = {
   title: "Academic Dress Hire",
@@ -15,36 +15,37 @@ const FROM = {
  */
 const PAPER_PRESETS = {
   A4: {
-    jsPdf: { orientation: "portrait", unit: "mm", format: "a4" },
+    jsPdf: { orientation: "landscape", unit: "mm", format: "a4" },
     page: { widthMm: "210mm", minHeightMm: "297mm", paddingMm: "3mm" },
-    grid: { templateColumns: "repeat(2, 1fr)", gapMm: "3mm" },
+    grid: { templateColumns: "1", gapMm: "3mm" },
     label: {
-      heightMm: 66,
+      heightMm: 180,
+      widthMm: 240,
       border: "1px solid #ddd",
       radiusMm: "6px",
       paddingMm: "3.5mm",
       paddingTopMm: "1mm",
     },
     font: {
-      toNamePt: 11.66,
-      addrPt: 15,
-      cityPostPt: 20,
-      attnPt: 10,
-      phonePt: 5,
-      fromLabelPt: 5,
-      fromFooterPt: 5,
-      logoWidthMm: 52,
-      logoMaxHeightMm: 12,
+      toNamePt: 28,
+      addrPt: 36,
+      cityPostPt: 48,
+      attnPt: 24,
+      phonePt: 9,
+      fromLabelPt: 12,
+      fromFooterPt: 12,
+      logoWidthMm: 110,
+      logoMaxHeightMm: 35,
       cityPostLetterSpacingPx: 0.4,
 
-      toNamePaddingTopMm: 0.1,
-      addr1PaddingTopMm: 2.5,
+      toNamePaddingTopMm: 10,
+      addr1PaddingTopMm: 10,
       addr2PaddingTopMm: 0.1,
       addrMarginBottomMm: 2,
-      cityPostMarginTopMm: 0.1,
-      cityPostMarginBottomMm: 2.4,
+      cityPostMarginTopMm: 10,
+      cityPostMarginBottomMm: 10,
       fromAreaGapMm: 1.6,
-      fromLabelMarginBottomMm: 0.1,
+      fromLabelMarginBottomMm: 5,
       fromFooterMarginTopMm: 0.2,
       labelTopLineHeight: 1.3,
       addrLineLineHeight: 0.85,
@@ -54,29 +55,30 @@ const PAPER_PRESETS = {
   },
 
   A5: {
-    jsPdf: { orientation: "portrait", unit: "mm", format: "a5" },
-    page: { widthMm: "148mm", minHeightMm: "210mm", paddingMm: "3mm" },
+    jsPdf: { orientation: "landscape", unit: "mm", format: "a5" },
+    page: { widthMm: "210mm", minHeightMm: "148mm", paddingMm: "3mm" },
 
     // A5
-    grid: { templateColumns: "repeat(2, 1fr)", gapMm: "3mm" },
+    grid: { templateColumns: "1", gapMm: "3mm" },
 
     label: {
-      heightMm: 51,
+      heightMm: 100,
+      widthMm: 180,
       border: "1px solid #ddd",
       radiusMm: "3px",
       paddingMm: "3mm",
       paddingTopMm: "1mm",
     },
     font: {
-      toNamePt: 7.5,
-      addrPt: 11.66,
-      cityPostPt: 15,
-      attnPt: 6.6,
-      phonePt: 3.75,
-      fromLabelPt: 4.583,
-      fromFooterPt: 3.75,
-      logoWidthMm: 30,
-      logoMaxHeightMm: 8,
+      toNamePt: 18,
+      addrPt: 26,
+      cityPostPt: 36,
+      attnPt: 16,
+      phonePt: 9,
+      fromLabelPt: 11,
+      fromFooterPt: 9,
+      logoWidthMm: 70,
+      logoMaxHeightMm: 20,
       cityPostLetterSpacingPx: 0.4,
 
       toNamePaddingTopMm: 0.1,
@@ -85,8 +87,8 @@ const PAPER_PRESETS = {
       addrMarginBottomMm: 2,
       cityPostMarginTopMm: 0.1,
       cityPostMarginBottomMm: 2.4,
-      fromAreaGapMm: 1.6,
-      fromLabelMarginBottomMm: 0.1,
+      fromAreaGapMm: 1,
+      fromLabelMarginBottomMm: 2,
       fromFooterMarginTopMm: 0.2,
       labelTopLineHeight: 1.3,
       addrLineLineHeight: 1,
@@ -96,9 +98,9 @@ const PAPER_PRESETS = {
   },
 
   "120x90": {
-    jsPdf: { orientation: "landscape", unit: "mm", format: [120, 90] },
-    page: { widthMm: "120mm", minHeightMm: "90mm", paddingMm: "0mm" },
-    grid: { templateColumns: "1fr", gapMm: "0mm" },
+    jsPdf: { orientation: "landscape", unit: "mm", format: [297, 210] },
+    page: { widthMm: "297mm", minHeightMm: "210mm", paddingMm: "0mm" },
+    grid: { templateColumns: "1fr 1fr", gapMm: "0mm" },
     label: {
       heightMm: 90,
       border: "0",
@@ -107,25 +109,25 @@ const PAPER_PRESETS = {
       paddingTopMm: "1mm",
     },
     font: {
-      toNamePt: 20,
-      addrPt: 20,
-      cityPostPt: 23.32,
-      attnPt: 13.2,
-      phonePt: 7,
-      fromLabelPt: 10,
-      fromFooterPt: 7.5,
-      logoWidthMm: 52,
-      logoMaxHeightMm: 12,
+      toNamePt: 24,
+      addrPt: 24,
+      cityPostPt: 28,
+      attnPt: 14,
+      phonePt: 12,
+      fromLabelPt: 11,
+      fromFooterPt: 9,
+      logoWidthMm: 70,
+      logoMaxHeightMm: 18,
       cityPostLetterSpacingPx: 0.4,
 
       toNamePaddingTopMm: 0.1,
       addr1PaddingTopMm: 0.6,
       addr2PaddingTopMm: 0.1,
-      addrMarginBottomMm: 0.1,
+      addrMarginBottomMm: 1,
       cityPostMarginTopMm: 0.1,
       cityPostMarginBottomMm: 0.1,
       fromAreaGapMm: 1.6,
-      fromLabelMarginBottomMm: 0.1,
+      fromLabelMarginBottomMm: 2,
       fromFooterMarginTopMm: 0.2,
 
       labelTopLineHeight: 0.1,
@@ -134,7 +136,7 @@ const PAPER_PRESETS = {
     clamp: { enable: false, toNameLines: 0, addrLines: 0 },
     special120: {
       enable: true,
-      forceLineHeight: 1.7,
+      forceLineHeight: 1.3,
       unclamp: true,
     },
   },
@@ -144,30 +146,33 @@ function getPreset(paper) {
   return PAPER_PRESETS[paper] || PAPER_PRESETS.A4;
 }
 
-export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
+export default function PrintIndAddressLabels({order, paper, onDone}) {
   const [loading, setLoading] = useState(false);
 
   // Filters
-  const [type] = useState("institution");
+  const [type] = useState("individual");
   // const [paper, setPaper] = useState("A4"); // "A4" | "A5" | "120x90"
 
   // Hidden printable pages container
   const pagesRef = useRef(null);
 
   const label = useMemo(() => {
-    if (!ceremony) return null;
+    if (!order) return null;
 
     return {
-      toName: (ceremony.name || "").trim(),
-      attn: (ceremony.organiser || "").trim(),
-      phone: (ceremony.phone || "").trim(),
-      address1: (ceremony.postalAddress || "").trim(),
-      city: (ceremony.city || "").trim(),
+      foreName: (order.foreName || "").trim(),
+      surname: (order.surname || "").trim(),
+      attn: (order.organiser || "").trim(),
+      phone: (order.phone || "").trim(),
+      address1: (order.address || "").trim(),
+      city: (order.city || "").trim(),
     };
-  }, [ceremony]);
+  }, [order]);
 
   useEffect(() => {
-    if (!ceremony) return;
+    console.log("Order=", order);
+
+    if (!order) return;
     let cancelled = false;
 
     const id = requestAnimationFrame(async () => {
@@ -183,9 +188,9 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
       cancelled = true;
       cancelAnimationFrame(id);
     };
-  }, [ceremony, paper, onDone]);
+  }, [order, paper, onDone]);
 
-  const labelsPerPage = paper === "A4" ? 8 : paper === "A5" ? 6 : 1;
+  const labelsPerPage = paper === "A4" ? 1 : paper === "A5" ? 1 : 4;
 
   const filledLabels = useMemo(() => {
     if (!label) return [];
@@ -208,7 +213,6 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-
       const pageEls = pagesRef.current.querySelectorAll(".pdf-page");
 
       const sandbox = document.createElement("div");
@@ -248,8 +252,10 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
   }
 
   #pdf-export-sandbox .labels-grid {
-    display: grid;
+    display: ${is120 ? "grid" : "flex"};
     grid-template-columns: ${preset.grid.templateColumns};
+    justify-content: ${is120 ? "" : "flex-start"};
+    align-items: flex-start;
     gap: ${preset.grid.gapMm};
     align-content: start;
   }
@@ -264,13 +270,22 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
         : `${preset.label.paddingMm}`
     };
     background: #fff !important;
+    justify-self: start;
+    align-self: flex-start;
+    margin-left: 0;
+    margin-right: auto;
+      outline: 4px solid blue;
   }
 
   #pdf-export-sandbox .label-card-big {
     height: ${preset.label.heightMm}mm;
+    width: ${preset.label.widthMm}mm;
     display: flex;
+    justify-self: start;
+    align-self: flex-start;
+    margin-left: 0;
+    margin-right: auto;
     flex-direction: column;
-    ${is120 ? "width: 120mm;" : ""}
   }
 
   #pdf-export-sandbox .label-top {
@@ -282,7 +297,7 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
   }
 
   #pdf-export-sandbox .to-name {
-    font-weight: 800;
+    font-weight: 600;
     font-size: ${f.toNamePt}pt;
     padding-top: ${f.toNamePaddingTopMm}mm;
     ${
@@ -344,14 +359,15 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
 
   
   #pdf-export-sandbox .from-sep {
-    border-top: 2px solid #111111;
+    border-top: 4px solid #111111;
     margin: 0.1mm 0 0.5mm;
-    width: ${isA5 ? "90%" : is120 ? "100%" : "245px"};
+    width: ${isA5 ? "90%" : is120 ? "100%" : "240mm"};
   }
 
   #pdf-export-sandbox .attn-block {
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   #pdf-export-sandbox .attn-text {
@@ -423,6 +439,10 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
 
         const clone = pageEls[i].cloneNode(true);
         sandbox.appendChild(clone);
+        //
+        // console.log("Element=", clone);
+        // console.log("Sandbox=", sandbox.innerHTML);
+        // console.log("Body=", document.body);
 
         clone
           .querySelectorAll('style, link[rel="stylesheet"]')
@@ -480,8 +500,8 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
           imgW = imgH * imgRatio;
         }
 
-        const x = (pageWidth - imgW) / 2;
-        const y = (pageHeight - imgH) / 2;
+        const x = 10;
+        const y = 10;
 
         if (i > 0) pdf.addPage();
         pdf.addImage(imgData, "PNG", x, y, imgW, imgH);
@@ -529,12 +549,13 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
 }
 
 function AddressLabelCard({ label }) {
-  const toName = label.toName || "";
+  const foreName = label.foreName || "";
+  const surname = label.surname || "";
   const address1 = label.address1 || "";
   // const address2 = label.address2 || "";
   const city = label.city || "";
   // const postcode = label.postcode || "";
-  const attn = label.attn || "";
+  const attn = label.foreName || "";
   const phone = label.phone || "";
 
   // const cityPost = [city, postcode].filter(Boolean).join(" ").toUpperCase();
@@ -542,7 +563,7 @@ function AddressLabelCard({ label }) {
   return (
     <div className="label-card label-card-big">
       <div className="label-top">
-        <div className="to-name">{toName}</div>
+        <div className="to-name">{foreName} {surname}</div>
 
         <div className="addr-line addr1">{address1}</div>
         {/*{address2 ? <div className="addr-line addr2">{address2}</div> : null}*/}
