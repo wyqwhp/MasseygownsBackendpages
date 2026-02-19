@@ -86,11 +86,8 @@ function BuyRegalia() {
         const processedData = Array.isArray(data)
           ? data
               .map((order) => {
-                // 1) keep only BUY items (hire === false)
-                const buyItems = (order.items ?? []).filter(
-                  (item) => item?.hire === false,
-                );
-                if (buyItems.length === 0) return null;
+                // 1) keep only orders where orderType = 2 (regular buy)
+                if (parseInt(order.orderType) !== 2) return null;
 
                 // purchaseOrder parsing
                 const poRaw = (order.purchaseOrder ?? "")
@@ -108,7 +105,6 @@ function BuyRegalia() {
 
                 return {
                   ...order,
-                  items: buyItems,
                   status: normalizeStatus(order.status),
                   isPurchaseOrder,
                 };
@@ -232,6 +228,8 @@ function BuyRegalia() {
 
       const matchesSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
+        (order.referenceNo?.toString().toLowerCase() || "").includes(q) ||
+        (order.purchaseOrder?.toString().toLowerCase() || "").includes(q) ||
         (order.id?.toString().toLowerCase() || "").includes(
           searchTerm.toLowerCase(),
         ) ||
@@ -507,7 +505,7 @@ function BuyRegalia() {
               </div>
 
               <div className="filter-wrapper">
-                <Filter className="filter-icon" />
+                {/* <Filter className="filter-icon" /> */}
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(Number(e.target.value))}
