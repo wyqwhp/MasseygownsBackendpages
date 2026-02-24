@@ -55,8 +55,8 @@ const PAPER_PRESETS = {
   },
 
   A5: {
-    jsPdf: { orientation: "landscape", unit: "mm", format: "a5" },
-    page: { widthMm: "210mm", minHeightMm: "148mm", paddingMm: "3mm" },
+    jsPdf: { orientation: "landscape", unit: "mm", format: "a4" },
+    page: { widthMm: "210mm", minHeightMm: "297mm", paddingMm: "3mm" },
 
     // A5
     grid: { templateColumns: "1", gapMm: "3mm" },

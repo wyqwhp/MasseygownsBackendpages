@@ -683,23 +683,7 @@ export default function AdminIndOrder() {
                 />
               </div>
 
-              <div className="row-start-10 col-start-1 flex justify-around">
-                <Button
-                    className="mt-4 bg-green-700 hover:bg-green-800"
-                    onClick={handlePrintBuy}
-                >
-                  <Printer /> Buy
-                </Button>
-
-                <Button
-                    className="mt-4 bg-green-700 hover:bg-green-800"
-                    onClick={handlePrintCasualHire}
-                >
-                  <Printer /> Casual Hire
-                </Button>
-              </div>
-
-              <div className="row-start-10 col-start-2 flex justify-around gap-0 mt-4" aria-label="Paper size choice">
+              <div className="row-start-10 col-start-1 flex justify-around gap-0 mt-4" aria-label="Paper size choice">
                 <div className="paper-choice flex gap-3 mt-0 items-center w-36">
                   <label className={`flex ${paper === "A4" ? "active" : ""}`}>
                     <input
@@ -743,7 +727,25 @@ export default function AdminIndOrder() {
                 >
                   <Printer /> Address
                 </Button>
+               </div>
+
+              <div className="row-start-10 col-start-2 flex justify-around">
+                <Button
+                    className="mt-4 bg-green-700 hover:bg-green-800"
+                    onClick={handlePrintBuy}
+                >
+                  <Printer /> Buy
+                </Button>
+
+                <Button
+                    className="mt-4 bg-green-700 hover:bg-green-800"
+                    onClick={handlePrintCasualHire}
+                >
+                  <Printer /> Casual Hire
+                </Button>
               </div>
+
+
 
                 <Button
                     className="mt-4 row-start-10 col-start-3 bg-green-700 hover:bg-green-800"

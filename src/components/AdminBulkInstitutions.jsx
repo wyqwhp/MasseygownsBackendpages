@@ -21,7 +21,6 @@ import PrintBulkAddressLabels from "@/components/ReportPrint/PrintBulkAddressLab
 import {printBulkLabels} from "@/components/PrintLabels.js";
 import {exportToCSV} from "@/components/ExportToXero.js";
 import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.jsx";
-// import {component} from "jodit/types/core/decorators/index.js";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
@@ -591,36 +590,7 @@ export default function AdminBulkOrder() {
 
               {/*<hr className="row-start-9 col-span-full border-t border-gray-300 my-4" />*/}
 
-              <div className="row-start-10 col-start-1 flex justify-around mt-4">
-                <Button onClick={handlePrint}
-                        type="button"
-                        className={`${navButtonClass} w-30`}>
-                  <Printer /> Worksheet
-                </Button>
-
-                <Button className={`${navButtonClass} w-30`}
-                        onClick={handlePrintPackingDocs}
-                        disabled={false}
-                        type="button"
-                >
-                  <Printer /> Packing Docs
-                </Button>
-              </div>
-
-              <div className="row-start-10 col-start-2 flex justify-around mt-4">
-                <Button
-                        disabled={false}
-                        onClick={handlePrintLabels}
-                        type="button"
-                        className={`${navButtonClass} w-24`}>
-                  <Printer /> Labels
-                </Button>
-
-
-
-              </div>
-
-              <div className="row-start-10 col-start-3 flex justify-around gap-0 mt-4" aria-label="Paper size choice">
+              <div className="row-start-10 col-start-1 flex justify-around gap-0 mt-4" aria-label="Paper size choice">
                 <div className="paper-choice flex gap-3 mt-1 items-center w-36">
                   <label className={`flex ${paper === "A4" ? "active" : ""}`}>
                     <input
@@ -662,6 +632,32 @@ export default function AdminBulkOrder() {
                         disabled={false}
                 >
                   <Printer /> Address
+                </Button>
+              </div>
+
+              <div className="row-start-10 col-start-2 flex justify-around mt-4">
+                <Button onClick={handlePrint}
+                        type="button"
+                        className={`${navButtonClass} w-30`}>
+                  <Printer /> Worksheet
+                </Button>
+
+                <Button className={`${navButtonClass} w-30`}
+                        onClick={handlePrintPackingDocs}
+                        disabled={false}
+                        type="button"
+                >
+                  <Printer /> Packing Docs
+                </Button>
+              </div>
+
+              <div className="row-start-10 col-start-3 flex justify-around mt-4">
+                <Button
+                    disabled={false}
+                    onClick={handlePrintLabels}
+                    type="button"
+                    className={`${navButtonClass} w-24`}>
+                  <Printer /> Labels
                 </Button>
               </div>
 
