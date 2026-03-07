@@ -286,9 +286,9 @@ export default function AdminIndOrder() {
             <form
               onSubmit={handleSubmit}
             >
-              <div className="pb-2 font-bold text-3xl inline-block px-3 py-1
+              <div className="w-full text-center pb-2 font-bold text-3xl inline-block px-3 py-1
                 text-white bg-green-700 border border-gray-300 rounded-md shadow-sm mb-3">
-                {formData.ceremony}
+                {formData.ceremony ?? '\u00A0'}
               </div>
               <div className="grid grid-cols-4 md:grid-cols-4 gap-2 w-275 text-xs">
               <div>
@@ -438,8 +438,8 @@ export default function AdminIndOrder() {
                     {sizes
                       .filter((g) => g.itemId === gownId && g.fitId === 1)
                       .map((g) => (
-                        <SelectItem key={g.id} value={g.size}>
-                          {g.size}
+                        <SelectItem key={g.id} value={String(g.id)}>
+                          {g.labelsize}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -464,7 +464,7 @@ export default function AdminIndOrder() {
                     {sizes
                         .filter((g) => g.itemId === 3 || g.itemId === 8)
                         .map((g) => (
-                            <SelectItem key={g.id} value={g.id}>
+                            <SelectItem key={g.id} value={String(g.id)}>
                               {g.labelsize}
                             </SelectItem>
                         ))}

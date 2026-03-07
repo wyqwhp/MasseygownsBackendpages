@@ -152,10 +152,10 @@ export default function AdminEditSku({ onChange }) {
                 throw new Error("This SKU already exists");
 
             setLoading(true);
-            // await axios
-            //     .post(`${API_URL}/admin/sku}`, {
-            //         sku,
-            //     });
+            await axios
+                .post(`${API_URL}/admin/sku}`, {
+                    sku,
+                });
 
             setSkus(prev =>
                 prev.map(sku =>

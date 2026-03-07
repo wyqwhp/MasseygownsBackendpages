@@ -23,6 +23,9 @@ import InternalManagementForm from "@/components/AdminInternalManagementForm.jsx
 import HoodQualificationsEditor from "./components/HoodQualificationsEditor.jsx";
 import AdminEditDelivery from "./components/AdminEditDelivery.jsx";
 import AdminEditSku from "@/components/AdminEditSku.jsx";
+import PricesEditor from "@/components/PricesEditor.jsx";
+import AdminImportCeremony from "@/components/AdminImportCeremony.jsx";
+import AdminDataCheck from "@/components/AdminDataCheck.jsx";
 
 function App() {
   return (
@@ -205,6 +208,30 @@ function App() {
           </Authentication>
         }
       />
+      <Route
+        path="/PriceEditor"
+        element={
+          <Authentication>
+              <PricesEditor />
+          </Authentication>
+        }
+        />
+      <Route
+        path="/AdminImportCeremony"
+        element={
+          <Authentication>
+            <AdminImportCeremony />
+          </Authentication>
+        }
+        />
+      <Route
+        path="/AdminDataCheck"
+        element={
+          <Authentication>
+              <AdminDataCheck />
+          </Authentication>
+        }
+        />
     </Routes>
   );
 }
