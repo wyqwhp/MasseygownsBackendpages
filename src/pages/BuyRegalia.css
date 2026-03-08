@@ -33,16 +33,6 @@
   color: #4b5563;
 }
 
-.payment-filter-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.625rem 1.25rem;
-  background: white;
-  border-radius: 0.75rem;
-  border: 1px solid #e5e7eb;
-}
-
 /* Stats Cards */
 .stats-grid {
   display: grid;
@@ -176,12 +166,6 @@
   align-items: center;
   gap: 0.5rem;
   flex: 0 1 auto;
-}
-
-.filter-icon {
-  color: #9ca3af;
-  width: 1.25rem;
-  height: 1.25rem;
 }
 
 .filter-select {

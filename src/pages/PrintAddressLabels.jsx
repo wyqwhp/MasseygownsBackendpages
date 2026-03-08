@@ -149,6 +149,10 @@ function chunkArray(arr, size) {
   return out;
 }
 
+function getGrad(labels) {
+  return Array.from(new Set(labels.map((i) => i.ceremony)));
+}
+
 function formatDateForTable(value) {
   if (!value) return "";
   try {
@@ -178,6 +182,7 @@ export default function PrintAddressLabels() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [name, setName] = useState("");
+  const [graduationFilter, setGraduationFilter] = useState("All");
 
   const [paper, setPaper] = useState("A4"); // "A4" | "A5" | "120x90"
 
@@ -191,6 +196,19 @@ export default function PrintAddressLabels() {
   const dateLabel = type === "individual" ? "Order date" : "Despatch date";
 
   const requestSeqRef = useRef(0);
+
+  const grads = useMemo(() => getGrad(labels), [labels]);
+
+  function handleGraChange(e) {
+    setTablePage(1);
+    setGraduationFilter(e.target.value);
+  }
+
+  function handleTypeChange(e) {
+    setTablePage(1);
+    setType(e.target.value);
+    setGraduationFilter("All");
+  }
 
   const loadLabels = async (opts) => {
     const payload = opts || { type, dateFrom, dateTo, name };
@@ -249,8 +267,14 @@ export default function PrintAddressLabels() {
       address2: (l.address2 || "").trim(),
       city: (l.city || "").trim(),
       postcode: (l.postcode || "").trim(),
+      Graduation: (l.ceremony || "").trim(), //20260202
     }));
   }, [labels]);
+
+  const fillerByGrads = useMemo(() => {
+    if (graduationFilter === "All") return displayLabels;
+    return displayLabels.filter((d) => d.ceremony === graduationFilter);
+  }, [displayLabels, graduationFilter]);
 
   const getOrderDate = (l) => l.orderDate || l.order_date || "";
   const getOrderNumber = (l) =>
@@ -274,16 +298,16 @@ export default function PrintAddressLabels() {
   useEffect(() => {
     setSelectedKeys((prev) => {
       if (!prev.size) return prev;
-      const valid = new Set(displayLabels.map(getRowKey));
+      const valid = new Set(fillerByGrads.map(getRowKey));
       const next = new Set();
       prev.forEach((k) => {
         if (valid.has(k)) next.add(k);
       });
       return next;
     });
-  }, [displayLabels]);
+  }, [fillerByGrads]);
 
-  const allKeys = useMemo(() => displayLabels.map(getRowKey), [displayLabels]);
+  const allKeys = useMemo(() => fillerByGrads.map(getRowKey), [fillerByGrads]);
   const allSelected =
     allKeys.length > 0 && selectedKeys.size === allKeys.length;
   const someSelected =
@@ -302,17 +326,17 @@ export default function PrintAddressLabels() {
   };
 
   //  table
-  const totalRows = displayLabels.length;
+  const totalRows = fillerByGrads.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
   const tableRows = useMemo(() => {
     const start = (tablePage - 1) * pageSize;
-    return displayLabels.slice(start, start + pageSize);
-  }, [displayLabels, tablePage]);
+    return fillerByGrads.slice(start, start + pageSize);
+  }, [fillerByGrads, tablePage]);
 
   const selectedLabels = useMemo(() => {
     if (!selectedKeys.size) return [];
-    return displayLabels.filter((l) => selectedKeys.has(getRowKey(l)));
-  }, [displayLabels, selectedKeys]);
+    return fillerByGrads.filter((l) => selectedKeys.has(getRowKey(l)));
+  }, [fillerByGrads, selectedKeys]);
 
   const labelsPerPage = paper === "A4" ? 8 : paper === "A5" ? 6 : 1;
 
@@ -571,8 +595,8 @@ export default function PrintAddressLabels() {
                 if (img.complete && img.naturalWidth > 0) return resolve();
                 img.onload = () => resolve();
                 img.onerror = () => resolve();
-              })
-          )
+              }),
+          ),
         );
 
         const canvas = await html2canvas(clone, {
@@ -674,74 +698,89 @@ export default function PrintAddressLabels() {
             >
               Clear Filters
             </button>
-
-            <div className="paper-choice" aria-label="Paper size choice">
-              <span className="paper-choice-label">Paper:</span>
-
-              <label className={`paper-pill ${paper === "A4" ? "active" : ""}`}>
-                <input
-                  type="radio"
-                  name="paper"
-                  value="A4"
-                  checked={paper === "A4"}
-                  onChange={() => setPaper("A4")}
-                />
-                A4
-              </label>
-
-              <label className={`paper-pill ${paper === "A5" ? "active" : ""}`}>
-                <input
-                  type="radio"
-                  name="paper"
-                  value="A5"
-                  checked={paper === "A5"}
-                  onChange={() => setPaper("A5")}
-                />
-                A5
-              </label>
-
-              <label
-                className={`paper-pill ${paper === "120x90" ? "active" : ""}`}
-              >
-                <input
-                  type="radio"
-                  name="paper"
-                  value="120x90"
-                  checked={paper === "120x90"}
-                  onChange={() => setPaper("120x90")}
-                />
-                Small
-              </label>
-            </div>
-
-            <button
-              className="btn btn-success"
-              onClick={exportPdf}
-              disabled={loading}
-              title="Export labels to PDF"
-            >
-              Export PDF
-            </button>
           </div>
 
           <div className="labels-toolbar-right">
-            <div className="toolbar-meta">
-              Total: {totalRows} records | Selected: {selectedKeys.size}
-            </div>
             <div className="tiny-filters">
               <div className="tiny-filter">
                 <span>Type</span>
                 <select
                   value={type}
-                  onChange={(e) => setType(e.target.value)}
+                  onChange={handleTypeChange}
                   className="tiny-select"
                 >
                   <option value="individual">Individual Orders</option>
                   <option value="institution">Bulk Orders</option>
                 </select>
+
+                <span>Graduation</span>
+                <select
+                  value={graduationFilter}
+                  onChange={handleGraChange}
+                  className="tiny-select"
+                >
+                  <option value="All">All Graduation</option>
+                  {grads.map((g) => (
+                    <option key={g} value={g}>
+                      {g == "" || null ? "N/A" : g}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+            <div className="toolbar-meta">
+              Total: {totalRows} records | Selected: {selectedKeys.size}
+            </div>
           </div>
+        </div>
+        <div className="secondtoolbar">
+          <div className="paper-choice" aria-label="Paper size choice">
+            <span className="paper-choice-label">Paper:</span>
+
+            <label className={`paper-pill ${paper === "A4" ? "active" : ""}`}>
+              <input
+                type="radio"
+                name="paper"
+                value="A4"
+                checked={paper === "A4"}
+                onChange={() => setPaper("A4")}
+              />
+              A4
+            </label>
+
+            <label className={`paper-pill ${paper === "A5" ? "active" : ""}`}>
+              <input
+                type="radio"
+                name="paper"
+                value="A5"
+                checked={paper === "A5"}
+                onChange={() => setPaper("A5")}
+              />
+              A5
+            </label>
+
+            <label
+              className={`paper-pill ${paper === "120x90" ? "active" : ""}`}
+            >
+              <input
+                type="radio"
+                name="paper"
+                value="120x90"
+                checked={paper === "120x90"}
+                onChange={() => setPaper("120x90")}
+              />
+              Small
+            </label>
+          </div>
+
+          <button
+            className="btn btn-success"
+            onClick={exportPdf}
+            disabled={loading}
+            title="Export labels to PDF"
+          >
+            Export PDF
+          </button>
         </div>
 
         <div className="table-wrap">
@@ -763,6 +802,7 @@ export default function PrintAddressLabels() {
                 <th style={{ width: 130 }}>Order Date</th>
                 <th style={{ width: 150 }}>Order Number</th>
                 <th>To Name</th>
+                <th>Graduation</th>
                 <th>Address</th>
                 <th style={{ width: 150 }}>City</th>
                 <th style={{ width: 120 }}>Postcode</th>
@@ -798,6 +838,7 @@ export default function PrintAddressLabels() {
                         {String(getOrderNumber(l) || "-")}
                       </td>
                       <td className="td-strong">{l.toName || "-"}</td>
+                      <td>{l.Graduation || "N/A"}</td>
                       <td>
                         <div className="addr-cell">
                           <div>{l.address1 || "-"}</div>
@@ -863,8 +904,8 @@ export default function PrintAddressLabels() {
                     paper === "A4"
                       ? "grid-a4"
                       : paper === "A5"
-                      ? "grid-a5"
-                      : "grid-120"
+                        ? "grid-a5"
+                        : "grid-120"
                   }`}
                 >
                   {pageLabels.map((l) => (

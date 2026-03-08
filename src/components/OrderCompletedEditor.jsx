@@ -55,7 +55,7 @@ export default function OrderCompletedEditor({ apiBase, template, onSaved }) {
   return (
     <div className="email-editor-card">
       <h2 className="email-editor-title">
-        {template.name || "OrderCompleted"}
+        {template.name || "PurchaseOrderCompleted"}
       </h2>
 
       <div className="email-field">

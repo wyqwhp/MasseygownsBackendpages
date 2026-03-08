@@ -77,10 +77,10 @@ function normalizeCollectionDetailsPlacement(html) {
     wrapper.innerHTML = html;
 
     const notesRow = wrapper.querySelector(
-      'tr[data-adh="important-notes-row"]'
+      'tr[data-adh="important-notes-row"]',
     );
     const collectionRow = wrapper.querySelector(
-      'tr[data-adh="collection-details-row"]'
+      'tr[data-adh="collection-details-row"]',
     );
 
     if (!notesRow || !collectionRow) {
@@ -167,7 +167,14 @@ export default function PaymentEmailTemplateEditor({
         taxReceiptHtml: fixedHtml,
       };
 
-      const updated = await updateEmailTemplate(apiBase, template.id, payload);
+      //const updated = await updateEmailTemplate(apiBase, template.id, payload);
+      const updated = await updateEmailTemplate(
+        apiBase,
+        template.id,
+        payload,
+        template,
+      );
+
       onSaved?.(updated);
 
       setTaxReceiptHtml(fixedHtml);
@@ -262,7 +269,7 @@ export default function PaymentEmailTemplateEditor({
             }}
             onBlur={(newContent) => {
               setTaxReceiptHtml(
-                normalizeCollectionDetailsPlacement(newContent)
+                normalizeCollectionDetailsPlacement(newContent),
               );
             }}
           />
