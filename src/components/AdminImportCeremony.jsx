@@ -7,7 +7,7 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144";
 
-export default function AdminImportBulk() {
+export default function AdminImportCeremony({onClose}) {
   const [editFile, setEditFile] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -46,11 +46,7 @@ export default function AdminImportBulk() {
 
         if (jsonData.length === 0) throw new Error("Empty file received");
 
-        jsonData.forEach((row) => {
-          console.log(`Name: `, row.Name, ` Height: `, row.Height);
-        });
-
-        await axios.post(`${API_URL}/admin/bulkorders`, jsonData);
+        await axios.post(`${API_URL}/admin/dataceremony`, jsonData);
 
         setStatusMessage("File imported: " + jsonData.length + " records");
       } catch (err) {
@@ -71,7 +67,7 @@ export default function AdminImportBulk() {
       <AdminNavbar />
       <div className="parent">
         <div className="acm-detail-body">
-          <label className="acm-detail-label">Upload bulk import file</label>
+          <label className="acm-detail-label">Upload Massey Graduation import file</label>
           <div className="acm-file-row">
             <input
               id={"fileInputId"}
@@ -106,6 +102,11 @@ export default function AdminImportBulk() {
               onClick={handleUploadFile}
             >
               {isSaving ? "Uploading..." : "Upload"}
+            </button>
+            <button
+              type="button"
+              className="acm-button primary"
+              onClick={onClose}>Back
             </button>
           </div>
           {(statusMessage || statusError) && (

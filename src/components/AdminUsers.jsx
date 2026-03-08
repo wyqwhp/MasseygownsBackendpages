@@ -89,6 +89,23 @@ export default function UserManagement() {
     }
   };
 
+  const toggleUserApprover = async (userId, newValue) => {
+    setLoading(true);
+    try {
+      await axios.put(`${API_URL}/admin/users/${userId}/approver`, {
+        approver: newValue,
+      });
+
+      setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, approver: newValue } : u))
+      );
+    } catch (err) {
+      console.error("Update failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openDeleteDialog = (userId) => {
     setSelectedUserId(userId);
     setDeleteDialogOpen(true);
@@ -337,9 +354,11 @@ export default function UserManagement() {
                     key={user.id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
                   >
-                    <div className="grid grid-cols-[80px_200px_40px_100px] gap-4 py-1 items-center">
+                    <div className="grid grid-cols-[80px_150px_150px_150px] gap-1 py-1 items-center">
                       <p className="font-medium text-gray-900">{user.name}</p>
                       <p className="font-small text-gray-500">{user.email}</p>
+
+                      <div className="flex justify-center gap-3">
                       <Label htmlFor="active">Active</Label>
                       <Switch
                         checked={user.active}
@@ -351,6 +370,21 @@ export default function UserManagement() {
                                           data-[state=unchecked]:bg-gray-400"
                         disabled={user.name === "user"}
                       />
+                      </div>
+
+                      <div className="flex justify-center gap-3">
+                      <Label htmlFor="approved">Approver</Label>
+                      <Switch
+                          checked={user.approver}
+                          onCheckedChange={(checked) =>
+                              toggleUserApprover(user.id, checked)
+                          }
+                          className="
+                                          data-[state=checked]:bg-green-700
+                                          data-[state=unchecked]:bg-gray-400"
+                      />
+                      </div>
+
                     </div>
                     <div className="flex gap-4">
                       <Button

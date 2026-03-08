@@ -118,3 +118,22 @@ export async function refundApprove(orderId, amount) {
 
   return resp;
 }
+export const getItems = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/items`);
+    return response.data;
+  } catch (err) {
+    console.error("Error fetching items:", err);
+    return [];
+  }
+};
+
+export const getItemSets = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/itemsets`);
+    return response.data;
+  } catch (err) {
+    console.error("Error fetching item sets:", err);
+    return [];
+  }
+};

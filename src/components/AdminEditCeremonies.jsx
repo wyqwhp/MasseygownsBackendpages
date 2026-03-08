@@ -8,8 +8,8 @@ import {Printer} from "lucide-react";
 import PrintManifest from "@/components/PrintLabels.js";
 import JoditEditor from "jodit-react";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144"
 
 export default function CeremonyEditor() {
   const [ceremonies, setCeremonies] = useState([]);
@@ -93,15 +93,22 @@ export default function CeremonyEditor() {
     });
   };
 
-  const handlePrint = (ceremony) => {
-    console.log("Ceremony=", ceremony)
+  const handlePrint = async (ceremony) => {
     setLoading(true);
-
-    setTimeout(() => {
-      PrintManifest(ceremony); // synchronous
-      setLoading(false);
-    }, 0);
-  }
+    axios.get(`${API_URL}/admin/ceremony/itemcount/${ceremony.id}`)
+      .then((res) => {
+        setTimeout(() => {
+          console.log('PrintData=', res.data);
+          PrintManifest(ceremony, res.data);
+        }, 0);
+      })
+      .catch ((err) => {
+        setError(err.message);
+      })
+      .finally (() => {
+        setLoading(false);
+      });
+  };
 
   // Save update
   const handleSave = async () => {
@@ -183,7 +190,6 @@ export default function CeremonyEditor() {
     placeholder: "Enter ceremony description here...",
   };
 
-  // if (loading) return <FullscreenSpinner />;
   if (error) return <p className="text-red-600">Error: {error}</p>;
 
   return (

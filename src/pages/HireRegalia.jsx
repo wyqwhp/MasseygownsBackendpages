@@ -5,15 +5,15 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import "./HireRegalia.css";
-import { Search, Eye, X, Clock, Package, Truck } from "lucide-react";
+import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
 import {
   getOrders,
   updateOrderStatus,
+  getItems,
   syncRefundStatus,
   refundRequest,
   refundApprove,
 } from "../services/RegaliaService";
-
 import AdminNavbar from "@/components/AdminNavbar";
 import {
   ORDER_STATUS,
@@ -22,14 +22,19 @@ import {
 } from "../constants/status";
 
 function HireRegalia() {
+  const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState(ORDER_STATUS.ALL);
+  const [filterPaid, setFilterPaid] = useState(true);
+  const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
   const [filterOrderType, setFilterOrderType] = useState("all");
 
   // Date filters
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const [items, setItemsLocal] = useState([]);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
@@ -248,14 +253,15 @@ function HireRegalia() {
         const processedData = Array.isArray(data)
           ? data
               .map((order) => {
+                // 1) keep only orders where orderType = 1 (regular hire)
                 if (parseInt(order.orderType) !== 1) return null;
 
-                const poRaw = (order.purchaseOrder ?? "")
-                  .toString()
-                  .trim()
-                  .toUpperCase();
-                const isPurchaseOrder = /^PN\d+$/.test(poRaw);
+                // 2) Purchase order (paymentMethod === 3)
+                const paymentMethod = Number(order.paymentMethod);
+                const isPurchaseOrder = paymentMethod === 3;
 
+                // 3) Remove unpaid NORMAL orders
+                // keep if paid OR isPurchaseOrder
                 const keepOrder = order.paid === true || isPurchaseOrder;
                 if (!keepOrder) return null;
 
@@ -350,13 +356,25 @@ function HireRegalia() {
 
   const getItemTypes = () => {
     const types = new Set();
-    orders.forEach((order) => {
-      order.items?.forEach((item) => {
-        if (item.itemName) types.add(item.itemName);
-      });
+
+    // Use fetched single items
+    (items || []).forEach((it) => {
+      const name =
+        it?.itemName || it?.name || it?.title || it?.displayName || "";
+      if (name) types.add(String(name).trim());
     });
-    return Array.from(types).sort();
+
+    return Array.from(types).sort((a, b) => a.localeCompare(b));
   };
+
+  // fetch items
+  useEffect(() => {
+    const fetchItems = async () => {
+      const data = await getItems();
+      setItemsLocal(Array.isArray(data) ? data : []);
+    };
+    fetchItems();
+  }, []);
 
   const updateStatus = (orderId, newStatus) => {
     const updatedOrders = orders.map((order) =>
@@ -436,12 +454,13 @@ function HireRegalia() {
   // ----------------------------
   // Filter + Sort
   // ----------------------------
-  const filteredOrders = useMemo(() => {
-    const q = (searchTerm || "").toLowerCase();
-
+  const filteredOrders = React.useMemo(() => {
     const filtered = orders.filter((order) => {
-      const fullName =
-        `${order.firstName || ""} ${order.lastName || ""}`.toLowerCase();
+      const fullName = `${order.firstName || ""} ${
+        order.lastName || ""
+      }`.toLowerCase();
+
+      const q = searchTerm.toLowerCase();
 
       const matchesSearch =
         fullName.includes(q) ||
@@ -454,22 +473,24 @@ function HireRegalia() {
       const matchesFilter =
         filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
 
+      const matchesPayment =
+        (filterPaid && filterUnpaid) ||
+        (filterPaid && order.paid) ||
+        (filterUnpaid && !order.paid);
+
       const matchesItemType =
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
-      const poValue = (order.purchaseOrder ?? "")
-        .toString()
-        .trim()
-        .toUpperCase();
-      const isNormalOrder = poValue === "" || poValue === "PN";
-      const isPurchaseOrder = !isNormalOrder;
+      const isPurchaseOrder = order.isPurchaseOrder === true;
+      const isNormalOrder = !isPurchaseOrder;
 
       const matchesOrderType =
         filterOrderType === "all" ||
         (filterOrderType === "normal" && isNormalOrder) ||
         (filterOrderType === "purchase" && isPurchaseOrder);
 
+      // Date match
       const orderDateObj = parseOrderDate(order.orderDate);
       const matchesDate =
         (!dateFrom && !dateTo) ||
@@ -480,6 +501,7 @@ function HireRegalia() {
       return (
         matchesSearch &&
         matchesFilter &&
+        matchesPayment &&
         matchesItemType &&
         matchesDate &&
         matchesOrderType
@@ -501,12 +523,8 @@ function HireRegalia() {
           bValue = `${b.firstName || ""} ${b.lastName || ""}`.toLowerCase();
           break;
         case "date":
-          aValue = a.orderDate
-            ? parseOrderDate(a.orderDate)?.getTime() || 0
-            : 0;
-          bValue = b.orderDate
-            ? parseOrderDate(b.orderDate)?.getTime() || 0
-            : 0;
+          aValue = a.orderDate ? new Date(a.orderDate).getTime() : 0;
+          bValue = b.orderDate ? new Date(b.orderDate).getTime() : 0;
           break;
         default:
           return 0;
@@ -520,6 +538,8 @@ function HireRegalia() {
     orders,
     searchTerm,
     filterStatus,
+    filterPaid,
+    filterUnpaid,
     filterItemType,
     filterOrderType,
     sortConfig,
@@ -542,6 +562,8 @@ function HireRegalia() {
   }, [
     searchTerm,
     filterStatus,
+    filterPaid,
+    filterUnpaid,
     filterItemType,
     filterOrderType,
     sortConfig,
@@ -580,13 +602,11 @@ function HireRegalia() {
     }
 
     const headers = [
-      "Order ID",
       "Reference Number",
       "First Name",
       "Last Name",
       "Student ID",
       "Email",
-      "Purchase Order",
       "Item Name",
       "Quantity",
       "Order Date",
@@ -597,13 +617,11 @@ function HireRegalia() {
     const rows = filteredOrders.flatMap((order) =>
       order.items?.length
         ? order.items.map((item) => [
-            order.id,
             order.referenceNo,
             order.firstName,
             order.lastName,
             order.studentId,
             order.email,
-            order.purchaseOrder,
             item.itemName,
             item.quantity,
             order.orderDate,
@@ -612,13 +630,11 @@ function HireRegalia() {
           ])
         : [
             [
-              order.id,
               order.referenceNo,
               order.firstName,
               order.lastName,
               order.studentId,
               order.email,
-              order.purchaseOrder,
               "",
               "",
               order.orderDate,
@@ -643,14 +659,6 @@ function HireRegalia() {
   };
 
   const itemTypes = getItemTypes();
-
-  const closeOrderModal = () => {
-    setSelectedOrder(null);
-    setRefundAmount("");
-    setRefundSubmitting(false);
-    setRefundSyncing(false);
-    setRefundSyncError("");
-  };
 
   const getRefundStatusStyle = () => {
     switch (refundStatusType) {
@@ -805,7 +813,7 @@ function HireRegalia() {
         <div className="hire-regalia-wrapper">
           <div className="hire-regalia-header">
             <p className="hire-regalia-subtitle">
-              Manage and track graduation regalia hires
+              Manage and track graduation regalia purchases
             </p>
           </div>
 
@@ -855,7 +863,7 @@ function HireRegalia() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by reference number, customer name, student ID, email..."
+                  placeholder="Search by reference number, customer name, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -863,6 +871,7 @@ function HireRegalia() {
               </div>
 
               <div className="filter-wrapper">
+                {/* <Filter className="filter-icon" /> */}
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(Number(e.target.value))}
@@ -1097,9 +1106,7 @@ function HireRegalia() {
                         </td>
 
                         <td className="table-cell-nowrap">
-                          <div className="order-id">
-                            {order.referenceNo || order.id}
-                          </div>
+                          <div className="order-id">{order.referenceNo}</div>
                         </td>
 
                         <td className="table-cell-nowrap">
@@ -1259,20 +1266,11 @@ function HireRegalia() {
                     <div>
                       <h2 className="modal-title">Order Details</h2>
                       <p className="modal-order-id">
-                        {selectedOrder.referenceNo || selectedOrder.id}
-                      </p>
-                      <p
-                        style={{
-                          marginTop: "0.25rem",
-                          fontSize: "0.85rem",
-                          color: "#6b7280",
-                        }}
-                      >
-                        Order ID: {selectedOrder.id}
+                        {selectedOrder.referenceNo}
                       </p>
                     </div>
                     <button
-                      onClick={closeOrderModal}
+                      onClick={() => setSelectedOrder(null)}
                       className="modal-close-button"
                       type="button"
                     >
@@ -1355,13 +1353,19 @@ function HireRegalia() {
                             )}
                             <div className="info-row">
                               <span className="info-label">Type:</span>
-                              <span className="info-value">Hire</span>
+                              <span className="info-value">
+                                {item.hire ? "Hire" : "Buy"}
+                              </span>
                             </div>
                             <div className="info-row">
                               <span className="info-label">Quantity:</span>
                               <span className="info-value">
                                 {item.quantity}
                               </span>
+                            </div>
+                            <div className="info-row">
+                              <span className="info-label">Price:</span>
+                              <span className="info-value">${item.cost}</span>
                             </div>
                             {index < selectedOrder.items.length - 1 && (
                               <hr
@@ -1380,14 +1384,12 @@ function HireRegalia() {
                     <div>
                       <h3 className="modal-section-title">Order Information</h3>
                       <div className="info-card">
-                        {selectedOrder.ceremony && (
-                          <div className="info-row">
-                            <span className="info-label">Ceremony:</span>
-                            <span className="info-value">
-                              {selectedOrder.ceremony}
-                            </span>
-                          </div>
-                        )}
+                        <div className="info-row">
+                          <span className="info-label">Ceremony:</span>
+                          <span className="info-value">
+                            {selectedOrder.ceremony}
+                          </span>
+                        </div>
                         <div className="info-row">
                           <span className="info-label">Order Date:</span>
                           <span className="info-value">
@@ -1396,14 +1398,19 @@ function HireRegalia() {
                         </div>
 
                         <div className="info-row">
+                          <span className="info-label">Total amount:</span>
+                          <span className="info-value">
+                            ${selectedOrder.amount}
+                          </span>
+                        </div>
+                        {/* <div className="info-row">
                           <span className="info-label">Payment Status:</span>
                           <span
                             className={`info-value ${selectedOrder.paid ? "success" : ""}`}
                           >
                             {selectedOrder.paid ? "Paid" : "Unpaid"}
                           </span>
-                        </div>
-
+                        </div> */}
                         {selectedOrder.paymentMethod && (
                           <div className="info-row">
                             <span className="info-label">Payment Method:</span>
@@ -1961,7 +1968,7 @@ function HireRegalia() {
 
                   <div className="modal-footer">
                     <button
-                      onClick={closeOrderModal}
+                      onClick={() => setSelectedOrder(null)}
                       className="close-button"
                       type="button"
                     >

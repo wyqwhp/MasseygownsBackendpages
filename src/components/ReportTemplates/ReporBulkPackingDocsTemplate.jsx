@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import JoditEditor from "jodit-react";
 import "./ReportOrderTemplate.css";
-import {getCMSTemplate, saveCMSTemplate} from "../api/TemplateApi.js";
+import {getCMSTemplate, saveCMSTemplate} from "../../api/TemplateApi.js";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 
-export default function PurchaseOrderEmailTemplate(template) {
+export default function ReportBulkPackingDocsTemplate(template) {
     const editor = useRef(null);
-    const LOCAL_KEY = "template_order_report";
+    const LOCAL_KEY = "template_bulk_packing_docs_report";
 
     const [html, setHtml] = useState("");
     const [previewHtml, setPreviewHtml] = useState("");
     const [loading, setLoading] = useState(true);
     const latestHtmlRef = useRef("");
+    const formatter = new Intl.NumberFormat('en-NZ', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
 
     // ----------------------------
     // VARIABLE LIST
@@ -45,13 +49,14 @@ export default function PurchaseOrderEmailTemplate(template) {
         idCode: "WOOD24",
         Name: "Woodford House 2024",
         CourierAddress: "3 Iona Road",
+        postalAddress: "PO Box 6733",
         ceremonyDate: "2024-12-05",
         phone: "06 873 0700 Ext 885",
         organiser: "Robyn Walsh",
         email: "robyn.walsh@woodford.school.nz",
         despatchDate: "2024-12-05",
         amountDue: 3000,
-        freight: 20,
+        freight: formatter.format(20),
         returnDate: "2024-12-08",
         gownsDespatched: 5,
         gownsReturned: 0,
@@ -66,8 +71,16 @@ export default function PurchaseOrderEmailTemplate(template) {
         country: "NZ",
         invoiceNumber: "41782315",
         gstNumber: "41782315",
-        total: "$0.00",
+        total: formatter.format(120),
         Notes: "Xero INV-12572",
+        gown_count: 1,
+        hat_count: 2,
+        hood_count: 3,
+        ucol_count: 4,
+        gown: formatter.format(25),
+        hat: formatter.format(10),
+        hood: formatter.format(20),
+        ucol: formatter.format(5),
     };
 
     // ----------------------------
@@ -78,7 +91,7 @@ export default function PurchaseOrderEmailTemplate(template) {
         async function loadTemplate() {
             try {
                 setLoading(true);
-                const template = await getCMSTemplate({ Name: "Order Report" });
+                const template = await getCMSTemplate({ Name: "Bulk Packing Docs" });
                 if (!isMounted) return;
 
                 setHtml(template.bodyHtml);

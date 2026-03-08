@@ -4,7 +4,14 @@ import "../components/EmailEdit.css";
 import PaymentEmailTemplateEditor from "../components/PaymentEmailTemplateEditor";
 import AdminNavbar from "@/components/AdminNavbar";
 import OrderCompletedEditor from "../components/OrderCompletedEditor";
-import ReportOrderTemplate from "../components/ReportOrderTemplate";
+import ReportOrderTemplate from "../components/ReportTemplates/ReportOrderTemplate.jsx";
+import ReportBulkInvoiceTemplate from "../components/ReportTemplates/ReporBulkInvoiceTemplate.jsx";
+import ReportBulkPackingDocsTemplate from "@/components/ReportTemplates/ReporBulkPackingDocsTemplate.jsx";
+// import {LOGO} from "@/logo.js"
+// import ReportIndCasualInvoiceTemplate from "@/components/ReportTemplates/ReportIndReceiptTemplate.jsx";
+import ReportIndBuyWorksheetTemplate from "@/components/ReportTemplates/ReporIndBuyWorksheetTemplate.jsx";
+import ReportIndCasualWorksheetTemplate from "@/components/ReportTemplates/ReporIndCasualWorksheetTemplate.jsx";
+import ReportIndReceiptTemplate from "@/components/ReportTemplates/ReportIndReceiptTemplate.jsx";
 
 const API_BASE = import.meta.env.VITE_GOWN_API_BASE;
 
@@ -70,6 +77,46 @@ export default function EmailTemplatesPage() {
       return (
           <ReportOrderTemplate
             template={selected}
+          />
+      );
+    }
+
+    if (selected.name === "Bulk Invoice") {
+      return (
+          <ReportBulkInvoiceTemplate
+              template={selected}
+          />
+      );
+    }
+
+    if (selected.name === "Bulk Packing Docs") {
+      return (
+          <ReportBulkPackingDocsTemplate
+              template={selected}
+          />
+      );
+    }
+
+    if (selected.name === "Individual Casual Hire Worksheet") {
+      return (
+          <ReportIndCasualWorksheetTemplate
+              template={selected}
+          />
+      );
+    }
+
+    if (selected.name === "Individual Buy Worksheet") {
+      return (
+          <ReportIndBuyWorksheetTemplate
+              template={selected}
+          />
+      );
+    }
+
+    if (selected.name === "Individual Receipt") {
+      return (
+          <ReportIndReceiptTemplate
+              template={selected}
           />
       );
     }

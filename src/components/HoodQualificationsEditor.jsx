@@ -10,6 +10,8 @@ const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://local
 const TAB_IDS = {
     bachelor: 4,
     master: 6,
+    phd: 9,
+    doctoral: 6,
     'bachelor set': 13,
     'master set': 14
 };
@@ -19,10 +21,14 @@ export default function HoodQualificationsEditor() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [newItem, setNewItem] = useState('');
+    const [newShortName, setNewShortName] = useState('');
+    const [newBin, setNewBin] = useState(0);
+    const [newNote, setNewNote] = useState('');
     const [hoods, setHoods] = useState({
         bachelor: [],
         master: [],
         phd: [],
+        doctoral: [],
         'bachelor set': [],
         'master set': []
     });
@@ -57,7 +63,21 @@ export default function HoodQualificationsEditor() {
             .then((res) => {
                 setHoods(prev => ({
                     ...prev,
-                    master: res.data
+                    master: res.data.filter(x => !x.doctoral)
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/admin/hoods/6`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    'doctoral': res.data.filter(x => x.doctoral)
                 }));
                 setLoading(false);
             })
@@ -111,7 +131,20 @@ export default function HoodQualificationsEditor() {
 
     const addItem = async () => {
         if (newItem.trim()) {
-            const addedItem = {name: newItem.trim(), itemId: TAB_IDS[activeTab]};
+            var addedItem;
+            switch (activeTab) {
+                case 'master':
+                    addedItem = {name: newItem.trim(), shortName: newShortName.trim(), bin: newBin, note: newNote.trim(),
+                        itemId: TAB_IDS[activeTab], doctoral: false};
+                    break;
+                case 'doctoral':
+                    addedItem = {name: newItem.trim(), shortName: newShortName.trim(), bin: newBin, note: newNote.trim(),
+                        itemId: TAB_IDS[activeTab], doctoral: true};
+                    break;
+                default:
+                    addedItem = {name: newItem.trim(), shortName: newShortName.trim(), bin: newBin, note: newNote.trim(),
+                        itemId: TAB_IDS[activeTab]};
+            }
             const res = await axios
                 .post(`${API_URL}/admin/hoods`, addedItem);
             setCurrentList(list => [...list, res.data].sort((a, b) => a.name.localeCompare(b.name)));
@@ -123,16 +156,16 @@ export default function HoodQualificationsEditor() {
         setCurrentList(list =>
             [...list].sort((a, b) => a.name.localeCompare(b.name))
         );
-        const editedItem = currentList[index];
+        const editedItem = currentList.find(x => x.id === index);
         axios
         .put(`${API_URL}/admin/hoods/${editedItem.id}`, editedItem);
     };
 
-    const updateItem = (index, value) => {
+    const updateItem = (index, name, value) => {
         setCurrentList(list =>
             list.map(item =>
                 item.id === index
-                    ? { ...item, name: value }
+                    ? { ...item, [name]: value }
                     : item
             )
         );
@@ -145,11 +178,11 @@ export default function HoodQualificationsEditor() {
         <>
         <AdminNavbar />
         <div className="p-6 topform">
-            <div className="max-w-3xl mx-auto p-6">
-                <h1 className="text-2xl font-bold mb-6">Hood Qualifications Editor</h1>
+            <div className="max-w-7xl mx-auto p-6">
+                <h1 className="text-2xl text-center font-bold mb-6">Hood Qualifications Editor</h1>
 
                 {/* Tabs */}
-                <div className="flex border-b border-gray-300 mb-6">
+                <div className="flex justify-around border-b border-gray-300 mb-6">
                     <button
                         onClick={() => setActiveTab('bachelor')}
                         className={`px-6 py-3 font-medium transition-colors ${
@@ -200,6 +233,16 @@ export default function HoodQualificationsEditor() {
                     >
                         Master Set Hoods
                     </button>
+                    <button
+                        onClick={() => setActiveTab('doctoral')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'doctoral'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Doctoral Hoods
+                    </button>
                 </div>
 
                 {/* Add new item */}
@@ -208,24 +251,52 @@ export default function HoodQualificationsEditor() {
                         type="text"
                         value={newItem}
                         onChange={(e) => setNewItem(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addItem()}
                         placeholder={`Add new ${activeTab} qualification...`}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                        className="w-112 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                    />
+                    <input
+                        type="text"
+                        value={newShortName}
+                        onChange={(e) => setNewShortName(e.target.value)}
+                        placeholder={`Add new ${activeTab} description...`}
+                        className="w-128 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                    />
+                    <input
+                        type="text"
+                        value={newShortName}
+                        onChange={(e) => setNewShortName(e.target.value)}
+                        placeholder={`Short name...`}
+                        className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                    />
+                    <input
+                        type="text"
+                        value={newBin}
+                        onChange={(e) => setNewBin(e.target.value)}
+                        className="w-16 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <button
                         onClick={addItem}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                        className="w-16  px-2 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                     >
                         <Plus size={20} />
                         Add
                     </button>
                 </div>
                 <div className="flex gap-2 mb-2">
-                    <span className="w-96 px-1 py-0 font-bold">
+                    <span className="w-112 px-1 py-0 font-bold">
                         Full Name
                     </span>
-                    <span className="w-64 px-1 py-0 font-bold">
+                    <span className="w-128 px-1 py-0 font-bold">
+                        Description
+                    </span>
+                    <span className="w-32 px-1 py-0 font-bold">
                         Short Name
+                    </span>
+                    <span className="w-16 px-1 py-0 font-bold">
+                        Bin
+                    </span>
+                    <span className="w-16 px-1 py-0 font-bold">
+                        Save
                     </span>
                 </div>
 
@@ -244,19 +315,35 @@ export default function HoodQualificationsEditor() {
                             >
                                 <input
                                     type="text"
+                                    name="name"
                                     value={item.name}
-                                    onChange={(e) => updateItem(item.id, e.target.value)}
-                                    className="w-96 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
+                                    className="w-112 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                                 <input
                                     type="text"
+                                    name="hoodNote"
+                                    value={item.hoodNote}
+                                    onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
+                                    className="w-128 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <input
+                                    type="text"
+                                    name="shortName"
                                     value={item.shortName}
                                     onChange={(e) => updateItem(item.id, e.target.value)}
-                                    className="w-64 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-32 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <input
+                                    type="text"
+                                    name="hoodBin"
+                                    value={item.hoodBin}
+                                    onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
+                                    className="w-16 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                                 <button
                                     onClick={() => editItem(item.id)}
-                                    className="p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                    className="w-16 p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
                                     title="Edit"
                                 >
                                     <Edit size={20} />

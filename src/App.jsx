@@ -9,6 +9,8 @@ import AdminEditItems from "./components/AdminEditItems.jsx";
 import AdminUsers from "./components/AdminUsers.jsx";
 import BuyRegalia from "./pages/BuyRegalia";
 import HireRegalia from "./pages/HireRegalia";
+import CasualHireRegalia from "./pages/CasualHireRegalia.jsx";
+import AbandonedOrders from "./pages/AbandonedOrders.jsx";
 import UpdatePic from "@/components/UpdatePic.jsx";
 import HomepageEdit from "./components/HomepageEdit.jsx";
 import HomePage from "@/pages/HomePage.jsx";
@@ -20,6 +22,10 @@ import PrintAddressLabels from "@/pages/PrintAddressLabels.jsx";
 import InternalManagementForm from "@/components/AdminInternalManagementForm.jsx";
 import HoodQualificationsEditor from "./components/HoodQualificationsEditor.jsx";
 import AdminEditDelivery from "./components/AdminEditDelivery.jsx";
+import AdminEditSku from "@/components/AdminEditSku.jsx";
+import PricesEditor from "@/components/PricesEditor.jsx";
+import AdminImportCeremony from "@/components/AdminImportCeremony.jsx";
+import AdminDataCheck from "@/components/AdminDataCheck.jsx";
 
 function App() {
   return (
@@ -78,6 +84,22 @@ function App() {
         element={
           <Authentication>
             <HireRegalia />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/CasualHireRegalia"
+        element={
+          <Authentication>
+            <CasualHireRegalia />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/AbandonedOrders"
+        element={
+          <Authentication>
+            <AbandonedOrders />
           </Authentication>
         }
       />
@@ -178,6 +200,38 @@ function App() {
           </Authentication>
         }
       />
+      <Route
+        path="/SkuEditor"
+        element={
+          <Authentication>
+              <AdminEditSku />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/PriceEditor"
+        element={
+          <Authentication>
+              <PricesEditor />
+          </Authentication>
+        }
+        />
+      <Route
+        path="/AdminImportCeremony"
+        element={
+          <Authentication>
+            <AdminImportCeremony />
+          </Authentication>
+        }
+        />
+      <Route
+        path="/AdminDataCheck"
+        element={
+          <Authentication>
+              <AdminDataCheck />
+          </Authentication>
+        }
+        />
     </Routes>
   );
 }
