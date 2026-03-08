@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import "./HireRegalia.css";
 import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
-import { getOrders, updateOrderStatus } from "../services/RegaliaService";
+import {
+  getOrders,
+  updateOrderStatus,
+  getItems,
+} from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
 import {
   ORDER_STATUS,
@@ -21,6 +25,8 @@ function HireRegalia() {
   // Date filters (YYYY-MM-DD from <input type="date" />)
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const [items, setItemsLocal] = useState([]);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
@@ -91,16 +97,11 @@ function HireRegalia() {
                 // 1) keep only orders where orderType = 1 (regular hire)
                 if (parseInt(order.orderType) !== 1) return null;
 
-                // purchaseOrder parsing
-                const poRaw = (order.purchaseOrder ?? "")
-                  .toString()
-                  .trim()
-                  .toUpperCase();
+                // 2) Purchase order (paymentMethod === 3)
+                const paymentMethod = Number(order.paymentMethod);
+                const isPurchaseOrder = paymentMethod === 3;
 
-                // 2) "Real" purchase order = PN + at least one digit (PN123...)
-                const isPurchaseOrder = /^PN\d+$/.test(poRaw);
-
-                // 3) Remove unpaid NORMAL orders (normal = just "PN" or empty)
+                // 3) Remove unpaid NORMAL orders
                 // keep if paid OR isPurchaseOrder
                 const keepOrder = order.paid === true || isPurchaseOrder;
                 if (!keepOrder) return null;
@@ -143,16 +144,27 @@ function HireRegalia() {
     [ORDER_STATUS.CANCELLED]: { label: "Cancelled", icon: X },
   };
 
-  // Get unique item types from all orders
   const getItemTypes = () => {
     const types = new Set();
-    orders.forEach((order) => {
-      order.items?.forEach((item) => {
-        if (item.itemName) types.add(item.itemName);
-      });
+
+    // Use fetched single items
+    (items || []).forEach((it) => {
+      const name =
+        it?.itemName || it?.name || it?.title || it?.displayName || "";
+      if (name) types.add(String(name).trim());
     });
-    return Array.from(types).sort();
+
+    return Array.from(types).sort((a, b) => a.localeCompare(b));
   };
+
+  // fetch items
+  useEffect(() => {
+    const fetchItems = async () => {
+      const data = await getItems();
+      setItemsLocal(Array.isArray(data) ? data : []);
+    };
+    fetchItems();
+  }, []);
 
   const updateStatus = (orderId, newStatus) => {
     const updatedOrders = orders.map((order) =>
@@ -263,12 +275,8 @@ function HireRegalia() {
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
-      const poValue = (order.purchaseOrder ?? "")
-        .toString()
-        .trim()
-        .toUpperCase();
-      const isNormalOrder = poValue === "" || poValue === "PN";
-      const isPurchaseOrder = !isNormalOrder;
+      const isPurchaseOrder = order.isPurchaseOrder === true;
+      const isNormalOrder = !isPurchaseOrder;
 
       const matchesOrderType =
         filterOrderType === "all" ||
@@ -1005,7 +1013,9 @@ function HireRegalia() {
                             )}
                             <div className="info-row">
                               <span className="info-label">Type:</span>
-                              <span className="info-value">Hire</span>
+                              <span className="info-value">
+                                {item.hire ? "Hire" : "Buy"}
+                              </span>
                             </div>
                             <div className="info-row">
                               <span className="info-label">Quantity:</span>
@@ -1015,9 +1025,7 @@ function HireRegalia() {
                             </div>
                             <div className="info-row">
                               <span className="info-label">Price:</span>
-                              <span className="info-value">
-                                {item.quantity}
-                              </span>
+                              <span className="info-value">${item.cost}</span>
                             </div>
                             {index < selectedOrder.items.length - 1 && (
                               <hr
@@ -1048,6 +1056,12 @@ function HireRegalia() {
                           </span>
                         </div>
                         <div className="info-row">
+                          <span className="info-label">Total amount:</span>
+                          <span className="info-value">
+                            ${selectedOrder.amount}
+                          </span>
+                        </div>
+                        {/* <div className="info-row">
                           <span className="info-label">Payment Status:</span>
                           <span
                             className={`info-value ${
@@ -1056,7 +1070,7 @@ function HireRegalia() {
                           >
                             {selectedOrder.paid ? "Paid" : "Unpaid"}
                           </span>
-                        </div>
+                        </div> */}
                         {selectedOrder.paymentMethod && (
                           <div className="info-row">
                             <span className="info-label">Payment Method:</span>

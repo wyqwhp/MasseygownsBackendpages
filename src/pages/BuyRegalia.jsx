@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./BuyRegalia.css";
 import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
-import { getOrders, updateOrderStatus } from "../services/RegaliaService";
+import {
+  getOrders,
+  updateOrderStatus,
+  getItems,
+  getItemSets,
+} from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
 import {
   ORDER_STATUS,
@@ -21,6 +26,9 @@ function BuyRegalia() {
   // Date filters (YYYY-MM-DD from <input type="date" />)
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const [items, setItemsLocal] = useState([]);
+  const [sets, setSets] = useState([]);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
@@ -89,16 +97,11 @@ function BuyRegalia() {
                 // 1) keep only orders where orderType = 2 (regular buy)
                 if (parseInt(order.orderType) !== 2) return null;
 
-                // purchaseOrder parsing
-                const poRaw = (order.purchaseOrder ?? "")
-                  .toString()
-                  .trim()
-                  .toUpperCase();
+                // 2) Purchase order (paymentMethod === 3)
+                const paymentMethod = Number(order.paymentMethod);
+                const isPurchaseOrder = paymentMethod === 3;
 
-                // 2) "Real" purchase order = PN + at least one digit (PN123...)
-                const isPurchaseOrder = /^PN\d+$/.test(poRaw);
-
-                // 3) Remove unpaid NORMAL orders (normal = just "PN" or empty)
+                // 3) Remove unpaid NORMAL orders
                 // keep if paid OR isPurchaseOrder
                 const keepOrder = order.paid === true || isPurchaseOrder;
                 if (!keepOrder) return null;
@@ -140,13 +143,40 @@ function BuyRegalia() {
 
   const getItemTypes = () => {
     const types = new Set();
-    orders.forEach((order) => {
-      order.items?.forEach((item) => {
-        if (item.itemName) types.add(item.itemName);
-      });
+
+    // Use fetched single items
+    (items || []).forEach((it) => {
+      const name =
+        it?.itemName || it?.name || it?.title || it?.displayName || "";
+      if (name) types.add(String(name).trim());
     });
-    return Array.from(types).sort();
+
+    // Include sets too
+    (sets || []).forEach((s) => {
+      const name = s?.setName || s?.name || s?.title || s?.displayName || "";
+      if (name) types.add(String(name).trim());
+    });
+
+    return Array.from(types).sort((a, b) => a.localeCompare(b));
   };
+
+  // fetch items
+  useEffect(() => {
+    const fetchItems = async () => {
+      const data = await getItems();
+      setItemsLocal(Array.isArray(data) ? data : []);
+    };
+    fetchItems();
+  }, []);
+
+  // fetch sets
+  useEffect(() => {
+    const fetchSets = async () => {
+      const data = await getItemSets();
+      setSets(Array.isArray(data) ? data : []);
+    };
+    fetchSets();
+  }, []);
 
   const updateStatus = (orderId, newStatus) => {
     const updatedOrders = orders.map((order) =>
@@ -226,17 +256,15 @@ function BuyRegalia() {
         order.lastName || ""
       }`.toLowerCase();
 
+      const q = searchTerm.toLowerCase();
+
       const matchesSearch =
-        fullName.includes(searchTerm.toLowerCase()) ||
+        fullName.includes(q) ||
         (order.referenceNo?.toString().toLowerCase() || "").includes(q) ||
         (order.purchaseOrder?.toString().toLowerCase() || "").includes(q) ||
-        (order.id?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase(),
-        ) ||
-        (order.studentId?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase(),
-        ) ||
-        (order.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+        (order.id?.toString().toLowerCase() || "").includes(q) ||
+        (order.studentId?.toString().toLowerCase() || "").includes(q) ||
+        (order.email?.toLowerCase() || "").includes(q);
 
       const matchesFilter =
         filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
@@ -250,13 +278,8 @@ function BuyRegalia() {
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
-      const poValue = (order.purchaseOrder ?? "")
-        .toString()
-        .trim()
-        .toUpperCase();
-
-      const isNormalOrder = poValue === "" || poValue === "PN";
-      const isPurchaseOrder = !isNormalOrder;
+      const isPurchaseOrder = order.isPurchaseOrder === true;
+      const isNormalOrder = !isPurchaseOrder;
 
       const matchesOrderType =
         filterOrderType === "all" ||
@@ -1006,6 +1029,10 @@ function BuyRegalia() {
                                 {item.quantity}
                               </span>
                             </div>
+                            <div className="info-row">
+                              <span className="info-label">Price:</span>
+                              <span className="info-value">${item.cost}</span>
+                            </div>
                             {index < selectedOrder.items.length - 1 && (
                               <hr
                                 style={{
@@ -1026,6 +1053,12 @@ function BuyRegalia() {
                           <span className="info-label">Order Date:</span>
                           <span className="info-value">
                             {selectedOrder.orderDate}
+                          </span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Total amount:</span>
+                          <span className="info-value">
+                            ${selectedOrder.amount}
                           </span>
                         </div>
                         {/* <div className="info-row">
