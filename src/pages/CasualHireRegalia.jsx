@@ -13,7 +13,7 @@ import {
   statusToClass,
 } from "../constants/status";
 
-function PurchaseOrders() {
+function CasualHireRegalia() {
   const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState(0);
@@ -261,7 +261,8 @@ function PurchaseOrders() {
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
-      const isPurchaseOrder = order.isPurchaseOrder === true;
+      const paymentMethod = Number(order.paymentMethod);
+      const isPurchaseOrder = paymentMethod === 3;
       const isNormalOrder = !isPurchaseOrder;
 
       const matchesOrderType =
@@ -455,7 +456,7 @@ function PurchaseOrders() {
         <div className="buy-regalia-wrapper">
           <div className="buy-regalia-header">
             <p className="buy-regalia-subtitle">
-              Manage and track graduation regalia staff purchases
+              Manage and track graduation regalia staff purchases (casual hire photos)
             </p>
           </div>
 
@@ -1058,13 +1059,11 @@ function PurchaseOrders() {
                             </span>
                           </div>
                         )}
-                        {selectedOrder.purchaseOrder && (
+                        {selectedOrder.paymentMethod === 3 && (
                           <div className="info-row">
                             <span className="info-label">Purchase Order:</span>
                             <span className="info-value">
-                              {selectedOrder.purchaseOrder === "PN"
-                                ? "N/A"
-                                : selectedOrder.purchaseOrder}
+                              {selectedOrder.purchaseOrder}
                             </span>
                           </div>
                         )}
@@ -1132,4 +1131,4 @@ function PurchaseOrders() {
   );
 }
 
-export default PurchaseOrders;
+export default CasualHireRegalia;

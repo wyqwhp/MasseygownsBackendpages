@@ -1,8 +1,3 @@
-// HireRegalia.jsx
-// Updated: add refund flow (refundStatusCode 0..4 + refundLastEm), localStorage fallback, refresh, request/approve.
-// Keep: Hire order filters: orderType === 1, paid OR PN+digits (purchase order)
-// Note: fully use refundStatusCode; no refundStatus string; text uses refundLastEm.
-
 import React, { useEffect, useMemo, useState } from "react";
 import "./HireRegalia.css";
 import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
@@ -237,7 +232,7 @@ function HireRegalia() {
   // ----------------------------
   // Fetch orders (hire logic)
   // - only orderType === 1
-  // - keep paid OR PN+digits purchase order
+  // - keep paid OR purchase order
   // ----------------------------
   useEffect(() => {
     const fetchOrders = async () => {
@@ -482,7 +477,8 @@ function HireRegalia() {
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
-      const isPurchaseOrder = order.isPurchaseOrder === true;
+      const paymentMethod = Number(order.paymentMethod);
+      const isPurchaseOrder = paymentMethod === 3;
       const isNormalOrder = !isPurchaseOrder;
 
       const matchesOrderType =
@@ -813,7 +809,7 @@ function HireRegalia() {
         <div className="hire-regalia-wrapper">
           <div className="hire-regalia-header">
             <p className="hire-regalia-subtitle">
-              Manage and track graduation regalia purchases
+              Manage and track graduation regalia purchases (hire regalia)
             </p>
           </div>
 
@@ -1424,13 +1420,11 @@ function HireRegalia() {
                           </div>
                         )}
 
-                        {selectedOrder.purchaseOrder && (
+                        {selectedOrder.paymentMethod === 3 && (
                           <div className="info-row">
                             <span className="info-label">Purchase Order:</span>
                             <span className="info-value">
-                              {selectedOrder.purchaseOrder === "PN"
-                                ? "N/A"
-                                : selectedOrder.purchaseOrder}
+                              {selectedOrder.purchaseOrder}
                             </span>
                           </div>
                         )}

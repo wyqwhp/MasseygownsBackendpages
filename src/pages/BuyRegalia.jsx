@@ -1,5 +1,3 @@
-// BuyRegalia.jsx (merged version: referenceNo-first + refund flow + PO filters)
-// Updated: fully use refundStatusCode (0..4); no refundStatus string; text uses refundLastEm.
 import React, { useEffect, useMemo, useState } from "react";
 import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
 import "./BuyRegalia.css";
@@ -227,7 +225,7 @@ export default function BuyRegalia() {
   // Fetch orders (merged logic)
   // - only orderType === 2
   // - keep only buy items (!hire)
-  // - keep paid OR PN+digits purchase order
+  // - keep paid OR purchase order
   // ----------------------------
   useEffect(() => {
     const fetchOrders = async () => {
@@ -481,7 +479,8 @@ export default function BuyRegalia() {
         filterItemType === "all" ||
         order.items?.some((item) => item.itemName === filterItemType);
 
-      const isPurchaseOrder = order.isPurchaseOrder === true;
+      const paymentMethod = Number(order.paymentMethod);
+      const isPurchaseOrder = paymentMethod === 3;
       const isNormalOrder = !isPurchaseOrder;
 
       const matchesOrderType =
@@ -817,7 +816,7 @@ export default function BuyRegalia() {
         <div className="buy-regalia-wrapper">
           <div className="buy-regalia-header">
             <p className="buy-regalia-subtitle">
-              Manage and track graduation regalia purchases
+              Manage and track graduation regalia purchases (buy regalia)
             </p>
           </div>
 
@@ -1413,13 +1412,11 @@ export default function BuyRegalia() {
                             </span>
                           </div>
                         )}
-                        {selectedOrder.purchaseOrder && (
+                        {selectedOrder.paymentMethod === 3 && (
                           <div className="info-row">
                             <span className="info-label">Purchase Order:</span>
                             <span className="info-value">
-                              {selectedOrder.purchaseOrder === "PN"
-                                ? "N/A"
-                                : selectedOrder.purchaseOrder}
+                              {selectedOrder.purchaseOrder}
                             </span>
                           </div>
                         )}
