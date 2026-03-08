@@ -401,7 +401,7 @@ function CasualHireRegalia() {
     const rows = filteredOrders.flatMap((order) =>
       order.items?.length
         ? order.items.map((item) => [
-            order.id,
+            order.referenceNo,
             order.firstName,
             order.lastName,
             order.studentId,
@@ -414,7 +414,7 @@ function CasualHireRegalia() {
           ])
         : [
             [
-              order.id,
+              order.referenceNo,
               order.firstName,
               order.lastName,
               order.studentId,
@@ -437,7 +437,7 @@ function CasualHireRegalia() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Purchased_Orders_${
+    a.download = `CasualHire_Orders_${
       new Date().toISOString().split("T")[0]
     }.csv`;
     a.click();
