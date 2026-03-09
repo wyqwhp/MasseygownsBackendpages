@@ -887,6 +887,24 @@ function AbandonedOrders() {
                       <h3 className="modal-section-title">Order Information</h3>
                       <div className="info-card">
                         <div className="info-row">
+                          <span className="info-label">Order Type:</span>
+                          <span className="info-value">
+                            {selectedOrder.orderType == 1
+                              ? "Hire Regalia"
+                              : selectedOrder.orderType == 2
+                                ? "Buy Regalia"
+                                : "Casual Hire for Photos"}
+                          </span>
+                        </div>
+                        {selectedOrder.orderType === 1 && (
+                          <div className="info-row">
+                            <span className="info-label">Ceremony:</span>
+                            <span className="info-value">
+                              {selectedOrder.ceremony || "N/A"}
+                            </span>
+                          </div>
+                        )}
+                        <div className="info-row">
                           <span className="info-label">Order Date:</span>
                           <span className="info-value">
                             {selectedOrder.orderDate}
