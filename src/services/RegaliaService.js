@@ -39,13 +39,14 @@ export const getDelivery = async () => {
 
 export async function updateDelivery(form, updatedDelivery) {
   try {
-    const response = await axios.put(`${API_URL}/delivery/${form.id}`,
+    const response = await axios.put(
+      `${API_URL}/delivery/${form.id}`,
       updatedDelivery,
       {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     return response.data;
   } catch (err) {
@@ -59,9 +60,80 @@ export const updateDeliveryCost = async (payload) => {
     throw new Error("updateDeliveryCost called without Id");
   }
 
-  return axios.put(
-    `${API_URL}/delivery/cost/${payload.Id}`,
-    payload
-  );
+  return axios.put(`${API_URL}/delivery/cost/${payload.Id}`, payload);
 };
 
+export async function syncRefundStatus(orderId) {
+  const resp = await fetch(
+    `${API_URL}/api/admin/orders/${orderId}/refund/sync`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Sync refund status failed (${resp.status})`);
+  }
+
+  return await resp.json();
+}
+
+export async function refundRequest(orderId, amount) {
+  const url = `${API_URL}/api/orders/${orderId}/refund-request`;
+  const payload = { amount: Number(amount) };
+
+  const token = localStorage.getItem("token");
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const resp = await axios.post(url, payload, {
+    headers,
+    validateStatus: () => true,
+  });
+
+  return resp;
+}
+
+export async function refundApprove(orderId, amount) {
+  const url = `${API_URL}/api/orders/${orderId}/refund-approve`;
+  const payload = { RefundAmount: Number(amount) };
+  const token = localStorage.getItem("token");
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const resp = await axios.post(url, payload, {
+    headers,
+    validateStatus: () => true,
+  });
+
+  return resp;
+}
+export const getItems = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/items`);
+    return response.data;
+  } catch (err) {
+    console.error("Error fetching items:", err);
+    return [];
+  }
+};
+
+export const getItemSets = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/itemsets`);
+    return response.data;
+  } catch (err) {
+    console.error("Error fetching item sets:", err);
+    return [];
+  }
+};

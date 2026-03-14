@@ -85,10 +85,10 @@ function AbandonedOrders() {
         const processedData = Array.isArray(data)
           ? data
               .filter((order) => {
-                const po = (order.purchaseOrder ?? "").toString().toUpperCase();
+                const paymentMethod = Number(order.paymentMethod);
 
                 // keep ONLY unpaid normal orders
-                return po === "PN" && order.paid === false;
+                return paymentMethod !== 3 && order.paid === false;
               })
               .map((order) => ({
                 ...order,
@@ -127,16 +127,6 @@ function AbandonedOrders() {
       });
     });
     return Array.from(types).sort();
-  };
-
-  const updateStatus = (orderId, newStatus) => {
-    const updatedOrders = orders.map((order) =>
-      order.id === orderId ? { ...order, status: newStatus } : order,
-    );
-    updateOrderStatus(orderId, newStatus);
-    setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
-    setSelectedOrder(null);
   };
 
   const handleBulkStatusUpdate = async () => {
@@ -207,17 +197,15 @@ function AbandonedOrders() {
         order.lastName || ""
       }`.toLowerCase();
 
+      const q = searchTerm.toLowerCase();
+
       const matchesSearch =
-        fullName.includes(searchTerm.toLowerCase()) ||
+        fullName.includes(q) ||
         (order.referenceNo?.toString().toLowerCase() || "").includes(q) ||
         (order.purchaseOrder?.toString().toLowerCase() || "").includes(q) ||
-        (order.id?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase(),
-        ) ||
-        (order.studentId?.toString().toLowerCase() || "").includes(
-          searchTerm.toLowerCase(),
-        ) ||
-        (order.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+        (order.id?.toString().toLowerCase() || "").includes(q) ||
+        (order.studentId?.toString().toLowerCase() || "").includes(q) ||
+        (order.email?.toLowerCase() || "").includes(q);
 
       // const matchesFilter =
       //   filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
@@ -334,8 +322,8 @@ function AbandonedOrders() {
     }
   };
 
-  const getStatusCount = (status) =>
-    orders.filter((o) => o.status === status).length;
+  // const getStatusCount = (status) =>
+  //   orders.filter((o) => o.status === status).length;
 
   const generateCSV = () => {
     if (filteredOrders.length === 0) {
@@ -395,7 +383,7 @@ function AbandonedOrders() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Purchased_Orders_${
+    a.download = `Abandoned_Orders_${
       new Date().toISOString().split("T")[0]
     }.csv`;
     a.click();
@@ -414,47 +402,8 @@ function AbandonedOrders() {
         <div className="buy-regalia-wrapper">
           <div className="buy-regalia-header">
             <p className="buy-regalia-subtitle">
-              Manage and track graduation regalia staff purchases
+              Manage and track graduation regalia abandoned purchases
             </p>
-          </div>
-
-          <div className="stats-grid">
-            <div className="stat-card yellow">
-              <div className="stat-card-content">
-                <div className="stat-card-info">
-                  <p>Pending</p>
-                  <p>{getStatusCount(ORDER_STATUS.PENDING)}</p>
-                </div>
-                <Clock className="stat-icon yellow" />
-              </div>
-            </div>
-            <div className="stat-card blue">
-              <div className="stat-card-content">
-                <div className="stat-card-info">
-                  <p>Processing</p>
-                  <p>{getStatusCount(ORDER_STATUS.PROCESSING)}</p>
-                </div>
-                <Package className="stat-icon blue" />
-              </div>
-            </div>
-            <div className="stat-card green">
-              <div className="stat-card-content">
-                <div className="stat-card-info">
-                  <p>Delivered</p>
-                  <p>{getStatusCount(ORDER_STATUS.DELIVERED)}</p>
-                </div>
-                <Truck className="stat-icon green" />
-              </div>
-            </div>
-            <div className="stat-card red">
-              <div className="stat-card-content">
-                <div className="stat-card-info">
-                  <p>Cancelled</p>
-                  <p>{getStatusCount(ORDER_STATUS.CANCELLED)}</p>
-                </div>
-                <X className="stat-icon red" />
-              </div>
-            </div>
           </div>
 
           {/* Search and Filter */}
@@ -470,21 +419,6 @@ function AbandonedOrders() {
                   className="search-input with-icon"
                 />
               </div>
-
-              {/* <div className="filter-wrapper">
-                <Filter className="filter-icon" />
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(Number(e.target.value))}
-                  className="filter-select"
-                >
-                  <option value={ORDER_STATUS.ALL}>All Status</option>
-                  <option value={ORDER_STATUS.PENDING}>Pending</option>
-                  <option value={ORDER_STATUS.PROCESSING}>Processing</option>
-                  <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
-                  <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
-                </select>
-              </div> */}
 
               <div className="filter-wrapper">
                 <select
@@ -534,25 +468,6 @@ function AbandonedOrders() {
               >
                 Clear dates
               </button>
-
-              {/* <div className="payment-filter-wrapper">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={filterPaid}
-                    onChange={(e) => setFilterPaid(e.target.checked)}
-                  />
-                  Paid
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={filterUnpaid}
-                    onChange={(e) => setFilterUnpaid(e.target.checked)}
-                  />
-                  Unpaid
-                </label>
-              </div> */}
 
               <button
                 onClick={generateCSV}
@@ -737,15 +652,6 @@ function AbandonedOrders() {
                         <td className="table-cell-nowrap">
                           <div className="order-date">{order.orderDate}</div>
                         </td>
-
-                        {/* <td className="table-cell-nowrap">
-                          <span
-                            className={`status-badge ${statusToClass(status)}`}
-                          >
-                            <StatusIcon className="status-icon" />
-                            {config.label}
-                          </span>
-                        </td> */}
 
                         <td className="table-cell-nowrap">
                           <button
@@ -960,6 +866,10 @@ function AbandonedOrders() {
                                 {item.quantity}
                               </span>
                             </div>
+                            <div className="info-row">
+                              <span className="info-label">Price:</span>
+                              <span className="info-value">${item.cost}</span>
+                            </div>
                             {index < selectedOrder.items.length - 1 && (
                               <hr
                                 style={{
@@ -977,9 +887,33 @@ function AbandonedOrders() {
                       <h3 className="modal-section-title">Order Information</h3>
                       <div className="info-card">
                         <div className="info-row">
+                          <span className="info-label">Order Type:</span>
+                          <span className="info-value">
+                            {selectedOrder.orderType == 1
+                              ? "Hire Regalia"
+                              : selectedOrder.orderType == 2
+                                ? "Buy Regalia"
+                                : "Casual Hire for Photos"}
+                          </span>
+                        </div>
+                        {selectedOrder.orderType === 1 && (
+                          <div className="info-row">
+                            <span className="info-label">Ceremony:</span>
+                            <span className="info-value">
+                              {selectedOrder.ceremony || "N/A"}
+                            </span>
+                          </div>
+                        )}
+                        <div className="info-row">
                           <span className="info-label">Order Date:</span>
                           <span className="info-value">
                             {selectedOrder.orderDate}
+                          </span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Total amount:</span>
+                          <span className="info-value">
+                            ${selectedOrder.amount}
                           </span>
                         </div>
                         {selectedOrder.paymentMethod && (
@@ -994,16 +928,6 @@ function AbandonedOrders() {
                             </span>
                           </div>
                         )}
-                        {selectedOrder.purchaseOrder && (
-                          <div className="info-row">
-                            <span className="info-label">Purchase Order:</span>
-                            <span className="info-value">
-                              {selectedOrder.purchaseOrder === "PN"
-                                ? "N/A"
-                                : selectedOrder.purchaseOrder}
-                            </span>
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -1015,39 +939,6 @@ function AbandonedOrders() {
                         </div>
                       </div>
                     )}
-
-                    {/* <div>
-                      <h3 className="modal-section-title">Update Status</h3>
-                      <div className="status-update-grid">
-                        {Object.entries(statusConfig).map(
-                          ([statusKey, config]) => {
-                            const numericStatus = Number(statusKey);
-                            const StatusIcon = config.icon;
-
-                            return (
-                              <button
-                                key={numericStatus}
-                                onClick={() =>
-                                  updateStatus(selectedOrder.id, numericStatus)
-                                }
-                                className={`status-update-button ${
-                                  normalizeStatus(selectedOrder.status) ===
-                                  numericStatus
-                                    ? "active"
-                                    : "inactive"
-                                }`}
-                                type="button"
-                              >
-                                <StatusIcon className="status-update-icon" />
-                                <span className="status-update-label">
-                                  {config.label}
-                                </span>
-                              </button>
-                            );
-                          },
-                        )}
-                      </div>
-                    </div> */}
                   </div>
 
                   <div className="modal-footer">

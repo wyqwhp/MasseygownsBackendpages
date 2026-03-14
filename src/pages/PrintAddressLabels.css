@@ -8,7 +8,6 @@
   justify-content: space-between;
   gap: 14px;
   align-items: flex-start;
-  margin-bottom: 12px;
   padding-top: 100px;
 }
 
@@ -24,6 +23,7 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
+  padding-right: 10px;
 }
 
 .toolbar-meta {
@@ -32,7 +32,7 @@
 }
 
 .search-input {
-  width: 320px;
+  width: 200px;
   height: 36px;
   padding: 8px 12px;
   border: 1px solid #d0d7de;
@@ -89,11 +89,12 @@
 
 .tiny-select {
   height: 32px;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border: 1px solid #d0d7de;
   border-radius: 6px;
   background: #ffffff;
   font-size: 13px;
+  margin-right: 10px;
 }
 
 .btn {
@@ -132,7 +133,6 @@
   gap: 8px;
   padding: 4px 8px;
   height: 36px;
-  border: 1px solid #d0d7de;
   border-radius: 6px;
   background: #ffffff;
 }
@@ -204,8 +204,9 @@
 }
 
 .td-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   font-size: 13px;
 }
 
@@ -315,4 +316,8 @@
   max-height: 12mm;
   height: auto;
   object-fit: contain;
+}
+
+.secondtoolbar {
+  margin-bottom: 20px;
 }
