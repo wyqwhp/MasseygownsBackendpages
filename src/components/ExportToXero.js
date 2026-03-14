@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const columns = [
     { key: "name", header: "*ContactName" },
     { key: "email", header: "EmailAddress" },
@@ -63,8 +65,8 @@ const data = [
     },
 ];
 
-export function exportToCSV() {
-    if (!data || !data.length) {
+const exportToCSV = ((orders) => {
+    if (!orders || !orders.length) {
         console.warn("No data to export");
         return;
     }
@@ -73,7 +75,7 @@ export function exportToCSV() {
     const header = columns.map(col => col.header).join(",");
 
     // Create data rows
-    const rows = data.map(row =>
+    const rows = orders.map(row =>
         columns.map(col => {
             let value = row[col.key] ?? "";
 
@@ -97,4 +99,12 @@ export function exportToCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+});
+
+export function XeroToCSV(id) {
+    axios
+        .get(`/admin/ordersbyceremony/${id}`)
+        .then((res) => {
+            exportToCSV(res.data)
+        });
 }

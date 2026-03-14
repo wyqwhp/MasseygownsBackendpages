@@ -3,18 +3,11 @@ import React, {useEffect, useRef, useState} from "react";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import axios from "axios";
 import {LOGO} from "@/logo.js";
+import {formatNZDate} from "@/services/DateServices.js";
 
 const PRINT_API_URL = import.meta.env.VITE_PRINT_PDF;
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144";
-
-function formatNZDate(dateStr) {
-    const [year, month, day] = dateStr.split("-");
-
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-    return `${day}-${months[month - 1]}-${year}`;
-}
 
 export default function PrintBulkPackingDocs({ceremony, onDone}) {
     // ----------------------------

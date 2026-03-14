@@ -4,10 +4,6 @@ import ReactDOM from "react-dom";
 import "./AdminNavbar.css";
 import "./Spinner.css";
 import { useAuth } from "@/components/AuthContext.jsx";
-// import {
-//   generateLabelsPDF,
-//   generateManifestPDF,
-// } from "@/components/PrintLabels.js";
 import PrintReportOrder from "@/components/ReportPrint/PrintReportOrder.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
@@ -124,33 +120,6 @@ function AdminNavbar() {
 
   const showSubbar = Boolean(activeSection && activeSection.sub?.length);
 
-  // async function printLabels() {
-  //   setLoading(true);
-  //   try {
-  //     const response = await fetch(`${API_URL}/orders`);
-  //     const orders = await response.json();
-  //     generateLabelsPDF(orders);
-  //   } catch (err) {
-  //     console.error(err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }
-
-  // async function printManifest() {
-  //   setLoading(true);
-  //   try {
-  //     let response = await fetch(`${API_URL}/admin/items/ceremony/4`);
-  //     let orders = await response.json();
-  //     generateManifestPDF(orders);
-  //     // console.log("Backend result:", orders);
-  //   } catch (err) {
-  //     console.error(err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }
-
   return (
     <header className="admin-nav">
       {/* TOP DARK BAR */}
@@ -204,17 +173,6 @@ function AdminNavbar() {
                   {t.label}
                 </NavLink>
               ))}
-
-              {activeSection.key === "database" && (
-                <button
-                  className="admin-subtab admin-subtab-btn"
-                  onClick={PrintReportOrder}
-                  disabled={loading}
-                  type="button"
-                >
-                  print report
-                </button>
-              )}
             </nav>
           </div>
         </div>

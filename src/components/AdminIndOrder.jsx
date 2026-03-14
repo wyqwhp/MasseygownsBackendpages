@@ -172,6 +172,7 @@ export default function AdminIndOrder() {
       referenceNo: order.referenceNo,
       note: order.note,
       freight: order.freight ?? 0,
+      amount: order.amount ?? 0,
       // gownType: order.items?.[0]?.itemName ?? ""
     });
     console.log("Freight=", order.freight);

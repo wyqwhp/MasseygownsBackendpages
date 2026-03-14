@@ -3,7 +3,7 @@ import axios, {Cancel} from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import AdminNavbar from "./AdminNavbar.jsx";
 import "./AdminEditCeremonies.css";
-import {Printer, X} from "lucide-react";
+import {Printer, X, Download} from "lucide-react";
 import {Button} from "@/components/ui/button.jsx";
 import {PrintGraduatedNotHiredPDF, PrintHiredNotGraduatedPDF} from "@/components/PrintManifest.js";
 import AdminImportCeremony from "@/components/AdminImportCeremony.jsx";
@@ -72,6 +72,34 @@ export default function AdminDataCheck() {
         setImportData(true);
   }
 
+  const exportToCSV = (hired, filename = "HiredNotGraduated.csv") => {
+        if (!hired || hired.length === 0) return;
+
+        // Get headers
+        const headers = Object.keys(hired[0]);
+
+        // Convert rows
+        const rows = hired.map(obj =>
+            headers.map(h => `"${(obj[h] ?? "").toString().replace(/"/g, '""')}"`).join(",")
+        );
+
+        // Combine headers and rows
+        const csv = [headers.join(","), ...rows].join("\n");
+
+        // Create download
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+  }
+
   if (error) return <p className="text-red-600">Error: {error}</p>;
   if (importData) return <AdminImportCeremony onClose={() => setImportData(false)}/>;
 
@@ -108,11 +136,19 @@ export default function AdminDataCheck() {
                             >
                               Hired Not Graduated
                             </Button>
+
                             <Button className="bg-green-700 px-3 py-1 hover:bg-green-800"
                               onClick={() => PrintHiredNotGraduatedPDF(hired)}
                               disabled={!hired.length || ceremony.id !== editingId || buttonType !== 1}
                             >
                                 <Printer/>
+                            </Button>
+
+                            <Button className="bg-green-700 px-3 py-1 hover:bg-green-800"
+                                    onClick={() => exportToCSV(hired, 'HiredNotGraduated.csv')}
+                                    disabled={!hired.length || ceremony.id !== editingId || buttonType !== 1}
+                            >
+                                <Download/>.CSV
                             </Button>
                         </div>
 
@@ -123,11 +159,19 @@ export default function AdminDataCheck() {
                             >
                               Graduated Not Hired
                             </Button>
+
                             <Button className="bg-green-700 px-3 py-1 hover:bg-green-800"
                               onClick={() => PrintGraduatedNotHiredPDF(hired)}
                               disabled={!hired.length || ceremony.id !== editingId || buttonType !== 2}
                             >
                                 <Printer/>
+                            </Button>
+
+                            <Button className="bg-green-700 px-3 py-1 hover:bg-green-800"
+                                    onClick={() => exportToCSV(hired, 'GraduatedNotHired.csv')}
+                                    disabled={!hired.length || ceremony.id !== editingId || buttonType !== 2}
+                            >
+                                <Download/>.CSV
                             </Button>
                         </div>
                       </td>
