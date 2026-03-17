@@ -24,6 +24,8 @@ const variableList = [
   "invoiceNumber",
   "invoiceDate",
   "cartRows",
+  "PaymeUrl",
+  "ReferenceNumber",
 ];
 
 function parseBodyHtml(html) {
