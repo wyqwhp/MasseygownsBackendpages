@@ -82,7 +82,7 @@ export async function syncRefundStatus(orderId) {
 
 export async function refundRequest(orderId, amount) {
   const url = `${API_URL}/api/orders/${orderId}/refund-request`;
-  const payload = { amount: Number(amount) };
+  const payload = { refundAmount: Number(amount) };
 
   const token = localStorage.getItem("token");
   const headers = {

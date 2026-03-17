@@ -74,11 +74,11 @@ function HireRegalia() {
   // None = 0, InProgress = 1, Completed = 2, Failed = 3, Requested = 4
   // ----------------------------
   const REFUND_CODE = {
-    NONE: 0,
-    IN_PROGRESS: 1,
-    COMPLETED: 2,
-    FAILED: 3,
-    REQUESTED: 4,
+    NONE: -1,
+    IN_PROGRESS: 13,
+    COMPLETED: 0,
+    FAILED: 2,
+    REQUESTED: 3,
   };
 
   const toRefundType = (code) => {
@@ -312,7 +312,17 @@ function HireRegalia() {
       setRefundStatusType(saved.type || toRefundType(code) || "idle");
       setRefundStatusText(saved.text || "");
     } else {
-      setRefundStatusText("");
+      if (code === REFUND_CODE.REQUESTED) {
+        setRefundStatusText("Refund requested.");
+      } else if (code === REFUND_CODE.IN_PROGRESS) {
+        setRefundStatusText("Refund in progress.");
+      } else if (code === REFUND_CODE.COMPLETED) {
+        setRefundStatusText("Refund completed.");
+      } else if (code === REFUND_CODE.FAILED) {
+        setRefundStatusText("Refund failed.");
+      } else {
+        setRefundStatusText("");
+      }
     }
 
     if (code === REFUND_CODE.COMPLETED || code === REFUND_CODE.FAILED) {
@@ -324,18 +334,27 @@ function HireRegalia() {
   useEffect(() => {
     if (!selectedOrder?.id) return;
 
+    const code = getRefundCode(selectedOrder);
     const backendAmt = pickRefundAmountFromOrder(selectedOrder);
     const storageAmt = pickRefundAmountFromStorage(selectedOrder.id);
     const amt = backendAmt ?? storageAmt;
 
-    if (amt !== null && amt !== undefined && amt > 0) {
+    if (
+      (code === REFUND_CODE.REQUESTED ||
+        code === REFUND_CODE.IN_PROGRESS ||
+        code === REFUND_CODE.COMPLETED) &&
+      amt !== null &&
+      amt !== undefined &&
+      amt > 0
+    ) {
       setRefundAmount(String(amt));
     } else {
-      if (!refundAmount) setRefundAmount("");
+      setRefundAmount("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedOrder?.id,
+    selectedOrder?.refundStatusCode,
     selectedOrder?.refundedAmount,
     selectedOrder?.refundRequestedAmount,
     selectedOrder?.requestedRefundAmount,
@@ -798,6 +817,13 @@ function HireRegalia() {
     isRefundRequested ||
     isRefundInProgress ||
     isRefundCompleted;
+
+  const handleAuthExpired = () => {
+    alert("Your session has expired. Please log in again.");
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "/login";
+  };
 
   return (
     <>
@@ -1519,9 +1545,9 @@ function HireRegalia() {
                               fontWeight: 600,
                               fontSize: "0.85rem",
                             }}
-                            title="Refresh refund status"
+                            title="Recheck refund status"
                           >
-                            {refundSyncing ? "Refreshing..." : "Refresh"}
+                            {refundSyncing ? "Checking..." : "Recheck"}
                           </button>
                         </div>
 
@@ -1684,6 +1710,17 @@ function HireRegalia() {
                                   return;
                                 }
 
+                                if (resp.status === 401) {
+                                  setRefundStatusPersisted(
+                                    selectedOrder.id,
+                                    "failed",
+                                    "Session expired. Please log in again.",
+                                    amountNum,
+                                  );
+                                  handleAuthExpired();
+                                  return;
+                                }
+
                                 if (resp.status === 409) {
                                   const msg =
                                     (typeof resp.data === "string" &&
@@ -1720,15 +1757,22 @@ function HireRegalia() {
                                 alert(msg);
                               } catch (e) {
                                 console.error(e);
+
+                                const msg =
+                                  e?.response?.data?.message ||
+                                  e?.response?.data?.em ||
+                                  (typeof e?.response?.data === "string"
+                                    ? e.response.data
+                                    : "") ||
+                                  "Refund request failed.";
+
                                 setRefundStatusPersisted(
                                   selectedOrder.id,
                                   "failed",
-                                  "Refund request failed. Please check backend logs.",
+                                  msg,
                                   Number(refundAmount) || null,
                                 );
-                                alert(
-                                  "Refund request failed. Please check backend logs.",
-                                );
+                                alert(msg);
                               } finally {
                                 setRefundSubmitting(false);
                               }
@@ -1872,6 +1916,17 @@ function HireRegalia() {
                                   return;
                                 }
 
+                                if (resp.status === 401) {
+                                  setRefundStatusPersisted(
+                                    selectedOrder.id,
+                                    "failed",
+                                    "Session expired. Please log in again.",
+                                    amountNum,
+                                  );
+                                  handleAuthExpired();
+                                  return;
+                                }
+
                                 if (resp.status === 409) {
                                   const msg =
                                     (typeof resp.data === "string" &&
@@ -1908,15 +1963,22 @@ function HireRegalia() {
                                 alert(msg);
                               } catch (e) {
                                 console.error(e);
+
+                                const msg =
+                                  e?.response?.data?.message ||
+                                  e?.response?.data?.em ||
+                                  (typeof e?.response?.data === "string"
+                                    ? e.response.data
+                                    : "") ||
+                                  "Refund approve failed.";
+
                                 setRefundStatusPersisted(
                                   selectedOrder.id,
                                   "failed",
-                                  "Refund approve failed. Please check backend logs.",
+                                  msg,
                                   Number(refundAmountInputValue) || null,
                                 );
-                                alert(
-                                  "Refund approve failed. Please check backend logs.",
-                                );
+                                alert(msg);
                               } finally {
                                 setRefundSubmitting(false);
                               }
