@@ -12,6 +12,10 @@ const TAB_IDS = {
     master: 6,
     phd: 9,
     doctoral: 6,
+    'UCOL bachelor': 33,
+    'UCOL master': 34,
+    'UCOL postgrad': 35,
+    'UCOL grad': 36,
     'bachelor set': 13,
     'master set': 14
 };
@@ -30,7 +34,11 @@ export default function HoodQualificationsEditor() {
         phd: [],
         doctoral: [],
         'bachelor set': [],
-        'master set': []
+        'master set': [],
+        ucolbachelor: [],
+        ucolmaster: [],
+        ucolpostgrad: [],
+        ucolgrad: []
     });
     // const []
     const currentList = hoods[activeTab];
@@ -127,6 +135,62 @@ export default function HoodQualificationsEditor() {
                 setError(err.message);
                 setLoading(false);
             });
+
+        axios
+            .get(`${API_URL}/admin/hoods/33`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    'UCOL bachelor': res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/admin/hoods/34`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    'UCOL master': res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/admin/hoods/35`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    'UCOL postgrad': res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/admin/hoods/36`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    'UCOL grad': res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
     }, []);
 
     const addItem = async () => {
@@ -191,8 +255,9 @@ export default function HoodQualificationsEditor() {
                                 : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
-                        Bachelor Hoods
+                        Bachelor
                     </button>
+
                     <button
                         onClick={() => setActiveTab('master')}
                         className={`px-6 py-3 font-medium transition-colors ${
@@ -201,8 +266,9 @@ export default function HoodQualificationsEditor() {
                                 : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
-                        Master Hoods
+                        Master
                     </button>
+
                     <button
                         onClick={() => setActiveTab('phd')}
                         className={`px-6 py-3 font-medium transition-colors ${
@@ -211,7 +277,7 @@ export default function HoodQualificationsEditor() {
                                 : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
-                        Phd Hoods
+                        Phd
                     </button>
                     <button
                         onClick={() => setActiveTab('bachelor set')}
@@ -221,8 +287,9 @@ export default function HoodQualificationsEditor() {
                                 : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
-                        Bachelor Set Hoods
+                        Bachelor Set
                     </button>
+
                     <button
                         onClick={() => setActiveTab('master set')}
                         className={`px-6 py-3 font-medium transition-colors ${
@@ -231,8 +298,9 @@ export default function HoodQualificationsEditor() {
                                 : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
-                        Master Set Hoods
+                        Master Set
                     </button>
+
                     <button
                         onClick={() => setActiveTab('doctoral')}
                         className={`px-6 py-3 font-medium transition-colors ${
@@ -241,7 +309,51 @@ export default function HoodQualificationsEditor() {
                                 : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
-                        Doctoral Hoods
+                        Doctoral
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('UCOL bachelor')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'UCOL bachelor'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        UCOL Bachelor
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('UCOL grad')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'UCOL grad'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        UCOL Grad
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('UCOL postgrad')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'UCOL postgrad'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        UCOL Postgrad
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('UCOL master')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'UCOL master'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        UCOL Master
                     </button>
                 </div>
 

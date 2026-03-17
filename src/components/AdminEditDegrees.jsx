@@ -45,6 +45,7 @@ export default function DegreesEditor() {
     setForm({
       id: degree.id,
       name: degree.name,
+      degreeorder: degree.degreeorder,
     });
   };
 
@@ -72,14 +73,16 @@ export default function DegreesEditor() {
         editingId.startsWith("temp-")
       ) {
         res = await axios.post(`${API_URL}/admin/degrees`, form);
-        await axios.post(
-          `${API_URL}/admin/degrees/${res.data.id}/items`,
-          items
-        );
+        if (items.length > 0)
+          await axios.post(
+            `${API_URL}/admin/degrees/${res.data.id}/items`,
+            items
+          );
       } else {
         res = await axios.put(`${API_URL}/admin/degrees/${editingId}`, form);
         console.log("Items=", items);
-        await axios.post(`${API_URL}/admin/degrees/${editingId}/items`, items);
+        if (items.length > 0)
+          await axios.post(`${API_URL}/admin/degrees/${editingId}/items`, items);
       }
       setDegrees((prev) =>
         prev.map((c) => (c.id === editingId ? res.data : c))
@@ -95,7 +98,7 @@ export default function DegreesEditor() {
 
   const addDegree = () => {
     const tempId = "temp-" + crypto.randomUUID();
-    setDegrees([...degrees, { id: tempId, name: "" }]);
+    setDegrees([...degrees, { id: tempId, name: "", degreeorder: 9999 }]);
     setEditingId(tempId);
     setForm({
       name: "",

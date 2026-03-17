@@ -18,12 +18,12 @@ import PrintReportOrder from "@/components/ReportPrint/PrintReportOrder.jsx";
 import PrintBulkInvoice from "@/components/ReportPrint/PrintBulkInvoice.jsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.jsx";
 import PrintBulkAddressLabels from "@/components/ReportPrint/PrintBulkAddressLabels.jsx";
-import {printBulkLabels} from "@/components/PrintLabels.js";
-import {exportToCSV} from "@/components/ExportToXero.js";
+import PrintManifest, {printBulkLabels} from "@/components/PrintLabels.js";
+import {XeroToCSV} from "@/components/ExportToXero.js";
 import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144"
 
 export default function AdminBulkOrder() {
   const emptyFormRecord = {
@@ -53,6 +53,7 @@ export default function AdminBulkOrder() {
   };
   const [formData, setFormData] = useState({ emptyFormRecord });
   const [ceremonies, setCeremonies] = useState([]);
+  const [prices, setPrices] = useState([]);
   const [currentId, setCurrentId] = useState(null);
   const [loading, setLoading] = useState();
   const [error, setError] = useState(null);
@@ -63,7 +64,6 @@ export default function AdminBulkOrder() {
   const [showPrintInvoice, setShowPrintInvoice] = useState(false);
   const [showPrintBulkAddressLabels, setShowPrintBulkAddressLabels] = useState(false);
   const [showPrintPackingDocs, setShowPrintPackingDocs] = useState(false);
-  // const hasPrintedRef = useRef(false);
   const navButtonClass =
       "bg-green-700 hover:bg-green-800 w-20 h-10 p-0 flex items-center justify-center";
 
@@ -123,11 +123,7 @@ export default function AdminBulkOrder() {
 
   // Fetch orders on mount
   useEffect(() => {
-    // if (hasPrintedRef.current) return;
-    // hasPrintedRef.current = true;
-
     const cached = localStorage.getItem("ceremonies");
-    // const cached = null;
 
     if (cached) {
       const ceremonies = JSON.parse(cached);
@@ -143,24 +139,53 @@ export default function AdminBulkOrder() {
         setCeremonies(res.data);
         localStorage.setItem("ceremonies", JSON.stringify(res.data));
         if (!cached) updateForm(res.data[0]);
-        console.log("From API=", res.data[0]);
-        setLoading(false);
       })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+      .catch((err) =>
+        setError(err.message)
+      )
+      .finally(() =>
+        setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const cached = localStorage.getItem("ceremonies");
+
+    if (cached) {
+      const prices = JSON.parse(cached);
+      setPrices(prices);
+    } else {
+      setLoading(true);
+    }
+
+    axios
+      .get(`${API_URL}/admin/prices`)
+      .then((res) => {
+        setPrices(res.data);
+        localStorage.setItem("prices", JSON.stringify(res.data));
+    })
+      .catch((err) =>
+        setError(err.message)
+      )
+      .finally(() =>
+        setLoading(false));
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    console.log(name, value, editingId);
+
     setChanged(true);
     if (editingId === null) {
       setEditingId(ceremonies[currentIndex].id);
       setFormData((prev) => ({ ...prev, id: ceremonies[currentIndex].id, [name]: value }));
+
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
+    // setCeremonies((prev) => prev.map((ceremony, index) =>
+    //     index === currentIndex ? {...ceremony, [name]: value} : ceremony
+    // ))
   };
 
   const handleCopy = () => {
@@ -202,10 +227,28 @@ export default function AdminBulkOrder() {
     printBulkLabels(formData.id);
   }
 
+  const handlePrintManifest = async (ceremony) => {
+    setLoading(true);
+    axios.get(`${API_URL}/admin/ceremony/itemcount/${ceremony.id}`)
+        .then((res) => {
+          setTimeout(() => {
+            console.log('PrintData=', res.data);
+            PrintManifest(ceremony, res.data);
+          }, 0);
+        })
+        .catch ((err) => {
+          setError(err.message);
+        })
+        .finally (() => {
+          setLoading(false);
+        });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+        console.log("FormData=", formData);
         if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
           await axios.post(`${API_URL}/admin/ceremonies`, formData);
           // formData.id = res.id;
@@ -275,8 +318,6 @@ export default function AdminBulkOrder() {
     setChanged(false);
     setEditingId(null);
   };
-
-  if (loading) return <FullscreenSpinner />;
 
   return (
     <>
@@ -508,8 +549,10 @@ export default function AdminBulkOrder() {
                 <Label htmlFor="gowns">Gowns</Label>
                 <Input
                     id="gowns"
-                    name="gowns"
+                    name="gown_count"
                     type="number"
+                    min={0}
+                    readonly="true"
                     value={formData.gown_count}
                     onChange={handleChange}
                 />
@@ -519,8 +562,10 @@ export default function AdminBulkOrder() {
                 <Label htmlFor="hoods">Hoods</Label>
                 <Input
                     id="hoods"
-                    name="hoods"
+                    name="hood_count"
                     type="number"
+                    min={0}
+                    readonly="true"
                     value={formData.hood_count}
                     onChange={handleChange}
                 />
@@ -530,8 +575,10 @@ export default function AdminBulkOrder() {
                 <Label htmlFor="hats">Hats</Label>
                 <Input
                     id="hats"
-                    name="hats"
+                    name="hat_count"
                     type="number"
+                    min={0}
+                    readonly="true"
                     value={formData.hat_count}
                     onChange={handleChange}
                 />
@@ -541,8 +588,10 @@ export default function AdminBulkOrder() {
                 <Label htmlFor="ucols">Sashes</Label>
                 <Input
                     id="ucols"
-                    name="ucols"
+                    name="ucol_count"
                     type="number"
+                    min={0}
+                    readonly="true"
                     value={formData.ucol_count}
                     onChange={handleChange}
                 />
@@ -553,9 +602,13 @@ export default function AdminBulkOrder() {
                 <Select
                   id="pricecode"
                   name="priceCode"
-                  value={formData.priceCode}
-                  onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, priceCode: value }))
+                  value={formData.priceCode?.toString() ?? ''}
+                  onValueChange={(value) => {
+                      setChanged(true);
+                      setEditingId(ceremonies[currentIndex].id);
+                      setFormData((prev) =>
+                          ({...prev, priceCode: value ? Number(value) : null}));
+                    }
                   }
                 >
                   <SelectTrigger className="!bg-white">
@@ -563,18 +616,11 @@ export default function AdminBulkOrder() {
                   </SelectTrigger>
 
                   <SelectContent>
-                    <SelectItem value="bluegown">Blue Gown</SelectItem>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="rncgps">RNCGPs</SelectItem>
-                    <SelectItem value="standardhire">Standard Hire</SelectItem>
-                    <SelectItem value="branch">Branch</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="nelsonnmit">Nelson NMIT</SelectItem>
-                    <SelectItem value="polytech">Polytech</SelectItem>
-                    <SelectItem value="qrc">QRC</SelectItem>
-                    <SelectItem value="school">School</SelectItem>
-                    <SelectItem value="familymembers">Family Members</SelectItem>
+                    {prices.map((g) => (
+                        <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
+                    ))}
                   </SelectContent>
+
                 </Select>
               </div>
 
@@ -659,6 +705,14 @@ export default function AdminBulkOrder() {
                     className={`${navButtonClass} w-24`}>
                   <Printer /> Labels
                 </Button>
+
+                <Button
+                    disabled={false}
+                    onClick={() => handlePrintManifest(formData)}
+                    type="button"
+                    className={`${navButtonClass} w-24`}>
+                  <Printer /> Manifest
+                </Button>
               </div>
 
               <div className="row-start-10 col-start-4 flex justify-around mt-4">
@@ -714,7 +768,7 @@ export default function AdminBulkOrder() {
               </Button>
 
               <Button className={`${navButtonClass} w-24 row-start-11 col-start-4 mt-4 place-self-center`}
-                      onClick={exportToCSV}
+                      onClick={() => XeroToCSV(formData.id)}
                       type="button"
                       disabled={false}
               >
@@ -725,6 +779,7 @@ export default function AdminBulkOrder() {
           </CardContent>
         </Card>
       </div>
+      {loading && <FullscreenSpinner/>}
       {showPrint && <PrintReportOrder ceremony={formData}/>}
       {showPrintInvoice && <PrintBulkInvoice ceremony={formData} onDone={() => setShowPrintInvoice(false)}/>}
       {showPrintBulkAddressLabels && <PrintBulkAddressLabels ceremony={formData} paper={paper}

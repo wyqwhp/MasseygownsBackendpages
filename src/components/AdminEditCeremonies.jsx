@@ -8,8 +8,8 @@ import {Printer} from "lucide-react";
 import PrintManifest from "@/components/PrintLabels.js";
 import JoditEditor from "jodit-react";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-const API_URL = "http://localhost:5144"
+const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144"
 
 export default function CeremonyEditor() {
   const [ceremonies, setCeremonies] = useState([]);
@@ -285,12 +285,12 @@ export default function CeremonyEditor() {
                         >
                           Edit
                         </button>
-                        <button
-                            onClick={() => handlePrint(ceremony)}
-                            className="flex gap-2 !bg-green-700 text-white px-3 py-1 rounded hover:!bg-green-800"
-                        >
-                          <Printer/> Manifest
-                        </button>
+                        {/*<button*/}
+                        {/*    onClick={() => handlePrint(ceremony)}*/}
+                        {/*    className="flex gap-2 !bg-green-700 text-white px-3 py-1 rounded hover:!bg-green-800"*/}
+                        {/*>*/}
+                        {/*  <Printer/> Manifest*/}
+                        {/*</button>*/}
                       </td>
                     </>
                   )}
