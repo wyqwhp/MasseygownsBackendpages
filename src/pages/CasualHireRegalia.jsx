@@ -391,11 +391,22 @@ function CasualHireRegalia() {
       "Last Name",
       "Student ID",
       "Email",
+      "Phone",
+      "Address",
       "Item Name",
       "Quantity",
+      "Size",
+      "Fit",
+      "Hood",
+      "Type",
+      "Ceremony",
       "Order Date",
+      "Total amount",
+      "Payment Method",
+      "Purchase Order",
       "Status",
       "Payment Status",
+      "Message",
     ];
 
     const rows = filteredOrders.flatMap((order) =>
@@ -406,11 +417,25 @@ function CasualHireRegalia() {
             order.lastName,
             order.studentId,
             order.email,
+            order.mobile,
+            order.address + order.city + order.postcode,
             item.itemName,
             item.quantity,
+            item.sizeName || "N/A",
+            item.fitName || "N/A",
+            item.hoodName || "N/A",
+            item.hire ? "Hire" : "Buy",
             order.orderDate,
-            order.status,
+            order.amount,
+            order.paymentMethod === 1
+              ? "Card payment"
+              : order.paymentMethod === 2
+                ? "A2A"
+                : "Purchased order",
+            order.purchaseOrder,
+            statusConfig[normalizeStatus(order.status)]?.label ?? order.status,
             order.paid ? "Paid" : "Unpaid",
+            order.message,
           ])
         : [
             [
@@ -419,11 +444,22 @@ function CasualHireRegalia() {
               order.lastName,
               order.studentId,
               order.email,
+              order.mobile,
+              order.address + order.city + order.postcode,
               "",
               "",
               order.orderDate,
-              order.status,
+              order.amount,
+              order.paymentMethod === 1
+                ? "Card payment"
+                : order.paymentMethod === 2
+                  ? "A2A"
+                  : "Purchased order",
+              order.purchaseOrder,
+              statusConfig[normalizeStatus(order.status)]?.label ??
+                order.status,
               order.paid ? "Paid" : "Unpaid",
+              order.message,
             ],
           ],
     );
@@ -456,7 +492,8 @@ function CasualHireRegalia() {
         <div className="buy-regalia-wrapper">
           <div className="buy-regalia-header">
             <p className="buy-regalia-subtitle">
-              Manage and track graduation regalia staff purchases (casual hire photos)
+              Manage and track graduation regalia staff purchases (casual hire
+              photos)
             </p>
           </div>
 
@@ -506,7 +543,7 @@ function CasualHireRegalia() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by reference number, customer name, or student ID..."
+                  placeholder="Search by reference number, customer name, or student ID, purchase order ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -772,7 +809,9 @@ function CasualHireRegalia() {
                           <div className="student-name">
                             {order.firstName} {order.lastName}
                           </div>
-                          <div className="student-id">{order.studentId}</div>
+                          <div className="student-id">
+                            {order.studentId || order.purchaseOrder}
+                          </div>
                         </td>
 
                         <td>
@@ -947,7 +986,7 @@ function CasualHireRegalia() {
                         <div className="info-row">
                           <span className="info-label">Student ID:</span>
                           <span className="info-value">
-                            {selectedOrder.studentId}
+                            {selectedOrder.studentId | "N/A"}
                           </span>
                         </div>
                         <div className="info-row">
