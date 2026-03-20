@@ -112,13 +112,6 @@ function AbandonedOrders() {
     fetchOrders();
   }, []);
 
-  const statusConfig = {
-    [ORDER_STATUS.PENDING]: { label: "Pending", icon: Clock },
-    [ORDER_STATUS.PROCESSING]: { label: "Processing", icon: Package },
-    [ORDER_STATUS.DELIVERED]: { label: "Delivered", icon: Truck },
-    [ORDER_STATUS.CANCELLED]: { label: "Cancelled", icon: X },
-  };
-
   const getItemTypes = () => {
     const types = new Set();
     orders.forEach((order) => {
@@ -127,44 +120,6 @@ function AbandonedOrders() {
       });
     });
     return Array.from(types).sort();
-  };
-
-  const handleBulkStatusUpdate = async () => {
-    if (!bulkStatusUpdate || selectedOrders.length === 0) {
-      alert("Please select orders and a status to update");
-      return;
-    }
-
-    const normalizedStatus = normalizeStatus(bulkStatusUpdate);
-
-    const updatedOrders = orders.map((order) =>
-      selectedOrders.includes(order.id)
-        ? { ...order, status: normalizedStatus }
-        : order,
-    );
-
-    setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
-
-    try {
-      for (const orderId of selectedOrders) {
-        await updateOrderStatus(orderId, normalizedStatus);
-      }
-
-      alert(
-        `Updated ${selectedOrders.length} order(s) to ${
-          statusConfig[normalizedStatus]?.label || normalizedStatus
-        }`,
-      );
-
-      setSelectedOrders([]);
-      setBulkStatusUpdate("");
-    } catch (err) {
-      console.error("Bulk status update failed:", err.response?.data || err);
-      alert(
-        "Some updates failed on the server. UI updated locally. Please refresh to verify.",
-      );
-    }
   };
 
   const handleSort = (key) => {
@@ -206,9 +161,6 @@ function AbandonedOrders() {
         (order.id?.toString().toLowerCase() || "").includes(q) ||
         (order.studentId?.toString().toLowerCase() || "").includes(q) ||
         (order.email?.toLowerCase() || "").includes(q);
-
-      // const matchesFilter =
-      //   filterStatus === ORDER_STATUS.ALL || order.status === filterStatus;
 
       const matchesPayment =
         (filterPaid && filterUnpaid) ||
@@ -305,26 +257,6 @@ function AbandonedOrders() {
   const endIndex = startIndex + pageSize;
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
-  const toggleAllOrders = () => {
-    const visibleIds = paginatedOrders.map((order) => order.id);
-    const allVisibleSelected = visibleIds.every((id) =>
-      selectedOrders.includes(id),
-    );
-
-    if (allVisibleSelected) {
-      setSelectedOrders((prev) =>
-        prev.filter((id) => !visibleIds.includes(id)),
-      );
-    } else {
-      setSelectedOrders((prev) =>
-        Array.from(new Set([...prev, ...visibleIds])),
-      );
-    }
-  };
-
-  // const getStatusCount = (status) =>
-  //   orders.filter((o) => o.status === status).length;
-
   const generateCSV = () => {
     if (filteredOrders.length === 0) {
       alert("No orders match the selected filters");
@@ -337,11 +269,21 @@ function AbandonedOrders() {
       "Last Name",
       "Student ID",
       "Email",
+      "Phone",
+      "Address",
       "Item Name",
       "Quantity",
+      "Size",
+      "Fit",
+      "Hood",
+      "Type",
+      "Ceremony",
       "Order Date",
-      "Status",
+      "Event date",
+      "Total amount",
+      "Payment Method",
       "Payment Status",
+      "Message",
     ];
 
     const rows = filteredOrders.flatMap((order) =>
@@ -352,24 +294,49 @@ function AbandonedOrders() {
             order.lastName,
             order.studentId,
             order.email,
+            order.mobile,
+            order.address + order.city + order.postcode,
             item.itemName,
             item.quantity,
+            item.sizeName || "N/A",
+            item.fitName || "N/A",
+            item.hoodName || "N/A",
+            item.hire ? "Hire" : "Buy",
+            order.ceremony || "N/A",
             order.orderDate,
-            order.status,
+            order.note || "N/A",
+            order.amount,
+            order.paymentMethod === 1
+            ? "Card payment"
+            : order.paymentMethod === 2
+            ? "A2A"
+            : "Purchased order",
             order.paid ? "Paid" : "Unpaid",
+            order.message,
           ])
-        : [
+          : [
             [
               order.referenceNo,
               order.firstName,
               order.lastName,
               order.studentId,
               order.email,
+              order.mobile,
+              order.address + order.city + order.postcode,
               "",
               "",
+              order.ceremony,
               order.orderDate,
+              order.note,
+              order.amount,
+              order.paymentMethod === 1
+              ? "Card payment"
+              : order.paymentMethod === 2
+              ? "A2A"
+              : "Purchased order",
               order.status,
               order.paid ? "Paid" : "Unpaid",
+              order.message,
             ],
           ],
     );
@@ -413,7 +380,7 @@ function AbandonedOrders() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by reference number, customer name, or student ID..."
+                  placeholder="Search by reference number, customer name, student ID or Purchased order ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -483,92 +450,12 @@ function AbandonedOrders() {
             Filtered Items: <span>{filteredOrders.length}</span>
           </div>
 
-          {/* Bulk Actions */}
-          {selectedOrders.length > 0 && (
-            <div
-              style={{
-                padding: "1rem",
-                backgroundColor: "#f3f4f6",
-                borderRadius: "8px",
-                marginBottom: "1rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                flexWrap: "wrap",
-              }}
-            >
-              <span style={{ fontWeight: "600" }}>
-                {selectedOrders.length} order(s) selected
-              </span>
-
-              <select
-                value={bulkStatusUpdate}
-                onChange={(e) => setBulkStatusUpdate(Number(e.target.value))}
-                style={{
-                  padding: "0.5rem",
-                  borderRadius: "4px",
-                  border: "1px solid #d1d5db",
-                }}
-              >
-                <option value="">Select new status...</option>
-                <option value={ORDER_STATUS.PENDING}>Pending</option>
-                <option value={ORDER_STATUS.PROCESSING}>Processing</option>
-                <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
-                <option value={ORDER_STATUS.CANCELLED}>Cancelled</option>
-              </select>
-
-              <button
-                onClick={handleBulkStatusUpdate}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: "#3b82f6",
-                  color: "white",
-                  borderRadius: "4px",
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: "500",
-                }}
-              >
-                Update Status
-              </button>
-
-              <button
-                onClick={() => setSelectedOrders([])}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: "#ef4444",
-                  color: "white",
-                  borderRadius: "4px",
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: "500",
-                }}
-              >
-                Clear Selection
-              </button>
-            </div>
-          )}
-
           {/* Orders Table */}
           <div className="table-container">
             <div className="table-wrapper">
               <table className="orders-table">
                 <thead>
                   <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        checked={
-                          paginatedOrders.length > 0 &&
-                          paginatedOrders.every((o) =>
-                            selectedOrders.includes(o.id),
-                          )
-                        }
-                        onChange={toggleAllOrders}
-                        style={{ cursor: "pointer" }}
-                      />
-                    </th>
-
                     <th
                       onClick={() => handleSort("id")}
                       style={{ cursor: "pointer", userSelect: "none" }}
@@ -600,12 +487,6 @@ function AbandonedOrders() {
 
                 <tbody>
                   {paginatedOrders.map((order) => {
-                    const status = normalizeStatus(order.status);
-                    const config =
-                      statusConfig[status] ||
-                      statusConfig[ORDER_STATUS.PENDING];
-                    const StatusIcon = config.icon || Clock;
-
                     return (
                       <tr
                         key={order.id}
@@ -615,15 +496,6 @@ function AbandonedOrders() {
                             : "transparent",
                         }}
                       >
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedOrders.includes(order.id)}
-                            onChange={() => toggleOrderSelection(order.id)}
-                            style={{ cursor: "pointer" }}
-                          />
-                        </td>
-
                         <td className="table-cell-nowrap">
                           <div className="order-id">{order.referenceNo}</div>
                         </td>
@@ -798,7 +670,7 @@ function AbandonedOrders() {
                         <div className="info-row">
                           <span className="info-label">Student ID:</span>
                           <span className="info-value">
-                            {selectedOrder.studentId}
+                            {selectedOrder.studentId || "N/A"}
                           </span>
                         </div>
                         <div className="info-row">
@@ -896,7 +768,7 @@ function AbandonedOrders() {
                                 : "Casual Hire for Photos"}
                           </span>
                         </div>
-                        {selectedOrder.orderType === 1 && (
+                        {selectedOrder.orderType == 1 && (
                           <div className="info-row">
                             <span className="info-label">Ceremony:</span>
                             <span className="info-value">
@@ -908,6 +780,12 @@ function AbandonedOrders() {
                           <span className="info-label">Order Date:</span>
                           <span className="info-value">
                             {selectedOrder.orderDate}
+                          </span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Event Date:</span>
+                          <span className="info-value">
+                            {selectedOrder.note || "N/A"}
                           </span>
                         </div>
                         <div className="info-row">

@@ -399,8 +399,8 @@ function CasualHireRegalia() {
       "Fit",
       "Hood",
       "Type",
-      "Ceremony",
       "Order Date",
+      "Event Date",
       "Total amount",
       "Payment Method",
       "Purchase Order",
@@ -426,6 +426,7 @@ function CasualHireRegalia() {
             item.hoodName || "N/A",
             item.hire ? "Hire" : "Buy",
             order.orderDate,
+            order.eventdate,
             order.amount,
             order.paymentMethod === 1
               ? "Card payment"
@@ -449,6 +450,7 @@ function CasualHireRegalia() {
               "",
               "",
               order.orderDate,
+              order.eventdate,
               order.amount,
               order.paymentMethod === 1
                 ? "Card payment"
@@ -986,7 +988,7 @@ function CasualHireRegalia() {
                         <div className="info-row">
                           <span className="info-label">Student ID:</span>
                           <span className="info-value">
-                            {selectedOrder.studentId | "N/A"}
+                            {selectedOrder.studentId || "N/A"}
                           </span>
                         </div>
                         <div className="info-row">
@@ -1078,6 +1080,12 @@ function CasualHireRegalia() {
                           <span className="info-label">Order Date:</span>
                           <span className="info-value">
                             {selectedOrder.orderDate}
+                          </span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Event Date:</span>
+                          <span className="info-value">
+                            {selectedOrder.note}
                           </span>
                         </div>
                         <div className="info-row">
