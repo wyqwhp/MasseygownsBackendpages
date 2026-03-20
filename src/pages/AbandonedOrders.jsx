@@ -156,7 +156,7 @@ function AbandonedOrders() {
 
       const matchesSearch =
         fullName.includes(q) ||
-        (order.referenceNo?.toString().toLowerCase() || "").includes(q) ||
+        (order.id?.toString().toLowerCase() || "").includes(q) ||
         (order.purchaseOrder?.toString().toLowerCase() || "").includes(q) ||
         (order.id?.toString().toLowerCase() || "").includes(q) ||
         (order.studentId?.toString().toLowerCase() || "").includes(q) ||
@@ -264,7 +264,7 @@ function AbandonedOrders() {
     }
 
     const headers = [
-      "Reference Number",
+      "Order ID",
       "First Name",
       "Last Name",
       "Student ID",
@@ -289,7 +289,7 @@ function AbandonedOrders() {
     const rows = filteredOrders.flatMap((order) =>
       order.items?.length
         ? order.items.map((item) => [
-            order.referenceNo,
+            order.id,
             order.firstName,
             order.lastName,
             order.studentId,
@@ -316,7 +316,7 @@ function AbandonedOrders() {
           ])
           : [
             [
-              order.referenceNo,
+              order.id,
               order.firstName,
               order.lastName,
               order.studentId,
@@ -380,7 +380,7 @@ function AbandonedOrders() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by reference number, customer name, student ID or Purchased order ID..."
+                  placeholder="Search by order id, customer name, student ID or Purchased order ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -460,7 +460,7 @@ function AbandonedOrders() {
                       onClick={() => handleSort("id")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
-                      Reference Number{getSortIndicator("id")}
+                      Order ID{getSortIndicator("id")}
                     </th>
 
                     <th
@@ -497,7 +497,7 @@ function AbandonedOrders() {
                         }}
                       >
                         <td className="table-cell-nowrap">
-                          <div className="order-id">{order.referenceNo}</div>
+                          <div className="order-id">{order.id}</div>
                         </td>
 
                         <td className="table-cell-nowrap">
@@ -644,7 +644,7 @@ function AbandonedOrders() {
                     <div>
                       <h2 className="modal-title">Order Details</h2>
                       <p className="modal-order-id">
-                        {selectedOrder.referenceNo}
+                        {selectedOrder.id}
                       </p>
                     </div>
                     <button
