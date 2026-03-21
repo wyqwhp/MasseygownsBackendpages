@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./AbandonedOrders.css";
-import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
+import { Search, Filter, Eye, X} from "lucide-react";
 import { getOrders, updateOrderStatus } from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
 import {
