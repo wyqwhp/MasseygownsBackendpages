@@ -626,9 +626,10 @@ function HireRegalia() {
       "Address",
       "Item Name",
       "Quantity",
-      "Size",
-      "Fit",
-      "Hood",
+      "Full height:",
+      "Head Size",
+      "Gown size:",
+      "Hood Type:",
       "Type",
       "Ceremony",
       "Order Date",
@@ -653,6 +654,7 @@ function HireRegalia() {
             item.itemName,
             item.quantity,
             item.sizeName || "N/A",
+            item.hatName || "N/A",
             item.fitName || "N/A",
             item.hoodName || "N/A",
             item.hire ? "Hire" : "Buy",
@@ -1391,20 +1393,26 @@ function HireRegalia() {
                               </span>
                             </div>
                             <div className="info-row">
-                              <span className="info-label">Size:</span>
+                              <span className="info-label">Full height:</span>
                               <span className="info-value">
                                 {item.sizeName || "N/A"}
                               </span>
                             </div>
                             <div className="info-row">
-                              <span className="info-label">Fit:</span>
+                              <span className="info-label">Head size:</span>
+                              <span className="info-value">
+                                {item.hatName || "N/A"}
+                              </span>
+                            </div>
+                            <div className="info-row">
+                              <span className="info-label">Gown size:</span>
                               <span className="info-value">
                                 {item.fitName || "N/A"}
                               </span>
                             </div>
                             {item.hoodName && (
                               <div className="info-row">
-                                <span className="info-label">Hood:</span>
+                                <span className="info-label">Hood Type:</span>
                                 <span className="info-value">
                                   {item.hoodName || "N/A"}
                                 </span>
