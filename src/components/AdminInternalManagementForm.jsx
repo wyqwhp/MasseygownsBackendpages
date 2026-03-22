@@ -45,7 +45,7 @@ export default function AdminInternalManagementForm() {
   const filteredForms = useMemo(() => {
     return (forms || [])
       .filter((row) => {
-        const type = row.orderType ?? row.type ?? "";
+        const type = String(row.orderType ?? row.type ?? "");
 
         if (formType !== "all" && type !== formType) return false;
 
@@ -135,7 +135,7 @@ export default function AdminInternalManagementForm() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ids }),
-        }
+        },
       );
 
       if (!res.ok) {
@@ -151,7 +151,7 @@ export default function AdminInternalManagementForm() {
       await new Promise((r) => setTimeout(r, 250));
 
       const pages = Array.from(
-        pagesRef.current?.querySelectorAll(".imf-print-page") || []
+        pagesRef.current?.querySelectorAll(".imf-print-page") || [],
       );
 
       if (!pages.length) {
@@ -327,8 +327,8 @@ export default function AdminInternalManagementForm() {
                 onChange={(e) => setFormType(e.target.value)}
               >
                 <option value="all">All</option>
-                <option value="casual">Casual Hire (CS1)</option>
-                <option value="sales">Sales (CS2)</option>
+                <option value="3">Casual Hire (CS1)</option>
+                <option value="2">Sales (CS2)</option>
               </select>
             </div>
 
@@ -381,7 +381,13 @@ export default function AdminInternalManagementForm() {
                     </td>
                     <td>{row.orderNo}</td>
                     <td>{row.orderDate}</td>
-                    <td>{row.orderType}</td>
+                    <td>
+                      {String(row.orderType) === "2"
+                        ? "Sales"
+                        : String(row.orderType) === "3"
+                          ? "Casual Hire"
+                          : row.orderType}
+                    </td>
                     <td>{row.name}</td>
                     <td>{row.address}</td>
                     <td>{row.contactNo}</td>
@@ -449,7 +455,12 @@ export default function AdminInternalManagementForm() {
 
 function PrintPage({ row }) {
   const heading =
-    row.type === "casual" ? "Casual Hire Worksheet" : "Sales Worksheet";
+    String(row.type) === "3"
+      ? "Casual Hire Worksheet"
+      : String(row.type) === "2"
+        ? "Sales Worksheet"
+        : "Worksheet";
+  //row.type === "casual" ? "Casual Hire Worksheet" : "Sales Worksheet";
 
   // backend print-data uses addressLine1
   const address = row.addressLine1 ?? row.address ?? "";
@@ -550,7 +561,7 @@ function PrintPage({ row }) {
 
         <div className="imf-receipt-block imf-receipt-block-last">
           Return Courier Receipt:
-          {row.type === "sales" && (
+          {String(row.type) === "2" && (
             <span style={{ marginLeft: 8, fontStyle: "italic" }}>
               not required for sales
             </span>
