@@ -697,11 +697,22 @@ export default function BuyRegalia() {
       "Last Name",
       "Student ID",
       "Email",
+      "Phone",
+      "Address",
       "Item Name",
       "Quantity",
+      "Full height:",
+      "Head Size",
+      "Gown size:",
+      "Hood Type:",
+      "Type",
       "Order Date",
+      "Total amount",
+      "Payment Method",
+      "Purchase Order",
       "Status",
       "Payment Status",
+      "Message",
     ];
 
     const rows = filteredOrders.flatMap((order) =>
@@ -712,11 +723,26 @@ export default function BuyRegalia() {
             order.lastName,
             order.studentId,
             order.email,
+            order.mobile,
+            order.address + order.city + order.postcode,
             item.itemName,
             item.quantity,
+            item.sizeName || "N/A",
+            item.hatName || "N/A",
+            item.fitName || "N/A",
+            item.hoodName || "N/A",
+            item.hire ? "Hire" : "Buy",
             order.orderDate,
-            order.status,
+            order.amount,
+            order.paymentMethod === 1
+              ? "Card payment"
+              : order.paymentMethod === 2
+                ? "A2A"
+                : "Purchased order",
+            order.purchaseOrder,
+            statusConfig[normalizeStatus(order.status)]?.label ?? order.status,
             order.paid ? "Paid" : "Unpaid",
+            order.message,
           ])
         : [
             [
@@ -725,11 +751,22 @@ export default function BuyRegalia() {
               order.lastName,
               order.studentId,
               order.email,
+              order.mobile,
+              order.address + order.city + order.postcode,
               "",
               "",
               order.orderDate,
-              order.status,
+              order.amount,
+              order.paymentMethod === 1
+                ? "Card payment"
+                : order.paymentMethod === 2
+                  ? "A2A"
+                  : "Purchased order",
+              order.purchaseOrder,
+              statusConfig[normalizeStatus(order.status)]?.label ??
+                order.status,
               order.paid ? "Paid" : "Unpaid",
+              order.message,
             ],
           ],
     );
@@ -1195,7 +1232,7 @@ export default function BuyRegalia() {
                 <Search className="search-icon" size={18} />
                 <input
                   type="text"
-                  placeholder="Search by reference number, customer name, or student ID..."
+                  placeholder="Search by reference number, customer name, purchase order ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input with-icon"
@@ -1441,7 +1478,9 @@ export default function BuyRegalia() {
                           <div className="student-name">
                             {order.firstName} {order.lastName}
                           </div>
-                          <div className="student-id">{order.studentId}</div>
+                          <div className="student-id">
+                            {order.studentId || order.purchaseOrder}
+                          </div>
                         </td>
 
                         <td>
@@ -1619,7 +1658,7 @@ export default function BuyRegalia() {
                         <div className="info-row">
                           <span className="info-label">Student ID:</span>
                           <span className="info-value">
-                            {selectedOrder.studentId}
+                            {selectedOrder.studentId || "N/A"}
                           </span>
                         </div>
                         <div className="info-row">
@@ -1656,20 +1695,26 @@ export default function BuyRegalia() {
                               </span>
                             </div>
                             <div className="info-row">
-                              <span className="info-label">Size:</span>
+                              <span className="info-label">Full height:</span>
                               <span className="info-value">
                                 {item.sizeName || "N/A"}
                               </span>
                             </div>
                             <div className="info-row">
-                              <span className="info-label">Fit:</span>
+                              <span className="info-label">Head size:</span>
+                              <span className="info-value">
+                                {item.hatName || "N/A"}
+                              </span>
+                            </div>
+                            <div className="info-row">
+                              <span className="info-label">Gown size:</span>
                               <span className="info-value">
                                 {item.fitName || "N/A"}
                               </span>
                             </div>
                             {item.hoodName && (
                               <div className="info-row">
-                                <span className="info-label">Hood:</span>
+                                <span className="info-label">Hood Type:</span>
                                 <span className="info-value">
                                   {item.hoodName || "N/A"}
                                 </span>
