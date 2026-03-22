@@ -28,6 +28,15 @@ function CasualHireRegalia() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const paymentFilterValue =
+    filterPaid && filterUnpaid
+      ? "all"
+      : filterPaid
+        ? "paid"
+        : filterUnpaid
+          ? "unpaid"
+          : "all";
+
   const [items, setItemsLocal] = useState([]);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -111,8 +120,6 @@ function CasualHireRegalia() {
     return "";
   };
 
-  // UI text should be driven by refund_status_code first.
-  // backendText is only used as fallback for IN_PROGRESS / unknown.
   const getDisplayRefundTextByCode = (code, backendText = "") => {
     const n = Number(code);
 
@@ -334,9 +341,6 @@ function CasualHireRegalia() {
                 const paymentMethod = Number(order.paymentMethod);
                 const isPurchaseOrder = paymentMethod === 3;
 
-                const keepOrder = order.paid === true || isPurchaseOrder;
-                if (!keepOrder) return null;
-
                 return {
                   ...order,
                   status: normalizeStatus(order.status),
@@ -521,6 +525,19 @@ function CasualHireRegalia() {
     setSortConfig({ key, direction });
   };
 
+  const handlePaymentFilterChange = (value) => {
+    if (value === "all") {
+      setFilterPaid(true);
+      setFilterUnpaid(true);
+    } else if (value === "paid") {
+      setFilterPaid(true);
+      setFilterUnpaid(false);
+    } else if (value === "unpaid") {
+      setFilterPaid(false);
+      setFilterUnpaid(true);
+    }
+  };
+
   const getSortIndicator = (columnKey) => {
     if (sortConfig.key !== columnKey) return "↑↓";
     return sortConfig.direction === "asc" ? " ↑" : " ↓";
@@ -598,18 +615,6 @@ function CasualHireRegalia() {
           aValue = Number(a.id) || 0;
           bValue = Number(b.id) || 0;
           break;
-        case "name":
-          aValue = `${a.firstName || ""} ${a.lastName || ""}`.toLowerCase();
-          bValue = `${b.firstName || ""} ${b.lastName || ""}`.toLowerCase();
-          break;
-        case "date":
-          aValue = a.orderDate
-            ? parseOrderDate(a.orderDate)?.getTime() || 0
-            : 0;
-          bValue = b.orderDate
-            ? parseOrderDate(b.orderDate)?.getTime() || 0
-            : 0;
-          break;
         default:
           return 0;
       }
@@ -683,6 +688,7 @@ function CasualHireRegalia() {
     }
 
     const headers = [
+      "Order ID",
       "Reference Number",
       "First Name",
       "Last Name",
@@ -705,18 +711,20 @@ function CasualHireRegalia() {
       "Status",
       "Payment Status",
       "Message",
+      "Refunded Amount",
     ];
 
     const rows = filteredOrders.flatMap((order) =>
       order.items?.length
         ? order.items.map((item) => [
+            order.id,
             order.referenceNo,
             order.firstName,
             order.lastName,
             order.studentId,
             order.email,
-            order.mobile,
-            order.address + order.city + order.postcode,
+            order.phone,
+            order.address + " " + order.city + " " + order.postcode,
             item.itemName,
             item.quantity,
             item.sizeName || "N/A",
@@ -736,16 +744,19 @@ function CasualHireRegalia() {
             statusConfig[normalizeStatus(order.status)]?.label ?? order.status,
             order.paid ? "Paid" : "Unpaid",
             order.message,
+            order.refundedAmount,
           ])
         : [
             [
+              order.id,
               order.referenceNo,
               order.firstName,
               order.lastName,
               order.studentId,
               order.email,
-              order.mobile,
-              order.address + order.city + order.postcode,
+              order.phone,
+              order.address + " " + order.city + " " + order.postcode,
+
               "",
               "",
               order.orderDate,
@@ -761,6 +772,7 @@ function CasualHireRegalia() {
                 order.status,
               order.paid ? "Paid" : "Unpaid",
               order.message,
+              order.refundedAmount,
             ],
           ],
     );
@@ -1264,6 +1276,19 @@ function CasualHireRegalia() {
               </div>
 
               <div className="filter-wrapper">
+                <select
+                  value={paymentFilterValue}
+                  onChange={(e) => handlePaymentFilterChange(e.target.value)}
+                  className="filter-select"
+                  title="Payment status"
+                >
+                  <option value="all">All Payments</option>
+                  <option value="paid">Paid</option>
+                  <option value="unpaid">Unpaid</option>
+                </select>
+              </div>
+
+              <div className="filter-wrapper">
                 <div>From</div>
                 <input
                   type="date"
@@ -1414,25 +1439,17 @@ function CasualHireRegalia() {
                       onClick={() => handleSort("id")}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
-                      Reference Number{getSortIndicator("id")}
+                      Order ID{getSortIndicator("id")}
                     </th>
 
-                    <th
-                      onClick={() => handleSort("name")}
-                      style={{ cursor: "pointer", userSelect: "none" }}
-                    >
-                      Customer{getSortIndicator("name")}
-                    </th>
+                    <th>Reference Number</th>
+
+                    <th>Customer</th>
 
                     <th>Items</th>
                     <th>Quantity</th>
 
-                    <th
-                      onClick={() => handleSort("date")}
-                      style={{ cursor: "pointer", userSelect: "none" }}
-                    >
-                      Order Date{getSortIndicator("date")}
-                    </th>
+                    <th>Order Date</th>
 
                     <th>Status</th>
                     <th>Actions</th>
@@ -1463,6 +1480,10 @@ function CasualHireRegalia() {
                             onChange={() => toggleOrderSelection(order.id)}
                             style={{ cursor: "pointer" }}
                           />
+                        </td>
+
+                        <td className="table-cell-nowrap">
+                          <div className="order-id">{order.id}</div>
                         </td>
 
                         <td className="table-cell-nowrap">
