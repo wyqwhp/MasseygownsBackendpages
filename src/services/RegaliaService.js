@@ -62,7 +62,7 @@ export const updateDeliveryCost = async (payload) => {
 
   return axios.put(`${API_URL}/delivery/cost/${payload.Id}`, payload);
 };
-
+/*
 export async function syncRefundStatus(orderId) {
   const resp = await fetch(
     `${API_URL}/api/admin/orders/${orderId}/refund/sync`,
@@ -78,6 +78,29 @@ export async function syncRefundStatus(orderId) {
   }
 
   return await resp.json();
+}*/
+
+export async function syncRefundStatus(orderId) {
+  const resp = await fetch(
+    `${API_URL}/api/admin/orders/${orderId}/refund/sync`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+
+  const data = await resp.json().catch(() => null);
+
+  if (!resp.ok) {
+    const err = new Error(
+      data?.message || `Sync refund status failed (${resp.status})`,
+    );
+    err.status = resp.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
 }
 
 export async function refundRequest(orderId, amount) {

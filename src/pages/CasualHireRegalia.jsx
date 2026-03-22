@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./CasualHireRegalia.css";
-import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
+import { Search, Eye, X, Clock, Package, Truck } from "lucide-react";
 import {
   getOrders,
   updateOrderStatus,
   getItems,
+  syncRefundStatus,
+  refundRequest,
+  refundApprove,
 } from "../services/RegaliaService";
 import AdminNavbar from "@/components/AdminNavbar";
 import {
@@ -16,13 +19,12 @@ import {
 function CasualHireRegalia() {
   const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState(0);
+  const [filterStatus, setFilterStatus] = useState(ORDER_STATUS.ALL);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
   const [filterOrderType, setFilterOrderType] = useState("all");
 
-  // Date filters (YYYY-MM-DD from <input type="date" />)
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -33,17 +35,179 @@ function CasualHireRegalia() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
   const [bulkStatusUpdate, setBulkStatusUpdate] = useState(0);
+
   const [sortConfig, setSortConfig] = useState({
     key: "id",
     direction: "desc",
   });
+
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  // ----------------------------
-  // Helpers: date parsing/filtering
-  // ----------------------------
+  const role = localStorage.getItem("role") || "";
+  const isManager = role.toLowerCase() === "manager";
+
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundSyncing, setRefundSyncing] = useState(false);
+  const [refundSyncError, setRefundSyncError] = useState("");
+
+  const [refundStatusText, setRefundStatusText] = useState("");
+  const [refundStatusType, setRefundStatusType] = useState("idle"); // idle | submitting | in_progress | completed | failed | requested
+
+  const ORDERS_STORAGE_KEY = "regaliaOrders_casual_hire";
+  const REFUND_STATUS_STORAGE_KEY = "casual_hire_refund_status_map_v1";
+
+  const REFUND_CODE = {
+    NONE: -1,
+    COMPLETED: 0,
+    FAILED: 2,
+    REQUESTED: 3,
+    IN_PROGRESS: 13,
+  };
+
+  const toRefundType = (code) => {
+    const n = Number(code);
+    if (n === REFUND_CODE.IN_PROGRESS) return "in_progress";
+    if (n === REFUND_CODE.COMPLETED) return "completed";
+    if (n === REFUND_CODE.FAILED) return "failed";
+    if (n === REFUND_CODE.REQUESTED) return "requested";
+    return "idle";
+  };
+
+  const getRefundCode = (o) => {
+    if (!o) return REFUND_CODE.NONE;
+    const candidates = [
+      o.refundStatusCode,
+      o.refund_status_code,
+      o.refundStatus,
+      o.refund_status,
+      o.RefundStatusCode,
+    ];
+    for (const v of candidates) {
+      if (v === null || v === undefined) continue;
+      const n = Number(v);
+      if (!Number.isNaN(n)) return n;
+    }
+    return REFUND_CODE.NONE;
+  };
+
+  const getRefundText = (o) => {
+    if (!o) return "";
+    const candidates = [
+      o.refundLastEm,
+      o.refund_last_em,
+      o.refundLastMessage,
+      o.refund_last_message,
+      o.RefundLastEm,
+    ];
+    for (const v of candidates) {
+      if (v === null || v === undefined) continue;
+      const s = String(v).trim();
+      if (s) return s;
+    }
+    return "";
+  };
+
+  // UI text should be driven by refund_status_code first.
+  // backendText is only used as fallback for IN_PROGRESS / unknown.
+  const getDisplayRefundTextByCode = (code, backendText = "") => {
+    const n = Number(code);
+
+    if (n === REFUND_CODE.REQUESTED) return "Refund requested.";
+    if (n === REFUND_CODE.IN_PROGRESS) {
+      return backendText || "Refund in progress.";
+    }
+    if (n === REFUND_CODE.COMPLETED) return "Refund completed.";
+    if (n === REFUND_CODE.FAILED) return "Refund failed.";
+    if (n === REFUND_CODE.NONE) return "No refund record found.";
+
+    return backendText || "";
+  };
+
+  const toAmountNumber = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    if (Number.isNaN(n) || n <= 0) return null;
+    return n;
+  };
+
+  const getRequestedRefundAmountFromOrder = (o) => {
+    if (!o) return null;
+
+    const candidates = [
+      o.refund,
+      o.Refund,
+      o.refundRequestedAmount,
+      o.requestedRefundAmount,
+      o.refundRequestAmount,
+      o.refundAmount,
+      o.refund_amount,
+      o.refund_requested_amount,
+      o.requested_refund_amount,
+    ];
+
+    for (const v of candidates) {
+      const n = toAmountNumber(v);
+      if (n !== null) return n;
+    }
+    return null;
+  };
+
+  const getCompletedRefundAmountFromOrder = (o) => {
+    if (!o) return null;
+
+    const candidates = [o.refundedAmount, o.refunded_amount, o.RefundedAmount];
+
+    for (const v of candidates) {
+      const n = toAmountNumber(v);
+      if (n !== null) return n;
+    }
+    return null;
+  };
+
+  const pickRefundAmountFromOrder = (o) => {
+    if (!o) return null;
+
+    const code = getRefundCode(o);
+    const requestedAmt = getRequestedRefundAmountFromOrder(o);
+    const completedAmt = getCompletedRefundAmountFromOrder(o);
+
+    if (code === REFUND_CODE.COMPLETED) {
+      return completedAmt ?? requestedAmt;
+    }
+
+    if (code === REFUND_CODE.REQUESTED || code === REFUND_CODE.IN_PROGRESS) {
+      return requestedAmt ?? completedAmt;
+    }
+
+    return requestedAmt ?? completedAmt;
+  };
+
+  const buildRequestedRefundAmountPatch = (amount) => {
+    if (amount === null || amount === undefined) return {};
+    return {
+      refund: amount,
+      refundRequestedAmount: amount,
+      requestedRefundAmount: amount,
+      refundRequestAmount: amount,
+      refundAmount: amount,
+      refund_amount: amount,
+      refund_requested_amount: amount,
+      requested_refund_amount: amount,
+    };
+  };
+
+  const buildCompletedRefundAmountPatch = (amount) => {
+    if (amount === null || amount === undefined) return {};
+    return {
+      refundedAmount: amount,
+      refunded_amount: amount,
+    };
+  };
+
   const toStartOfDay = (d) => {
     const x = new Date(d);
     x.setHours(0, 0, 0, 0);
@@ -56,7 +220,6 @@ function CasualHireRegalia() {
     return x;
   };
 
-  // Handles: ISO strings, "YYYY-MM-DD", and "dd/mm/yyyy"
   const parseOrderDate = (value) => {
     if (!value) return null;
 
@@ -73,16 +236,90 @@ function CasualHireRegalia() {
     return null;
   };
 
-  // ----------------------------
-  // Fetch orders
-  // ----------------------------
+  const readRefundStatusMap = () => {
+    try {
+      const raw = localStorage.getItem(REFUND_STATUS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const writeRefundStatusMap = (map) => {
+    localStorage.setItem(REFUND_STATUS_STORAGE_KEY, JSON.stringify(map));
+  };
+
+  const clearTransientRefundErrors = () => {
+    const map = readRefundStatusMap();
+    let changed = false;
+
+    Object.keys(map).forEach((orderId) => {
+      const saved = map[orderId];
+      const text = String(saved?.text || "").toLowerCase();
+      const type = String(saved?.type || "").toLowerCase();
+
+      if (
+        type === "submitting" ||
+        text.includes("submitting refund request") ||
+        text.includes("submitting refund approval") ||
+        text.includes("session expired") ||
+        text.includes("log in again") ||
+        text.includes("unauthorized") ||
+        text.includes("token")
+      ) {
+        delete map[orderId];
+        changed = true;
+      }
+    });
+
+    if (changed) writeRefundStatusMap(map);
+  };
+
+  const clearRefundStatusPersisted = (orderId) => {
+    if (!orderId) return;
+    const map = readRefundStatusMap();
+    if (map[String(orderId)]) {
+      delete map[String(orderId)];
+      writeRefundStatusMap(map);
+    }
+  };
+
+  const setRefundStatusPersisted = (orderId, type, text, amount) => {
+    setRefundStatusType(type);
+    setRefundStatusText(text);
+
+    if (!orderId) return;
+    const map = readRefundStatusMap();
+    map[String(orderId)] = {
+      type,
+      text,
+      amount: amount ?? map[String(orderId)]?.amount ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+    writeRefundStatusMap(map);
+  };
+
+  const setRefundStatusTransient = (type, text) => {
+    setRefundStatusType(type);
+    setRefundStatusText(text);
+  };
+
+  const pickRefundAmountFromStorage = (orderId) => {
+    if (!orderId) return null;
+    const map = readRefundStatusMap();
+    const saved = map[String(orderId)];
+    const n = Number(saved?.amount);
+    if (!Number.isNaN(n) && n > 0) return n;
+    return null;
+  };
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const cachedOrders = localStorage.getItem("regaliaOrders");
+        const cachedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
         }
@@ -92,17 +329,11 @@ function CasualHireRegalia() {
         const processedData = Array.isArray(data)
           ? data
               .map((order) => {
-                // 1) keep only casual hire orders where orderType = 3
-                if (parseInt(order.orderType) !== 3) {
-                  return null;
-                }
+                if (parseInt(order.orderType) !== 3) return null;
 
-                // 2) Purchase order (paymentMethod === 3)
                 const paymentMethod = Number(order.paymentMethod);
                 const isPurchaseOrder = paymentMethod === 3;
 
-                // 3) Remove unpaid NORMAL orders
-                // keep if paid OR isPurchaseOrder
                 const keepOrder = order.paid === true || isPurchaseOrder;
                 if (!keepOrder) return null;
 
@@ -116,11 +347,10 @@ function CasualHireRegalia() {
           : [];
 
         setOrders(processedData);
-
-        localStorage.setItem("regaliaOrders", JSON.stringify(processedData));
+        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(processedData));
       } catch (err) {
         setError(err.message || "Failed to fetch orders");
-        const cachedOrders = localStorage.getItem("regaliaOrders");
+        const cachedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
         if (cachedOrders) {
           setOrders(JSON.parse(cachedOrders));
         }
@@ -132,6 +362,78 @@ function CasualHireRegalia() {
     fetchOrders();
   }, []);
 
+  useEffect(() => {
+    if (!selectedOrder?.id) return;
+
+    const code = getRefundCode(selectedOrder);
+    const backendText = getRefundText(selectedOrder);
+    const map = readRefundStatusMap();
+    const saved = map[String(selectedOrder.id)];
+
+    if (code !== REFUND_CODE.NONE) {
+      setRefundStatusType(toRefundType(code));
+      setRefundStatusText(getDisplayRefundTextByCode(code, backendText));
+
+      if (
+        code === REFUND_CODE.COMPLETED ||
+        code === REFUND_CODE.FAILED ||
+        code === REFUND_CODE.NONE
+      ) {
+        clearRefundStatusPersisted(selectedOrder.id);
+      }
+      return;
+    }
+
+    if (saved?.text) {
+      setRefundStatusType(saved.type || "idle");
+      setRefundStatusText(saved.text || "");
+      return;
+    }
+
+    setRefundStatusType("idle");
+    setRefundStatusText("No refund record found.");
+  }, [selectedOrder]);
+
+  useEffect(() => {
+    clearTransientRefundErrors();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedOrder?.id) return;
+
+    const code = getRefundCode(selectedOrder);
+    const backendAmt = pickRefundAmountFromOrder(selectedOrder);
+    const storageAmt = pickRefundAmountFromStorage(selectedOrder.id);
+    const amt = backendAmt ?? storageAmt;
+
+    if (
+      (code === REFUND_CODE.REQUESTED ||
+        code === REFUND_CODE.IN_PROGRESS ||
+        code === REFUND_CODE.COMPLETED) &&
+      amt !== null &&
+      amt !== undefined &&
+      amt > 0
+    ) {
+      setRefundAmount(String(amt));
+    } else {
+      setRefundAmount("");
+    }
+  }, [
+    selectedOrder?.id,
+    selectedOrder?.refundStatusCode,
+    selectedOrder?.refund_status_code,
+    selectedOrder?.RefundStatusCode,
+    selectedOrder?.refundedAmount,
+    selectedOrder?.refunded_amount,
+    selectedOrder?.RefundedAmount,
+    selectedOrder?.refund,
+    selectedOrder?.Refund,
+    selectedOrder?.refundRequestedAmount,
+    selectedOrder?.requestedRefundAmount,
+    selectedOrder?.refundRequestAmount,
+    selectedOrder?.refundAmount,
+  ]);
+
   const statusConfig = {
     [ORDER_STATUS.PENDING]: { label: "Pending", icon: Clock },
     [ORDER_STATUS.PROCESSING]: { label: "Processing", icon: Package },
@@ -142,7 +444,6 @@ function CasualHireRegalia() {
   const getItemTypes = () => {
     const types = new Set();
 
-    // Use fetched single items
     (items || []).forEach((it) => {
       const name =
         it?.itemName || it?.name || it?.title || it?.displayName || "";
@@ -152,7 +453,6 @@ function CasualHireRegalia() {
     return Array.from(types).sort((a, b) => a.localeCompare(b));
   };
 
-  // fetch items
   useEffect(() => {
     const fetchItems = async () => {
       const data = await getItems();
@@ -167,40 +467,44 @@ function CasualHireRegalia() {
     );
     updateOrderStatus(orderId, newStatus);
     setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
     setSelectedOrder(null);
   };
 
   const handleBulkStatusUpdate = async () => {
-    if (!bulkStatusUpdate || selectedOrders.length === 0) {
+    if (
+      bulkStatusUpdate === 0 ||
+      bulkStatusUpdate === ORDER_STATUS.ALL ||
+      selectedOrders.length === 0
+    ) {
       alert("Please select orders and a status to update");
       return;
     }
 
-    const normalizedStatus = normalizeStatus(bulkStatusUpdate);
+    const newStatus = bulkStatusUpdate;
 
     const updatedOrders = orders.map((order) =>
       selectedOrders.includes(order.id)
-        ? { ...order, status: normalizedStatus }
+        ? { ...order, status: newStatus }
         : order,
     );
 
     setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders", JSON.stringify(updatedOrders));
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
 
     try {
       for (const orderId of selectedOrders) {
-        await updateOrderStatus(orderId, normalizedStatus);
+        await updateOrderStatus(orderId, newStatus);
       }
 
       alert(
         `Updated ${selectedOrders.length} order(s) to ${
-          statusConfig[normalizedStatus]?.label || normalizedStatus
+          statusConfig[newStatus]?.label || newStatus
         }`,
       );
 
       setSelectedOrders([]);
-      setBulkStatusUpdate("");
+      setBulkStatusUpdate(0);
     } catch (err) {
       console.error("Bulk status update failed:", err.response?.data || err);
       alert(
@@ -230,9 +534,6 @@ function CasualHireRegalia() {
     );
   };
 
-  // ----------------------------
-  // Filter + Sort
-  // ----------------------------
   const filteredOrders = useMemo(() => {
     const filtered = orders.filter((order) => {
       const fullName = `${order.firstName || ""} ${
@@ -270,7 +571,6 @@ function CasualHireRegalia() {
         (filterOrderType === "normal" && isNormalOrder) ||
         (filterOrderType === "purchase" && isPurchaseOrder);
 
-      // Date match
       const orderDateObj = parseOrderDate(order.orderDate);
       const matchesDate =
         (!dateFrom && !dateTo) ||
@@ -331,9 +631,6 @@ function CasualHireRegalia() {
     dateTo,
   ]);
 
-  // ----------------------------
-  // Pagination
-  // ----------------------------
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
 
   useEffect(() => {
@@ -437,14 +734,398 @@ function CasualHireRegalia() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `CasualHire_Orders_${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
+    a.download = `CasualHire_Orders_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const itemTypes = getItemTypes();
+
+  const getRefundStatusStyle = () => {
+    switch (refundStatusType) {
+      case "completed":
+        return { color: "#047857", fontWeight: 600 };
+      case "in_progress":
+        return { color: "#1d4ed8", fontWeight: 600 };
+      case "submitting":
+        return { color: "#6b7280", fontWeight: 600 };
+      case "failed":
+        return { color: "#b91c1c", fontWeight: 600 };
+      case "requested":
+        return { color: "#b45309", fontWeight: 600 };
+      default:
+        return { color: "#6b7280" };
+    }
+  };
+
+  const handleRefreshRefundStatus = async () => {
+    if (!selectedOrder?.id) return;
+
+    setRefundSyncError("");
+    setRefundSyncing(true);
+
+    try {
+      const data = await syncRefundStatus(selectedOrder.id);
+      const r = data?.refund || {};
+
+      const prevOrderFromList = orders.find((o) => o.id === selectedOrder.id);
+
+      const mergedBase = {
+        ...(prevOrderFromList || {}),
+        ...(selectedOrder || {}),
+      };
+
+      const newCode =
+        r.refundStatusCode ??
+        r.refund_status_code ??
+        r.RefundStatusCode ??
+        mergedBase.refundStatusCode ??
+        mergedBase.refund_status_code ??
+        mergedBase.RefundStatusCode;
+
+      const requestedAmt =
+        toAmountNumber(r.refund) ??
+        toAmountNumber(r.Refund) ??
+        toAmountNumber(r.refundRequestedAmount) ??
+        toAmountNumber(r.requestedRefundAmount) ??
+        toAmountNumber(r.refundRequestAmount) ??
+        toAmountNumber(r.refundAmount) ??
+        toAmountNumber(mergedBase.refund) ??
+        toAmountNumber(mergedBase.Refund) ??
+        toAmountNumber(mergedBase.refundRequestedAmount) ??
+        toAmountNumber(mergedBase.requestedRefundAmount) ??
+        toAmountNumber(mergedBase.refundRequestAmount) ??
+        toAmountNumber(mergedBase.refundAmount) ??
+        pickRefundAmountFromStorage(selectedOrder.id);
+
+      const completedAmt =
+        toAmountNumber(r.refundedAmount) ??
+        toAmountNumber(r.refunded_amount) ??
+        toAmountNumber(r.RefundedAmount) ??
+        toAmountNumber(mergedBase.refundedAmount) ??
+        toAmountNumber(mergedBase.refunded_amount) ??
+        toAmountNumber(mergedBase.RefundedAmount);
+
+      const amountPatch =
+        Number(newCode) === REFUND_CODE.COMPLETED
+          ? {
+              ...buildCompletedRefundAmountPatch(completedAmt),
+              ...(requestedAmt
+                ? buildRequestedRefundAmountPatch(requestedAmt)
+                : {}),
+            }
+          : Number(newCode) === REFUND_CODE.REQUESTED ||
+              Number(newCode) === REFUND_CODE.IN_PROGRESS
+            ? requestedAmt
+              ? buildRequestedRefundAmountPatch(requestedAmt)
+              : {}
+            : {};
+
+      const newBackendText =
+        r.refundLastEm ??
+        r.RefundLastEm ??
+        data?.message ??
+        mergedBase.refundLastEm ??
+        "";
+
+      const resolvedText = getDisplayRefundTextByCode(newCode, newBackendText);
+
+      setSelectedOrder((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          refundStatusCode:
+            r.refundStatusCode ??
+            r.refund_status_code ??
+            r.RefundStatusCode ??
+            prev.refundStatusCode,
+          refundLastEm: newBackendText || prev.refundLastEm,
+          refundedAt: r.refundedAt ?? r.RefundInitiatedAt ?? prev.refundedAt,
+          refundLastEc: r.refundLastEc ?? r.RefundLastEc ?? prev.refundLastEc,
+          refundTxnId: r.refundTxnId ?? r.RefundTxnId ?? prev.refundTxnId,
+          ...amountPatch,
+        };
+      });
+
+      setOrders((prev) => {
+        const updated = prev.map((o) => {
+          if (o.id !== selectedOrder.id) return o;
+          return {
+            ...o,
+            refundStatusCode:
+              r.refundStatusCode ??
+              r.refund_status_code ??
+              r.RefundStatusCode ??
+              o.refundStatusCode,
+            refundLastEm: newBackendText || o.refundLastEm,
+            refundedAt: r.refundedAt ?? r.RefundInitiatedAt ?? o.refundedAt,
+            refundLastEc: r.refundLastEc ?? r.RefundLastEc ?? o.refundLastEc,
+            refundTxnId: r.refundTxnId ?? r.RefundTxnId ?? o.refundTxnId,
+            ...amountPatch,
+          };
+        });
+
+        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
+
+      const merged = {
+        ...mergedBase,
+        refundStatusCode: newCode,
+        refundLastEm: newBackendText,
+        ...amountPatch,
+      };
+
+      const amt = pickRefundAmountFromOrder(merged);
+      if (amt && amt > 0) {
+        setRefundAmount(String(amt));
+      } else {
+        setRefundAmount("");
+      }
+
+      setRefundStatusType(toRefundType(newCode));
+      setRefundStatusText(resolvedText);
+
+      const codeNum = Number(newCode);
+
+      if (codeNum === REFUND_CODE.COMPLETED || codeNum === REFUND_CODE.FAILED) {
+        clearRefundStatusPersisted(selectedOrder.id);
+      } else if (
+        codeNum === REFUND_CODE.REQUESTED ||
+        codeNum === REFUND_CODE.IN_PROGRESS
+      ) {
+        setRefundStatusPersisted(
+          selectedOrder.id,
+          toRefundType(codeNum),
+          resolvedText,
+          requestedAmt,
+        );
+      } else if (codeNum === REFUND_CODE.NONE) {
+        clearRefundStatusPersisted(selectedOrder.id);
+      }
+    } catch (e) {
+      console.error(e);
+
+      const data = e?.data;
+      const r = data?.refund;
+      const prevOrderFromList = orders.find((o) => o.id === selectedOrder.id);
+      const mergedBase = {
+        ...(prevOrderFromList || {}),
+        ...(selectedOrder || {}),
+      };
+
+      if (r) {
+        const newCode =
+          r.refundStatusCode ??
+          r.refund_status_code ??
+          r.RefundStatusCode ??
+          mergedBase.refundStatusCode ??
+          mergedBase.refund_status_code ??
+          mergedBase.RefundStatusCode;
+
+        const requestedAmt =
+          toAmountNumber(r.refund) ??
+          toAmountNumber(r.Refund) ??
+          toAmountNumber(r.refundRequestedAmount) ??
+          toAmountNumber(r.requestedRefundAmount) ??
+          toAmountNumber(r.refundRequestAmount) ??
+          toAmountNumber(r.refundAmount) ??
+          toAmountNumber(mergedBase.refund) ??
+          toAmountNumber(mergedBase.Refund) ??
+          toAmountNumber(mergedBase.refundRequestedAmount) ??
+          toAmountNumber(mergedBase.requestedRefundAmount) ??
+          toAmountNumber(mergedBase.refundRequestAmount) ??
+          toAmountNumber(mergedBase.refundAmount) ??
+          pickRefundAmountFromStorage(selectedOrder.id);
+
+        const completedAmt =
+          toAmountNumber(r.refundedAmount) ??
+          toAmountNumber(r.refunded_amount) ??
+          toAmountNumber(r.RefundedAmount) ??
+          toAmountNumber(mergedBase.refundedAmount) ??
+          toAmountNumber(mergedBase.refunded_amount) ??
+          toAmountNumber(mergedBase.RefundedAmount);
+
+        const amountPatch =
+          Number(newCode) === REFUND_CODE.COMPLETED
+            ? {
+                ...buildCompletedRefundAmountPatch(completedAmt),
+                ...(requestedAmt
+                  ? buildRequestedRefundAmountPatch(requestedAmt)
+                  : {}),
+              }
+            : Number(newCode) === REFUND_CODE.REQUESTED ||
+                Number(newCode) === REFUND_CODE.IN_PROGRESS
+              ? requestedAmt
+                ? buildRequestedRefundAmountPatch(requestedAmt)
+                : {}
+              : {};
+
+        const newBackendText =
+          r.refundLastEm ??
+          r.RefundLastEm ??
+          data?.message ??
+          mergedBase.refundLastEm ??
+          "";
+
+        const resolvedText = getDisplayRefundTextByCode(
+          newCode,
+          newBackendText,
+        );
+
+        setSelectedOrder((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            refundStatusCode:
+              r.refundStatusCode ??
+              r.refund_status_code ??
+              r.RefundStatusCode ??
+              prev.refundStatusCode,
+            refundLastEm: newBackendText || prev.refundLastEm,
+            refundedAmount:
+              r.refundedAmount ?? r.RefundedAmount ?? prev.refundedAmount,
+            refundLastEc: r.refundLastEc ?? r.RefundLastEc ?? prev.refundLastEc,
+            ...amountPatch,
+          };
+        });
+
+        setOrders((prev) => {
+          const updated = prev.map((o) => {
+            if (o.id !== selectedOrder.id) return o;
+            return {
+              ...o,
+              refundStatusCode:
+                r.refundStatusCode ??
+                r.refund_status_code ??
+                r.RefundStatusCode ??
+                o.refundStatusCode,
+              refundLastEm: newBackendText || o.refundLastEm,
+              refundedAmount:
+                r.refundedAmount ?? r.RefundedAmount ?? o.refundedAmount,
+              refundLastEc: r.refundLastEc ?? r.RefundLastEc ?? o.refundLastEc,
+              ...amountPatch,
+            };
+          });
+
+          localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+
+        const merged = {
+          ...mergedBase,
+          refundStatusCode: newCode,
+          refundLastEm: newBackendText,
+          ...amountPatch,
+        };
+
+        const amt = pickRefundAmountFromOrder(merged);
+        if (amt && amt > 0) {
+          setRefundAmount(String(amt));
+        } else {
+          setRefundAmount("");
+        }
+
+        setRefundStatusType(toRefundType(newCode));
+        setRefundStatusText(resolvedText);
+
+        if (Number(newCode) === REFUND_CODE.NONE) {
+          clearRefundStatusPersisted(selectedOrder.id);
+          setRefundSyncError("");
+          return;
+        }
+
+        if (
+          Number(newCode) === REFUND_CODE.REQUESTED ||
+          Number(newCode) === REFUND_CODE.IN_PROGRESS
+        ) {
+          setRefundStatusPersisted(
+            selectedOrder.id,
+            toRefundType(newCode),
+            resolvedText,
+            requestedAmt,
+          );
+        }
+
+        if (
+          Number(newCode) === REFUND_CODE.COMPLETED ||
+          Number(newCode) === REFUND_CODE.FAILED
+        ) {
+          clearRefundStatusPersisted(selectedOrder.id);
+        }
+
+        return;
+      }
+
+      setRefundSyncError(e?.message || "Failed to refresh refund status.");
+    } finally {
+      setRefundSyncing(false);
+    }
+  };
+
+  const backendRefundCode = getRefundCode(selectedOrder);
+  const backendAmt = pickRefundAmountFromOrder(selectedOrder);
+  const storageAmt = pickRefundAmountFromStorage(selectedOrder?.id);
+  const displayAmt = backendAmt ?? storageAmt;
+
+  const isRefundInProgress = backendRefundCode === REFUND_CODE.IN_PROGRESS;
+  const isRefundCompleted = backendRefundCode === REFUND_CODE.COMPLETED;
+  const isRefundRequested = backendRefundCode === REFUND_CODE.REQUESTED;
+
+  const lockRefundAmountInput =
+    isManager || isRefundInProgress || isRefundCompleted || isRefundRequested;
+
+  const refundAmountLabel = isRefundInProgress
+    ? "Refunding amount (NZD):"
+    : isRefundCompleted
+      ? "Refunded amount (NZD):"
+      : isRefundRequested
+        ? "Requested refund amount (NZD):"
+        : "Refund amount (NZD):";
+
+  const refundAmountInputValue = lockRefundAmountInput
+    ? displayAmt !== null && displayAmt !== undefined
+      ? String(displayAmt)
+      : ""
+    : refundAmount;
+
+  const refundAmountInputDisabled =
+    lockRefundAmountInput || refundSubmitting || refundSyncing;
+
+  const effectiveRefundAmountNum = Number(refundAmountInputValue);
+  const hasValidRefundAmount =
+    !Number.isNaN(effectiveRefundAmountNum) && effectiveRefundAmountNum > 0;
+
+  const disableApplyRefundForUser =
+    refundSubmitting ||
+    refundSyncing ||
+    !hasValidRefundAmount ||
+    isRefundRequested ||
+    isRefundInProgress ||
+    isRefundCompleted;
+
+  const disableConfirmRefundForManager =
+    refundSubmitting ||
+    refundSyncing ||
+    !isRefundRequested ||
+    !hasValidRefundAmount;
+
+  const handleAuthExpired = (orderId) => {
+    if (orderId) {
+      clearRefundStatusPersisted(orderId);
+    }
+
+    setRefundStatusType("idle");
+    setRefundStatusText("");
+    setRefundSubmitting(false);
+    setRefundSyncing(false);
+    setRefundSyncError("");
+
+    alert("Your session has expired. Please log in again.");
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "/login";
+  };
 
   return (
     <>
@@ -456,7 +1137,8 @@ function CasualHireRegalia() {
         <div className="buy-regalia-wrapper">
           <div className="buy-regalia-header">
             <p className="buy-regalia-subtitle">
-              Manage and track graduation regalia staff purchases (casual hire photos)
+              Manage and track graduation regalia staff purchases (casual hire
+              photos)
             </p>
           </div>
 
@@ -499,7 +1181,6 @@ function CasualHireRegalia() {
             </div>
           </div>
 
-          {/* Search and Filter */}
           <div className="search-filter-container">
             <div className="search-filter-wrapper">
               <div className="filter-wrapper search-wrapper">
@@ -514,7 +1195,6 @@ function CasualHireRegalia() {
               </div>
 
               <div className="filter-wrapper">
-                {/* <Filter className="filter-icon" /> */}
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(Number(e.target.value))}
@@ -543,7 +1223,6 @@ function CasualHireRegalia() {
                 </select>
               </div>
 
-              {/* DATE FILTERS */}
               <div className="filter-wrapper">
                 <div>From</div>
                 <input
@@ -577,25 +1256,6 @@ function CasualHireRegalia() {
                 Clear dates
               </button>
 
-              {/* <div className="payment-filter-wrapper">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={filterPaid}
-                    onChange={(e) => setFilterPaid(e.target.checked)}
-                  />
-                  Paid
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={filterUnpaid}
-                    onChange={(e) => setFilterUnpaid(e.target.checked)}
-                  />
-                  Unpaid
-                </label>
-              </div> */}
-
               <div className="filter-wrapper">
                 <select
                   value={filterOrderType}
@@ -613,6 +1273,7 @@ function CasualHireRegalia() {
                 onClick={generateCSV}
                 disabled={filteredOrders.length === 0}
                 className="ml-3 bg-green-700 text-white px-3 py-1.5 rounded hover:bg-green-800 disabled:bg-gray-400"
+                type="button"
               >
                 Export CSV
               </button>
@@ -623,7 +1284,6 @@ function CasualHireRegalia() {
             Filtered Items: <span>{filteredOrders.length}</span>
           </div>
 
-          {/* Bulk Actions */}
           {selectedOrders.length > 0 && (
             <div
               style={{
@@ -650,7 +1310,7 @@ function CasualHireRegalia() {
                   border: "1px solid #d1d5db",
                 }}
               >
-                <option value="">Select new status...</option>
+                <option value={0}>Select new status...</option>
                 <option value={ORDER_STATUS.PENDING}>Pending</option>
                 <option value={ORDER_STATUS.PROCESSING}>Processing</option>
                 <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
@@ -668,6 +1328,7 @@ function CasualHireRegalia() {
                   cursor: "pointer",
                   fontWeight: "500",
                 }}
+                type="button"
               >
                 Update Status
               </button>
@@ -683,13 +1344,13 @@ function CasualHireRegalia() {
                   cursor: "pointer",
                   fontWeight: "500",
                 }}
+                type="button"
               >
                 Clear Selection
               </button>
             </div>
           )}
 
-          {/* Orders Table */}
           <div className="table-container">
             <div className="table-wrapper">
               <table className="orders-table">
@@ -806,6 +1467,7 @@ function CasualHireRegalia() {
                           <button
                             onClick={() => setSelectedOrder(order)}
                             className="action-button"
+                            type="button"
                           >
                             <Eye className="action-icon" />
                           </button>
@@ -818,7 +1480,6 @@ function CasualHireRegalia() {
             </div>
           </div>
 
-          {/* Pagination */}
           <div
             style={{
               display: "flex",
@@ -853,6 +1514,7 @@ function CasualHireRegalia() {
                   background: currentPage === 1 ? "#f3f4f6" : "white",
                   cursor: currentPage === 1 ? "not-allowed" : "pointer",
                 }}
+                type="button"
               >
                 Prev
               </button>
@@ -886,6 +1548,7 @@ function CasualHireRegalia() {
                           cursor: "pointer",
                           fontWeight: p === currentPage ? "700" : "500",
                         }}
+                        type="button"
                       >
                         {p}
                       </button>
@@ -906,13 +1569,13 @@ function CasualHireRegalia() {
                   cursor:
                     currentPage === totalPages ? "not-allowed" : "pointer",
                 }}
+                type="button"
               >
                 Next
               </button>
             </div>
           </div>
 
-          {/* Order Detail Modal */}
           {selectedOrder && (
             <div className="modal-overlay">
               <div className="modal-content">
@@ -927,6 +1590,7 @@ function CasualHireRegalia() {
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="modal-close-button"
+                      type="button"
                     >
                       <X className="modal-close-icon" />
                     </button>
@@ -1111,12 +1775,557 @@ function CasualHireRegalia() {
                         )}
                       </div>
                     </div>
+
+                    <div>
+                      <h3 className="modal-section-title">Refund Order</h3>
+
+                      <div
+                        className="info-card"
+                        style={{ display: "grid", gap: "0.75rem" }}
+                      >
+                        <div
+                          className="info-row"
+                          style={{ gap: "0.5rem", alignItems: "center" }}
+                        >
+                          <span className="info-label">Refund status:</span>
+
+                          <span
+                            className="info-value"
+                            style={getRefundStatusStyle()}
+                          >
+                            {refundSubmitting
+                              ? "Submitting..."
+                              : refundStatusText
+                                ? refundStatusText
+                                : "—"}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={handleRefreshRefundStatus}
+                            disabled={refundSyncing || refundSubmitting}
+                            style={{
+                              marginLeft: "auto",
+                              padding: "0.35rem 0.6rem",
+                              borderRadius: "6px",
+                              border: "1px solid #d1d5db",
+                              backgroundColor: refundSyncing
+                                ? "#f3f4f6"
+                                : "white",
+                              cursor:
+                                refundSyncing || refundSubmitting
+                                  ? "not-allowed"
+                                  : "pointer",
+                              fontWeight: 600,
+                              fontSize: "0.85rem",
+                            }}
+                            title="Recheck refund status"
+                          >
+                            {refundSyncing ? "Checking..." : "Recheck"}
+                          </button>
+                        </div>
+
+                        {refundSyncError && (
+                          <div
+                            style={{ color: "#b91c1c", fontSize: "0.85rem" }}
+                          >
+                            {refundSyncError}
+                          </div>
+                        )}
+
+                        <div
+                          className="info-row"
+                          style={{ alignItems: "center" }}
+                        >
+                          <span className="info-label">
+                            {refundAmountLabel}
+                          </span>
+
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            placeholder="e.g. 49.00"
+                            value={refundAmountInputValue}
+                            disabled={refundAmountInputDisabled}
+                            onChange={(e) => {
+                              if (refundAmountInputDisabled) return;
+                              setRefundAmount(e.target.value);
+                            }}
+                            style={{
+                              width: "180px",
+                              padding: "0.5rem 0.75rem",
+                              borderRadius: "6px",
+                              border: "1px solid #d1d5db",
+                              backgroundColor: refundAmountInputDisabled
+                                ? "#f3f4f6"
+                                : "white",
+                              cursor: refundAmountInputDisabled
+                                ? "not-allowed"
+                                : "text",
+                            }}
+                          />
+                        </div>
+
+                        {!isManager && (
+                          <button
+                            type="button"
+                            disabled={disableApplyRefundForUser}
+                            onClick={async () => {
+                              if (!selectedOrder) return;
+
+                              const amountNum = Number(refundAmount);
+                              if (!amountNum || amountNum <= 0) {
+                                alert("Please enter a valid refund amount.");
+                                return;
+                              }
+
+                              const ok = window.confirm(
+                                `Apply refund?\nAmount: $${amountNum}`,
+                              );
+                              if (!ok) return;
+
+                              try {
+                                setRefundSubmitting(true);
+                                setRefundStatusTransient(
+                                  "submitting",
+                                  "Submitting refund request...",
+                                );
+
+                                const resp = await refundRequest(
+                                  selectedOrder.id,
+                                  amountNum,
+                                );
+
+                                if (
+                                  resp.status === 200 ||
+                                  resp.status === 202
+                                ) {
+                                  const data = resp.data || {};
+                                  const newCode =
+                                    Number(
+                                      data.refundStatusCode ??
+                                        data.statusCode ??
+                                        data.code,
+                                    ) || REFUND_CODE.REQUESTED;
+
+                                  const newAmt =
+                                    data.amount ??
+                                    data.refund ??
+                                    data.refundedAmount ??
+                                    data.refundRequestedAmount ??
+                                    amountNum;
+
+                                  const newText = String(
+                                    data.refundLastEm ??
+                                      data.em ??
+                                      data.message ??
+                                      "",
+                                  ).trim();
+
+                                  const resolvedText =
+                                    getDisplayRefundTextByCode(
+                                      newCode,
+                                      newText,
+                                    );
+
+                                  const amountPatch =
+                                    newCode === REFUND_CODE.COMPLETED
+                                      ? {
+                                          ...buildCompletedRefundAmountPatch(
+                                            newAmt,
+                                          ),
+                                          ...buildRequestedRefundAmountPatch(
+                                            newAmt,
+                                          ),
+                                        }
+                                      : buildRequestedRefundAmountPatch(newAmt);
+
+                                  setSelectedOrder((prev) => ({
+                                    ...prev,
+                                    refundStatusCode: newCode,
+                                    refundLastEm: newText,
+                                    ...amountPatch,
+                                  }));
+
+                                  setOrders((prev) => {
+                                    const updated = prev.map((o) =>
+                                      o.id === selectedOrder.id
+                                        ? {
+                                            ...o,
+                                            refundStatusCode: newCode,
+                                            refundLastEm: newText,
+                                            ...amountPatch,
+                                          }
+                                        : o,
+                                    );
+                                    localStorage.setItem(
+                                      ORDERS_STORAGE_KEY,
+                                      JSON.stringify(updated),
+                                    );
+                                    return updated;
+                                  });
+
+                                  setRefundAmount(String(newAmt));
+
+                                  setRefundStatusPersisted(
+                                    selectedOrder.id,
+                                    toRefundType(newCode),
+                                    resolvedText,
+                                    newAmt,
+                                  );
+
+                                  if (
+                                    newCode === REFUND_CODE.COMPLETED ||
+                                    newCode === REFUND_CODE.FAILED
+                                  ) {
+                                    clearRefundStatusPersisted(
+                                      selectedOrder.id,
+                                    );
+                                  }
+
+                                  alert(
+                                    newCode === REFUND_CODE.REQUESTED
+                                      ? `Refund requested.\nOrderId: ${selectedOrder.id}`
+                                      : newCode === REFUND_CODE.IN_PROGRESS
+                                        ? `Refund is in progress.\n${newText || ""}`
+                                        : newCode === REFUND_CODE.FAILED
+                                          ? `Refund failed.\n${newText || ""}`
+                                          : `Refund submitted.\n${newText || ""}`,
+                                  );
+                                  return;
+                                }
+
+                                if (resp.status === 401) {
+                                  handleAuthExpired(selectedOrder?.id);
+                                  return;
+                                }
+
+                                if (resp.status === 409) {
+                                  const msg =
+                                    (typeof resp.data === "string" &&
+                                      resp.data) ||
+                                    resp.data?.em ||
+                                    resp.data?.message ||
+                                    "Refund already requested / already refunded.";
+                                  setRefundStatusPersisted(
+                                    selectedOrder.id,
+                                    "failed",
+                                    msg,
+                                    amountNum,
+                                  );
+                                  alert(msg);
+                                  return;
+                                }
+
+                                const msg =
+                                  (resp.data &&
+                                    (resp.data.em ||
+                                      resp.data.status ||
+                                      resp.data.message)) ||
+                                  (typeof resp.data === "string"
+                                    ? resp.data
+                                    : null) ||
+                                  `Refund failed. HTTP ${resp.status}`;
+
+                                setRefundStatusPersisted(
+                                  selectedOrder.id,
+                                  "failed",
+                                  msg,
+                                  amountNum,
+                                );
+                                alert(msg);
+                              } catch (e) {
+                                console.error(e);
+
+                                if (e?.response?.status === 401) {
+                                  handleAuthExpired(selectedOrder?.id);
+                                  return;
+                                }
+
+                                const msg =
+                                  e?.response?.data?.message ||
+                                  e?.response?.data?.em ||
+                                  (typeof e?.response?.data === "string"
+                                    ? e.response.data
+                                    : "") ||
+                                  "Refund request failed.";
+
+                                setRefundStatusPersisted(
+                                  selectedOrder.id,
+                                  "failed",
+                                  msg,
+                                  Number(refundAmount) || null,
+                                );
+                                alert(msg);
+                              } finally {
+                                setRefundSubmitting(false);
+                              }
+                            }}
+                            style={{
+                              padding: "0.6rem 1rem",
+                              backgroundColor: "#f59e0b",
+                              color: "white",
+                              borderRadius: "6px",
+                              border: "none",
+                              cursor: disableApplyRefundForUser
+                                ? "not-allowed"
+                                : "pointer",
+                              fontWeight: "600",
+                              width: "fit-content",
+                              opacity: disableApplyRefundForUser ? 0.7 : 1,
+                            }}
+                          >
+                            {refundSubmitting
+                              ? "Submitting..."
+                              : "Apply Refund"}
+                          </button>
+                        )}
+
+                        {isManager && (
+                          <button
+                            type="button"
+                            disabled={disableConfirmRefundForManager}
+                            onClick={async () => {
+                              if (!selectedOrder) return;
+
+                              const amountNum = Number(refundAmountInputValue);
+                              if (!amountNum || amountNum <= 0) {
+                                alert(
+                                  "No valid requested refund amount found. Please refresh or check backend.",
+                                );
+                                return;
+                              }
+
+                              const ok = window.confirm(
+                                `Confirm refund?\nAmount: $${amountNum}`,
+                              );
+                              if (!ok) return;
+
+                              try {
+                                setRefundSubmitting(true);
+                                setRefundStatusTransient(
+                                  "submitting",
+                                  "Submitting refund approval...",
+                                );
+
+                                const resp = await refundApprove(
+                                  selectedOrder.id,
+                                  amountNum,
+                                );
+
+                                if (
+                                  resp.status === 200 ||
+                                  resp.status === 202
+                                ) {
+                                  const data = resp.data || {};
+                                  const ec = Number(data.ec);
+
+                                  const newCode =
+                                    Number(
+                                      data.refundStatusCode ??
+                                        data.statusCode ??
+                                        data.code,
+                                    ) ||
+                                    (ec === 0
+                                      ? REFUND_CODE.COMPLETED
+                                      : ec === 13
+                                        ? REFUND_CODE.IN_PROGRESS
+                                        : REFUND_CODE.FAILED);
+
+                                  const newAmt =
+                                    data.amount ??
+                                    data.refundedAmount ??
+                                    data.refund ??
+                                    amountNum;
+
+                                  const amountPatch =
+                                    newCode === REFUND_CODE.COMPLETED
+                                      ? {
+                                          ...buildCompletedRefundAmountPatch(
+                                            newAmt,
+                                          ),
+                                          ...buildRequestedRefundAmountPatch(
+                                            newAmt,
+                                          ),
+                                        }
+                                      : buildRequestedRefundAmountPatch(newAmt);
+
+                                  const newText = String(
+                                    data.refundLastEm ??
+                                      data.em ??
+                                      data.message ??
+                                      "",
+                                  ).trim();
+
+                                  const resolvedText =
+                                    getDisplayRefundTextByCode(
+                                      newCode,
+                                      newText,
+                                    );
+
+                                  setSelectedOrder((prev) => ({
+                                    ...prev,
+                                    refundStatusCode: newCode,
+                                    refundLastEm: newText,
+                                    refundTxnId:
+                                      data.refundTxnId ?? prev?.refundTxnId,
+                                    ...amountPatch,
+                                  }));
+
+                                  setOrders((prev) => {
+                                    const updated = prev.map((o) =>
+                                      o.id === selectedOrder.id
+                                        ? {
+                                            ...o,
+                                            refundStatusCode: newCode,
+                                            refundLastEm: newText,
+                                            refundTxnId:
+                                              data.refundTxnId ?? o.refundTxnId,
+                                            ...amountPatch,
+                                          }
+                                        : o,
+                                    );
+                                    localStorage.setItem(
+                                      ORDERS_STORAGE_KEY,
+                                      JSON.stringify(updated),
+                                    );
+                                    return updated;
+                                  });
+
+                                  setRefundAmount(String(newAmt));
+
+                                  if (
+                                    newCode === REFUND_CODE.COMPLETED ||
+                                    newCode === REFUND_CODE.FAILED
+                                  ) {
+                                    clearRefundStatusPersisted(
+                                      selectedOrder.id,
+                                    );
+                                    setRefundStatusType(toRefundType(newCode));
+                                    setRefundStatusText(resolvedText);
+                                  } else {
+                                    setRefundStatusPersisted(
+                                      selectedOrder.id,
+                                      toRefundType(newCode),
+                                      resolvedText,
+                                      newAmt,
+                                    );
+                                  }
+
+                                  alert(
+                                    newCode === REFUND_CODE.COMPLETED
+                                      ? `Refund approved.\nOrderId: ${selectedOrder.id}`
+                                      : newCode === REFUND_CODE.IN_PROGRESS
+                                        ? `Refund is in progress.\n${newText || ""}`
+                                        : `Refund failed.\n${newText || ""}`,
+                                  );
+                                  return;
+                                }
+
+                                if (resp.status === 401) {
+                                  handleAuthExpired(selectedOrder?.id);
+                                  return;
+                                }
+
+                                if (resp.status === 409) {
+                                  const msg =
+                                    (typeof resp.data === "string" &&
+                                      resp.data) ||
+                                    resp.data?.em ||
+                                    resp.data?.message ||
+                                    "Refund conflict.";
+                                  setRefundStatusPersisted(
+                                    selectedOrder.id,
+                                    "failed",
+                                    msg,
+                                    amountNum,
+                                  );
+                                  alert(msg);
+                                  return;
+                                }
+
+                                const msg =
+                                  (resp.data &&
+                                    (resp.data.em ||
+                                      resp.data.status ||
+                                      resp.data.message)) ||
+                                  (typeof resp.data === "string"
+                                    ? resp.data
+                                    : null) ||
+                                  `Refund failed. HTTP ${resp.status}`;
+
+                                setRefundStatusPersisted(
+                                  selectedOrder.id,
+                                  "failed",
+                                  msg,
+                                  amountNum,
+                                );
+                                alert(msg);
+                              } catch (e) {
+                                console.error(e);
+
+                                if (e?.response?.status === 401) {
+                                  handleAuthExpired(selectedOrder?.id);
+                                  return;
+                                }
+
+                                const msg =
+                                  e?.response?.data?.message ||
+                                  e?.response?.data?.em ||
+                                  (typeof e?.response?.data === "string"
+                                    ? e.response.data
+                                    : "") ||
+                                  "Refund approve failed.";
+
+                                setRefundStatusPersisted(
+                                  selectedOrder.id,
+                                  "failed",
+                                  msg,
+                                  Number(refundAmountInputValue) || null,
+                                );
+                                alert(msg);
+                              } finally {
+                                setRefundSubmitting(false);
+                              }
+                            }}
+                            style={{
+                              padding: "0.6rem 1rem",
+                              backgroundColor: "#ef4444",
+                              color: "white",
+                              borderRadius: "6px",
+                              border: "none",
+                              cursor: disableConfirmRefundForManager
+                                ? "not-allowed"
+                                : "pointer",
+                              fontWeight: "600",
+                              width: "fit-content",
+                              opacity: disableConfirmRefundForManager ? 0.7 : 1,
+                            }}
+                          >
+                            {refundSubmitting
+                              ? "Submitting..."
+                              : "Confirm Refund"}
+                          </button>
+                        )}
+
+                        <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+                          {!isManager
+                            ? isRefundRequested
+                              ? "Refund request submitted. Waiting for manager approval."
+                              : "This will submit a refund request for manager review."
+                            : "Refund must be requested before manager can confirm."}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="modal-footer">
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="close-button"
+                      type="button"
                     >
                       Close
                     </button>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, Filter, Eye, X, Clock, Package, Truck } from "lucide-react";
+import { Search, Eye, X, Clock, Package, Truck } from "lucide-react";
 import "./BuyRegalia.css";
 import {
   getOrders,
@@ -20,23 +20,23 @@ import {
 export default function BuyRegalia() {
   const [csvData, setCsvData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState(0);
+  const [filterStatus, setFilterStatus] = useState(ORDER_STATUS.ALL);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
   const [filterItemType, setFilterItemType] = useState("all");
   const [filterOrderType, setFilterOrderType] = useState("all");
+
   const [refundAmount, setRefundAmount] = useState("");
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [refundSyncing, setRefundSyncing] = useState(false);
   const [refundSyncError, setRefundSyncError] = useState("");
 
   const REFUND_STATUS_STORAGE_KEY = "buy_refund_status_map_v1";
+  const ORDERS_STORAGE_KEY = "regaliaOrders_buy";
 
-  // refund status display
   const [refundStatusText, setRefundStatusText] = useState("");
   const [refundStatusType, setRefundStatusType] = useState("idle"); // idle | submitting | in_progress | completed | failed | requested
 
-  // Date filters
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -60,16 +60,12 @@ export default function BuyRegalia() {
   const role = localStorage.getItem("role") || "";
   const isManager = role.toLowerCase() === "manager";
 
-  // ----------------------------
-  // RefundStatusCode enum values (server)
-  // None = 0, InProgress = 1, Completed = 2, Failed = 3, Requested = 4
-  // ----------------------------
   const REFUND_CODE = {
-    NONE: 0,
-    IN_PROGRESS: 1,
-    COMPLETED: 2,
-    FAILED: 3,
-    REQUESTED: 4,
+    NONE: -1,
+    COMPLETED: 0,
+    FAILED: 2,
+    REQUESTED: 3,
+    IN_PROGRESS: 13,
   };
 
   const toRefundType = (code) => {
@@ -81,14 +77,14 @@ export default function BuyRegalia() {
     return "idle";
   };
 
-  // Extract refundStatusCode from various possible shapes (robust)
   const getRefundCode = (o) => {
     if (!o) return REFUND_CODE.NONE;
     const candidates = [
       o.refundStatusCode,
       o.refund_status_code,
-      o.refundStatus, // if backend accidentally still returns numeric in refundStatus
+      o.refundStatus,
       o.refund_status,
+      o.RefundStatusCode,
     ];
 
     for (const v of candidates) {
@@ -99,7 +95,6 @@ export default function BuyRegalia() {
     return REFUND_CODE.NONE;
   };
 
-  // Extract refundLastEm (text) from various shapes (robust)
   const getRefundText = (o) => {
     if (!o) return "";
     const candidates = [
@@ -107,6 +102,7 @@ export default function BuyRegalia() {
       o.refund_last_em,
       o.refundLastMessage,
       o.refund_last_message,
+      o.RefundLastEm,
     ];
     for (const v of candidates) {
       if (v === null || v === undefined) continue;
@@ -116,9 +112,104 @@ export default function BuyRegalia() {
     return "";
   };
 
-  // ----------------------------
-  // Helpers: date parsing/filtering
-  // ----------------------------
+  // IMPORTANT:
+  // UI display text should be determined by refund_status_code first.
+  // backendText is only used for IN_PROGRESS or unknown fallback.
+  const getDisplayRefundTextByCode = (code, backendText = "") => {
+    const n = Number(code);
+
+    if (n === REFUND_CODE.REQUESTED) return "Refund requested.";
+    if (n === REFUND_CODE.IN_PROGRESS) {
+      return backendText || "Refund in progress.";
+    }
+    if (n === REFUND_CODE.COMPLETED) return "Refund completed.";
+    if (n === REFUND_CODE.FAILED) return "Refund failed.";
+    if (n === REFUND_CODE.NONE) return "No refund record found.";
+
+    return backendText || "";
+  };
+
+  const toAmountNumber = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    if (Number.isNaN(n) || n <= 0) return null;
+    return n;
+  };
+
+  const getRequestedRefundAmountFromOrder = (o) => {
+    if (!o) return null;
+
+    const candidates = [
+      o.refund,
+      o.Refund,
+      o.refundRequestedAmount,
+      o.requestedRefundAmount,
+      o.refundRequestAmount,
+      o.refundAmount,
+      o.refund_amount,
+      o.refund_requested_amount,
+      o.requested_refund_amount,
+    ];
+
+    for (const v of candidates) {
+      const n = toAmountNumber(v);
+      if (n !== null) return n;
+    }
+    return null;
+  };
+
+  const getCompletedRefundAmountFromOrder = (o) => {
+    if (!o) return null;
+
+    const candidates = [o.refundedAmount, o.refunded_amount, o.RefundedAmount];
+
+    for (const v of candidates) {
+      const n = toAmountNumber(v);
+      if (n !== null) return n;
+    }
+    return null;
+  };
+
+  const pickRefundAmountFromOrder = (o) => {
+    if (!o) return null;
+
+    const code = getRefundCode(o);
+    const requestedAmt = getRequestedRefundAmountFromOrder(o);
+    const completedAmt = getCompletedRefundAmountFromOrder(o);
+
+    if (code === REFUND_CODE.COMPLETED) {
+      return completedAmt ?? requestedAmt;
+    }
+
+    if (code === REFUND_CODE.REQUESTED || code === REFUND_CODE.IN_PROGRESS) {
+      return requestedAmt ?? completedAmt;
+    }
+
+    return requestedAmt ?? completedAmt;
+  };
+
+  const buildRequestedRefundAmountPatch = (amount) => {
+    if (amount === null || amount === undefined) return {};
+    return {
+      refund: amount,
+      refundRequestedAmount: amount,
+      requestedRefundAmount: amount,
+      refundRequestAmount: amount,
+      refundAmount: amount,
+      refund_amount: amount,
+      refund_requested_amount: amount,
+      requested_refund_amount: amount,
+    };
+  };
+
+  const buildCompletedRefundAmountPatch = (amount) => {
+    if (amount === null || amount === undefined) return {};
+    return {
+      refundedAmount: amount,
+      refunded_amount: amount,
+    };
+  };
+
   const toStartOfDay = (d) => {
     const x = new Date(d);
     x.setHours(0, 0, 0, 0);
@@ -131,7 +222,6 @@ export default function BuyRegalia() {
     return x;
   };
 
-  // Handles: ISO strings, "YYYY-MM-DD", and "dd/mm/yyyy"
   const parseOrderDate = (value) => {
     if (!value) return null;
 
@@ -147,9 +237,6 @@ export default function BuyRegalia() {
     return null;
   };
 
-  // ----------------------------
-  // Refund localStorage helpers
-  // ----------------------------
   const readRefundStatusMap = () => {
     try {
       const raw = localStorage.getItem(REFUND_STATUS_STORAGE_KEY);
@@ -161,6 +248,32 @@ export default function BuyRegalia() {
 
   const writeRefundStatusMap = (map) => {
     localStorage.setItem(REFUND_STATUS_STORAGE_KEY, JSON.stringify(map));
+  };
+
+  const clearTransientRefundErrors = () => {
+    const map = readRefundStatusMap();
+    let changed = false;
+
+    Object.keys(map).forEach((orderId) => {
+      const saved = map[orderId];
+      const text = String(saved?.text || "").toLowerCase();
+      const type = String(saved?.type || "").toLowerCase();
+
+      if (
+        type === "submitting" ||
+        text.includes("submitting refund request") ||
+        text.includes("submitting refund approval") ||
+        text.includes("session expired") ||
+        text.includes("log in again") ||
+        text.includes("unauthorized") ||
+        text.includes("token")
+      ) {
+        delete map[orderId];
+        changed = true;
+      }
+    });
+
+    if (changed) writeRefundStatusMap(map);
   };
 
   const clearRefundStatusPersisted = (orderId) => {
@@ -187,29 +300,9 @@ export default function BuyRegalia() {
     writeRefundStatusMap(map);
   };
 
-  // ----------------------------
-  // Refund amount helper
-  // ----------------------------
-  const pickRefundAmountFromOrder = (o) => {
-    if (!o) return null;
-
-    const candidates = [
-      o.refundedAmount,
-      o.refundRequestedAmount,
-      o.requestedRefundAmount,
-      o.refundRequestAmount,
-      o.refundAmount,
-      o.refund_amount,
-      o.refund_requested_amount,
-      o.requested_refund_amount,
-    ];
-
-    for (const v of candidates) {
-      if (v === null || v === undefined) continue;
-      const n = Number(v);
-      if (!Number.isNaN(n) && n > 0) return n;
-    }
-    return null;
+  const setRefundStatusTransient = (type, text) => {
+    setRefundStatusType(type);
+    setRefundStatusText(text);
   };
 
   const pickRefundAmountFromStorage = (orderId) => {
@@ -221,19 +314,13 @@ export default function BuyRegalia() {
     return null;
   };
 
-  // ----------------------------
-  // Fetch orders (merged logic)
-  // - only orderType === 2
-  // - keep only buy items (!hire)
-  // - keep paid OR purchase order
-  // ----------------------------
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const cachedOrders = localStorage.getItem("regaliaOrders_buy");
+        const cachedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
         if (cachedOrders) setOrders(JSON.parse(cachedOrders));
 
         const data = await getOrders();
@@ -241,15 +328,11 @@ export default function BuyRegalia() {
         const processedData = Array.isArray(data)
           ? data
               .map((order) => {
-                // 1) keep only orders where orderType = 2 (regular buy)
                 if (parseInt(order.orderType) !== 2) return null;
 
-                // 2) Purchase order (paymentMethod === 3)
                 const paymentMethod = Number(order.paymentMethod);
                 const isPurchaseOrder = paymentMethod === 3;
 
-                // 3) Remove unpaid NORMAL orders
-                // keep if paid OR isPurchaseOrder
                 const keepOrder = order.paid === true || isPurchaseOrder;
                 if (!keepOrder) return null;
 
@@ -263,13 +346,10 @@ export default function BuyRegalia() {
           : [];
 
         setOrders(processedData);
-        localStorage.setItem(
-          "regaliaOrders_buy",
-          JSON.stringify(processedData),
-        );
+        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(processedData));
       } catch (err) {
         setError(err.message || "Failed to fetch orders");
-        const cachedOrders = localStorage.getItem("regaliaOrders_buy");
+        const cachedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
         if (cachedOrders) setOrders(JSON.parse(cachedOrders));
       } finally {
         setLoading(false);
@@ -279,62 +359,76 @@ export default function BuyRegalia() {
     fetchOrders();
   }, []);
 
-  // ----------------------------
-  // Refund status text (backend: refundLastEm first, fallback localStorage)
-  // Also: refund status type derived from refundStatusCode
-  // ----------------------------
   useEffect(() => {
     if (!selectedOrder?.id) return;
 
     const code = getRefundCode(selectedOrder);
     const backendText = getRefundText(selectedOrder);
+    const map = readRefundStatusMap();
+    const saved = map[String(selectedOrder.id)];
 
-    // type always from code
-    setRefundStatusType(toRefundType(code));
+    if (code !== REFUND_CODE.NONE) {
+      setRefundStatusType(toRefundType(code));
+      setRefundStatusText(getDisplayRefundTextByCode(code, backendText));
 
-    // text: backend first
-    if (backendText) {
-      setRefundStatusText(backendText);
-      if (code === REFUND_CODE.COMPLETED || code === REFUND_CODE.FAILED) {
+      if (
+        code === REFUND_CODE.COMPLETED ||
+        code === REFUND_CODE.FAILED ||
+        code === REFUND_CODE.NONE
+      ) {
         clearRefundStatusPersisted(selectedOrder.id);
       }
       return;
     }
 
-    // fallback to localStorage
-    const map = readRefundStatusMap();
-    const saved = map[String(selectedOrder.id)];
     if (saved?.text) {
-      setRefundStatusType(saved.type || toRefundType(code) || "idle");
+      setRefundStatusType(saved.type || "idle");
       setRefundStatusText(saved.text || "");
-    } else {
-      setRefundStatusText("");
+      return;
     }
 
-    if (code === REFUND_CODE.COMPLETED || code === REFUND_CODE.FAILED) {
-      clearRefundStatusPersisted(selectedOrder.id);
-    }
+    setRefundStatusType("idle");
+    setRefundStatusText("No refund record found.");
   }, [selectedOrder]);
+
+  useEffect(() => {
+    clearTransientRefundErrors();
+  }, []);
 
   useEffect(() => {
     if (!selectedOrder?.id) return;
 
+    const code = getRefundCode(selectedOrder);
     const backendAmt = pickRefundAmountFromOrder(selectedOrder);
     const storageAmt = pickRefundAmountFromStorage(selectedOrder.id);
     const amt = backendAmt ?? storageAmt;
 
-    if (amt !== null && amt !== undefined && amt > 0) {
+    if (
+      (code === REFUND_CODE.REQUESTED ||
+        code === REFUND_CODE.IN_PROGRESS ||
+        code === REFUND_CODE.COMPLETED) &&
+      amt !== null &&
+      amt !== undefined &&
+      amt > 0
+    ) {
       setRefundAmount(String(amt));
     } else {
-      if (!refundAmount) setRefundAmount("");
+      setRefundAmount("");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedOrder?.id,
+    selectedOrder?.refundStatusCode,
+    selectedOrder?.refund_status_code,
+    selectedOrder?.RefundStatusCode,
     selectedOrder?.refundedAmount,
+    selectedOrder?.refunded_amount,
+    selectedOrder?.RefundedAmount,
+    selectedOrder?.refund,
+    selectedOrder?.Refund,
     selectedOrder?.refundRequestedAmount,
     selectedOrder?.requestedRefundAmount,
     selectedOrder?.refundRequestAmount,
+    selectedOrder?.refundAmount,
   ]);
 
   const statusConfig = {
@@ -347,14 +441,12 @@ export default function BuyRegalia() {
   const getItemTypes = () => {
     const types = new Set();
 
-    // Use fetched single items
     (items || []).forEach((it) => {
       const name =
         it?.itemName || it?.name || it?.title || it?.displayName || "";
       if (name) types.add(String(name).trim());
     });
 
-    // Include sets too
     (sets || []).forEach((s) => {
       const name = s?.setName || s?.name || s?.title || s?.displayName || "";
       if (name) types.add(String(name).trim());
@@ -363,7 +455,6 @@ export default function BuyRegalia() {
     return Array.from(types).sort((a, b) => a.localeCompare(b));
   };
 
-  // fetch items
   useEffect(() => {
     const fetchItems = async () => {
       const data = await getItems();
@@ -372,7 +463,6 @@ export default function BuyRegalia() {
     fetchItems();
   }, []);
 
-  // fetch sets
   useEffect(() => {
     const fetchSets = async () => {
       const data = await getItemSets();
@@ -387,40 +477,44 @@ export default function BuyRegalia() {
     );
     updateOrderStatus(orderId, newStatus);
     setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders_buy", JSON.stringify(updatedOrders));
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
     setSelectedOrder(null);
   };
 
   const handleBulkStatusUpdate = async () => {
-    if (!bulkStatusUpdate || selectedOrders.length === 0) {
+    if (
+      bulkStatusUpdate === 0 ||
+      bulkStatusUpdate === ORDER_STATUS.ALL ||
+      selectedOrders.length === 0
+    ) {
       alert("Please select orders and a status to update");
       return;
     }
 
-    const normalizedStatus = normalizeStatus(bulkStatusUpdate);
+    const newStatus = bulkStatusUpdate;
 
     const updatedOrders = orders.map((order) =>
       selectedOrders.includes(order.id)
-        ? { ...order, status: normalizedStatus }
+        ? { ...order, status: newStatus }
         : order,
     );
 
     setOrders(updatedOrders);
-    localStorage.setItem("regaliaOrders_buy", JSON.stringify(updatedOrders));
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
 
     try {
       for (const orderId of selectedOrders) {
-        await updateOrderStatus(orderId, normalizedStatus);
+        await updateOrderStatus(orderId, newStatus);
       }
 
       alert(
         `Updated ${selectedOrders.length} order(s) to ${
-          statusConfig[normalizedStatus]?.label || normalizedStatus
+          statusConfig[newStatus]?.label || newStatus
         }`,
       );
 
       setSelectedOrders([]);
-      setBulkStatusUpdate("");
+      setBulkStatusUpdate(0);
     } catch (err) {
       console.error("Bulk status update failed:", err.response?.data || err);
       alert(
@@ -431,8 +525,9 @@ export default function BuyRegalia() {
 
   const handleSort = (key) => {
     let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc")
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc";
+    }
     setSortConfig({ key, direction });
   };
 
@@ -449,9 +544,6 @@ export default function BuyRegalia() {
     );
   };
 
-  // ----------------------------
-  // Filter + Sort (merged)
-  // ----------------------------
   const filteredOrders = useMemo(() => {
     const filtered = orders.filter((order) => {
       const fullName =
@@ -488,7 +580,6 @@ export default function BuyRegalia() {
         (filterOrderType === "normal" && isNormalOrder) ||
         (filterOrderType === "purchase" && isPurchaseOrder);
 
-      // Date match
       const orderDateObj = parseOrderDate(order.orderDate);
       const matchesDate =
         (!dateFrom && !dateTo) ||
@@ -513,7 +604,6 @@ export default function BuyRegalia() {
 
       switch (sortConfig.key) {
         case "id":
-          // still sort by id internally
           aValue = Number(a.id) || 0;
           bValue = Number(b.id) || 0;
           break;
@@ -540,7 +630,6 @@ export default function BuyRegalia() {
   }, [
     orders,
     searchTerm,
-    filterOrderType,
     filterStatus,
     filterPaid,
     filterUnpaid,
@@ -551,9 +640,6 @@ export default function BuyRegalia() {
     dateTo,
   ]);
 
-  // ----------------------------
-  // Pagination
-  // ----------------------------
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
 
   useEffect(() => {
@@ -681,7 +767,6 @@ export default function BuyRegalia() {
     }
   };
 
-  // Refresh refund status from backend
   const handleRefreshRefundStatus = async () => {
     if (!selectedOrder?.id) return;
 
@@ -692,23 +777,82 @@ export default function BuyRegalia() {
       const data = await syncRefundStatus(selectedOrder.id);
       const r = data?.refund || {};
 
+      const prevOrderFromList = orders.find((o) => o.id === selectedOrder.id);
+
+      const mergedBase = {
+        ...(prevOrderFromList || {}),
+        ...(selectedOrder || {}),
+      };
+
+      const newCode =
+        r.refundStatusCode ??
+        r.refund_status_code ??
+        r.RefundStatusCode ??
+        mergedBase.refundStatusCode ??
+        mergedBase.refund_status_code ??
+        mergedBase.RefundStatusCode;
+
+      const requestedAmt =
+        toAmountNumber(r.refund) ??
+        toAmountNumber(r.Refund) ??
+        toAmountNumber(r.refundRequestedAmount) ??
+        toAmountNumber(r.requestedRefundAmount) ??
+        toAmountNumber(r.refundRequestAmount) ??
+        toAmountNumber(r.refundAmount) ??
+        toAmountNumber(mergedBase.refund) ??
+        toAmountNumber(mergedBase.Refund) ??
+        toAmountNumber(mergedBase.refundRequestedAmount) ??
+        toAmountNumber(mergedBase.requestedRefundAmount) ??
+        toAmountNumber(mergedBase.refundRequestAmount) ??
+        toAmountNumber(mergedBase.refundAmount) ??
+        pickRefundAmountFromStorage(selectedOrder.id);
+
+      const completedAmt =
+        toAmountNumber(r.refundedAmount) ??
+        toAmountNumber(r.refunded_amount) ??
+        toAmountNumber(r.RefundedAmount) ??
+        toAmountNumber(mergedBase.refundedAmount) ??
+        toAmountNumber(mergedBase.refunded_amount) ??
+        toAmountNumber(mergedBase.RefundedAmount);
+
+      const amountPatch =
+        Number(newCode) === REFUND_CODE.COMPLETED
+          ? {
+              ...buildCompletedRefundAmountPatch(completedAmt),
+              ...(requestedAmt
+                ? buildRequestedRefundAmountPatch(requestedAmt)
+                : {}),
+            }
+          : Number(newCode) === REFUND_CODE.REQUESTED ||
+              Number(newCode) === REFUND_CODE.IN_PROGRESS
+            ? requestedAmt
+              ? buildRequestedRefundAmountPatch(requestedAmt)
+              : {}
+            : {};
+
+      const newBackendText =
+        r.refundLastEm ??
+        r.RefundLastEm ??
+        data?.message ??
+        mergedBase.refundLastEm ??
+        "";
+
+      const resolvedText = getDisplayRefundTextByCode(newCode, newBackendText);
+
       setSelectedOrder((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
-          refundStatusCode: r.refundStatusCode ?? prev.refundStatusCode,
-          refundLastEm: r.refundLastEm ?? prev.refundLastEm,
-
-          refundedAmount: r.refundedAmount ?? prev.refundedAmount,
-          refundedAt: r.refundedAt ?? prev.refundedAt,
-          refundLastEc: r.refundLastEc ?? prev.refundLastEc,
-          refundTxnId: r.refundTxnId ?? prev.refundTxnId,
-
-          // sometimes backend returns requested amount fields
-          refundRequestedAmount:
-            r.refundRequestedAmount ?? prev.refundRequestedAmount,
-          requestedRefundAmount:
-            r.requestedRefundAmount ?? prev.requestedRefundAmount,
+          refundStatusCode:
+            r.refundStatusCode ??
+            r.refund_status_code ??
+            r.RefundStatusCode ??
+            prev.refundStatusCode,
+          refundLastEm: newBackendText || prev.refundLastEm,
+          refundedAt: r.refundedAt ?? r.RefundInitiatedAt ?? prev.refundedAt,
+          refundLastEc: r.refundLastEc ?? r.RefundLastEc ?? prev.refundLastEc,
+          refundTxnId: r.refundTxnId ?? r.RefundTxnId ?? prev.refundTxnId,
+          ...amountPatch,
         };
       });
 
@@ -717,51 +861,217 @@ export default function BuyRegalia() {
           if (o.id !== selectedOrder.id) return o;
           return {
             ...o,
-            refundStatusCode: r.refundStatusCode ?? o.refundStatusCode,
-            refundLastEm: r.refundLastEm ?? o.refundLastEm,
-
-            refundedAmount: r.refundedAmount ?? o.refundedAmount,
-            refundedAt: r.refundedAt ?? o.refundedAt,
-            refundLastEc: r.refundLastEc ?? o.refundLastEc,
-            refundTxnId: r.refundTxnId ?? o.refundTxnId,
-
-            refundRequestedAmount:
-              r.refundRequestedAmount ?? o.refundRequestedAmount,
-            requestedRefundAmount:
-              r.requestedRefundAmount ?? o.requestedRefundAmount,
+            refundStatusCode:
+              r.refundStatusCode ??
+              r.refund_status_code ??
+              r.RefundStatusCode ??
+              o.refundStatusCode,
+            refundLastEm: newBackendText || o.refundLastEm,
+            refundedAt: r.refundedAt ?? r.RefundInitiatedAt ?? o.refundedAt,
+            refundLastEc: r.refundLastEc ?? r.RefundLastEc ?? o.refundLastEc,
+            refundTxnId: r.refundTxnId ?? r.RefundTxnId ?? o.refundTxnId,
+            ...amountPatch,
           };
         });
 
-        localStorage.setItem("regaliaOrders_buy", JSON.stringify(updated));
+        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updated));
         return updated;
       });
 
       const merged = {
-        ...selectedOrder,
-        refundedAmount: r.refundedAmount ?? selectedOrder?.refundedAmount,
-        refundRequestedAmount:
-          r.refundRequestedAmount ?? selectedOrder?.refundRequestedAmount,
-        requestedRefundAmount:
-          r.requestedRefundAmount ?? selectedOrder?.requestedRefundAmount,
+        ...mergedBase,
+        refundStatusCode: newCode,
+        refundLastEm: newBackendText,
+        ...amountPatch,
       };
-      const amt = pickRefundAmountFromOrder(merged);
-      if (amt && amt > 0) setRefundAmount(String(amt));
 
-      const code = Number(r?.refundStatusCode);
-      if (code === REFUND_CODE.COMPLETED || code === REFUND_CODE.FAILED) {
+      const amt = pickRefundAmountFromOrder(merged);
+      if (amt && amt > 0) {
+        setRefundAmount(String(amt));
+      } else {
+        setRefundAmount("");
+      }
+
+      setRefundStatusType(toRefundType(newCode));
+      setRefundStatusText(resolvedText);
+
+      const codeNum = Number(newCode);
+
+      if (codeNum === REFUND_CODE.COMPLETED || codeNum === REFUND_CODE.FAILED) {
+        clearRefundStatusPersisted(selectedOrder.id);
+      } else if (
+        codeNum === REFUND_CODE.REQUESTED ||
+        codeNum === REFUND_CODE.IN_PROGRESS
+      ) {
+        setRefundStatusPersisted(
+          selectedOrder.id,
+          toRefundType(codeNum),
+          resolvedText,
+          requestedAmt,
+        );
+      } else if (codeNum === REFUND_CODE.NONE) {
         clearRefundStatusPersisted(selectedOrder.id);
       }
     } catch (e) {
       console.error(e);
+
+      const data = e?.data;
+      const r = data?.refund;
+      const prevOrderFromList = orders.find((o) => o.id === selectedOrder.id);
+      const mergedBase = {
+        ...(prevOrderFromList || {}),
+        ...(selectedOrder || {}),
+      };
+
+      if (r) {
+        const newCode =
+          r.refundStatusCode ??
+          r.refund_status_code ??
+          r.RefundStatusCode ??
+          mergedBase.refundStatusCode ??
+          mergedBase.refund_status_code ??
+          mergedBase.RefundStatusCode;
+
+        const requestedAmt =
+          toAmountNumber(r.refund) ??
+          toAmountNumber(r.Refund) ??
+          toAmountNumber(r.refundRequestedAmount) ??
+          toAmountNumber(r.requestedRefundAmount) ??
+          toAmountNumber(r.refundRequestAmount) ??
+          toAmountNumber(r.refundAmount) ??
+          toAmountNumber(mergedBase.refund) ??
+          toAmountNumber(mergedBase.Refund) ??
+          toAmountNumber(mergedBase.refundRequestedAmount) ??
+          toAmountNumber(mergedBase.requestedRefundAmount) ??
+          toAmountNumber(mergedBase.refundRequestAmount) ??
+          toAmountNumber(mergedBase.refundAmount) ??
+          pickRefundAmountFromStorage(selectedOrder.id);
+
+        const completedAmt =
+          toAmountNumber(r.refundedAmount) ??
+          toAmountNumber(r.refunded_amount) ??
+          toAmountNumber(r.RefundedAmount) ??
+          toAmountNumber(mergedBase.refundedAmount) ??
+          toAmountNumber(mergedBase.refunded_amount) ??
+          toAmountNumber(mergedBase.RefundedAmount);
+
+        const amountPatch =
+          Number(newCode) === REFUND_CODE.COMPLETED
+            ? {
+                ...buildCompletedRefundAmountPatch(completedAmt),
+                ...(requestedAmt
+                  ? buildRequestedRefundAmountPatch(requestedAmt)
+                  : {}),
+              }
+            : Number(newCode) === REFUND_CODE.REQUESTED ||
+                Number(newCode) === REFUND_CODE.IN_PROGRESS
+              ? requestedAmt
+                ? buildRequestedRefundAmountPatch(requestedAmt)
+                : {}
+              : {};
+
+        const newBackendText =
+          r.refundLastEm ??
+          r.RefundLastEm ??
+          data?.message ??
+          mergedBase.refundLastEm ??
+          "";
+
+        const resolvedText = getDisplayRefundTextByCode(
+          newCode,
+          newBackendText,
+        );
+
+        setSelectedOrder((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            refundStatusCode:
+              r.refundStatusCode ??
+              r.refund_status_code ??
+              r.RefundStatusCode ??
+              prev.refundStatusCode,
+            refundLastEm: newBackendText || prev.refundLastEm,
+            refundedAmount:
+              r.refundedAmount ?? r.RefundedAmount ?? prev.refundedAmount,
+            refundLastEc: r.refundLastEc ?? r.RefundLastEc ?? prev.refundLastEc,
+            ...amountPatch,
+          };
+        });
+
+        setOrders((prev) => {
+          const updated = prev.map((o) => {
+            if (o.id !== selectedOrder.id) return o;
+            return {
+              ...o,
+              refundStatusCode:
+                r.refundStatusCode ??
+                r.refund_status_code ??
+                r.RefundStatusCode ??
+                o.refundStatusCode,
+              refundLastEm: newBackendText || o.refundLastEm,
+              refundedAmount:
+                r.refundedAmount ?? r.RefundedAmount ?? o.refundedAmount,
+              refundLastEc: r.refundLastEc ?? r.RefundLastEc ?? o.refundLastEc,
+              ...amountPatch,
+            };
+          });
+
+          localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+
+        const merged = {
+          ...mergedBase,
+          refundStatusCode: newCode,
+          refundLastEm: newBackendText,
+          ...amountPatch,
+        };
+
+        const amt = pickRefundAmountFromOrder(merged);
+        if (amt && amt > 0) {
+          setRefundAmount(String(amt));
+        } else {
+          setRefundAmount("");
+        }
+
+        setRefundStatusType(toRefundType(newCode));
+        setRefundStatusText(resolvedText);
+
+        if (Number(newCode) === REFUND_CODE.NONE) {
+          clearRefundStatusPersisted(selectedOrder.id);
+          setRefundSyncError("");
+          return;
+        }
+
+        if (
+          Number(newCode) === REFUND_CODE.REQUESTED ||
+          Number(newCode) === REFUND_CODE.IN_PROGRESS
+        ) {
+          setRefundStatusPersisted(
+            selectedOrder.id,
+            toRefundType(newCode),
+            resolvedText,
+            requestedAmt,
+          );
+        }
+
+        if (
+          Number(newCode) === REFUND_CODE.COMPLETED ||
+          Number(newCode) === REFUND_CODE.FAILED
+        ) {
+          clearRefundStatusPersisted(selectedOrder.id);
+        }
+
+        return;
+      }
+
       setRefundSyncError(e?.message || "Failed to refresh refund status.");
     } finally {
       setRefundSyncing(false);
     }
   };
 
-  // ----------------------------
-  // Refund UI derived values
-  // ----------------------------
   const backendRefundCode = getRefundCode(selectedOrder);
   const backendAmt = pickRefundAmountFromOrder(selectedOrder);
   const storageAmt = pickRefundAmountFromStorage(selectedOrder?.id);
@@ -772,10 +1082,7 @@ export default function BuyRegalia() {
   const isRefundRequested = backendRefundCode === REFUND_CODE.REQUESTED;
 
   const lockRefundAmountInput =
-    isRefundInProgress ||
-    isRefundCompleted ||
-    (!isManager && isRefundRequested) ||
-    (isManager && isRefundRequested);
+    isManager || isRefundInProgress || isRefundCompleted || isRefundRequested;
 
   const refundAmountLabel = isRefundInProgress
     ? "Refunding amount (NZD):"
@@ -788,7 +1095,7 @@ export default function BuyRegalia() {
   const refundAmountInputValue = lockRefundAmountInput
     ? displayAmt !== null && displayAmt !== undefined
       ? String(displayAmt)
-      : String(refundAmount || "")
+      : ""
     : refundAmount;
 
   const refundAmountInputDisabled =
@@ -805,6 +1112,29 @@ export default function BuyRegalia() {
     isRefundRequested ||
     isRefundInProgress ||
     isRefundCompleted;
+
+  const disableConfirmRefundForManager =
+    refundSubmitting ||
+    refundSyncing ||
+    !isRefundRequested ||
+    !hasValidRefundAmount;
+
+  const handleAuthExpired = (orderId) => {
+    if (orderId) {
+      clearRefundStatusPersisted(orderId);
+    }
+
+    setRefundStatusType("idle");
+    setRefundStatusText("");
+    setRefundSubmitting(false);
+    setRefundSyncing(false);
+    setRefundSyncError("");
+
+    alert("Your session has expired. Please log in again.");
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "/login";
+  };
 
   return (
     <>
@@ -859,7 +1189,6 @@ export default function BuyRegalia() {
             </div>
           </div>
 
-          {/* Search and Filter */}
           <div className="search-filter-container">
             <div className="search-filter-wrapper">
               <div className="filter-wrapper search-wrapper">
@@ -874,7 +1203,6 @@ export default function BuyRegalia() {
               </div>
 
               <div className="filter-wrapper">
-                {/* <Filter className="filter-icon" /> */}
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(Number(e.target.value))}
@@ -903,7 +1231,6 @@ export default function BuyRegalia() {
                 </select>
               </div>
 
-              {/* DATE FILTERS */}
               <div className="filter-wrapper">
                 <div>From</div>
                 <input
@@ -954,6 +1281,7 @@ export default function BuyRegalia() {
                 onClick={generateCSV}
                 disabled={filteredOrders.length === 0}
                 className="ml-3 bg-green-700 text-white px-3 py-1.5 rounded hover:bg-green-800 disabled:bg-gray-400"
+                type="button"
               >
                 Export CSV
               </button>
@@ -964,7 +1292,6 @@ export default function BuyRegalia() {
             Filtered Items: <span>{filteredOrders.length}</span>
           </div>
 
-          {/* Bulk Actions */}
           {selectedOrders.length > 0 && (
             <div
               style={{
@@ -991,7 +1318,7 @@ export default function BuyRegalia() {
                   border: "1px solid #d1d5db",
                 }}
               >
-                <option value="">Select new status...</option>
+                <option value={0}>Select new status...</option>
                 <option value={ORDER_STATUS.PENDING}>Pending</option>
                 <option value={ORDER_STATUS.PROCESSING}>Processing</option>
                 <option value={ORDER_STATUS.DELIVERED}>Delivered</option>
@@ -1009,6 +1336,7 @@ export default function BuyRegalia() {
                   cursor: "pointer",
                   fontWeight: "500",
                 }}
+                type="button"
               >
                 Update Status
               </button>
@@ -1024,13 +1352,13 @@ export default function BuyRegalia() {
                   cursor: "pointer",
                   fontWeight: "500",
                 }}
+                type="button"
               >
                 Clear Selection
               </button>
             </div>
           )}
 
-          {/* Orders Table */}
           <div className="table-container">
             <div className="table-wrapper">
               <table className="orders-table">
@@ -1147,6 +1475,7 @@ export default function BuyRegalia() {
                           <button
                             onClick={() => setSelectedOrder(order)}
                             className="action-button"
+                            type="button"
                           >
                             <Eye className="action-icon" />
                           </button>
@@ -1159,7 +1488,6 @@ export default function BuyRegalia() {
             </div>
           </div>
 
-          {/* Pagination */}
           <div
             style={{
               display: "flex",
@@ -1194,6 +1522,7 @@ export default function BuyRegalia() {
                   background: currentPage === 1 ? "#f3f4f6" : "white",
                   cursor: currentPage === 1 ? "not-allowed" : "pointer",
                 }}
+                type="button"
               >
                 Prev
               </button>
@@ -1227,6 +1556,7 @@ export default function BuyRegalia() {
                           cursor: "pointer",
                           fontWeight: p === currentPage ? "700" : "500",
                         }}
+                        type="button"
                       >
                         {p}
                       </button>
@@ -1247,13 +1577,13 @@ export default function BuyRegalia() {
                   cursor:
                     currentPage === totalPages ? "not-allowed" : "pointer",
                 }}
+                type="button"
               >
                 Next
               </button>
             </div>
           </div>
 
-          {/* Order Detail Modal */}
           {selectedOrder && (
             <div className="modal-overlay">
               <div className="modal-content">
@@ -1268,13 +1598,13 @@ export default function BuyRegalia() {
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="modal-close-button"
+                      type="button"
                     >
                       <X className="modal-close-icon" />
                     </button>
                   </div>
 
                   <div className="modal-sections">
-                    {/* Customer Info */}
                     <div>
                       <h3 className="modal-section-title">
                         Customer Information
@@ -1314,7 +1644,6 @@ export default function BuyRegalia() {
                       </div>
                     </div>
 
-                    {/* Items */}
                     <div>
                       <h3 className="modal-section-title">Order Items</h3>
                       <div className="info-card">
@@ -1375,7 +1704,6 @@ export default function BuyRegalia() {
                       </div>
                     </div>
 
-                    {/* Order Info */}
                     <div>
                       <h3 className="modal-section-title">Order Information</h3>
                       <div className="info-card">
@@ -1392,14 +1720,7 @@ export default function BuyRegalia() {
                             ${selectedOrder.amount}
                           </span>
                         </div>
-                        {/* <div className="info-row">
-                          <span className="info-label">Payment Status:</span>
-                          <span
-                            className={`info-value ${selectedOrder.paid ? "success" : ""}`}
-                          >
-                            {selectedOrder.paid ? "Paid" : "Unpaid"}
-                          </span>
-                        </div> */}
+
                         {selectedOrder.paymentMethod && (
                           <div className="info-row">
                             <span className="info-label">Payment Method:</span>
@@ -1423,7 +1744,6 @@ export default function BuyRegalia() {
                       </div>
                     </div>
 
-                    {/* Message */}
                     {selectedOrder.message && (
                       <div>
                         <h3 className="modal-section-title">Message</h3>
@@ -1433,7 +1753,6 @@ export default function BuyRegalia() {
                       </div>
                     )}
 
-                    {/* Update Status */}
                     <div>
                       <h3 className="modal-section-title">Update Status</h3>
                       <div className="status-update-grid">
@@ -1467,7 +1786,6 @@ export default function BuyRegalia() {
                       </div>
                     </div>
 
-                    {/* Refund */}
                     <div>
                       <h3 className="modal-section-title">Refund Order</h3>
 
@@ -1511,9 +1829,9 @@ export default function BuyRegalia() {
                               fontWeight: 600,
                               fontSize: "0.85rem",
                             }}
-                            title="Refresh refund status"
+                            title="Recheck refund status"
                           >
-                            {refundSyncing ? "Refreshing..." : "Refresh"}
+                            {refundSyncing ? "Checking..." : "Recheck"}
                           </button>
                         </div>
 
@@ -1560,7 +1878,6 @@ export default function BuyRegalia() {
                           />
                         </div>
 
-                        {/* user: Apply Refund */}
                         {!isManager && (
                           <button
                             type="button"
@@ -1581,11 +1898,9 @@ export default function BuyRegalia() {
 
                               try {
                                 setRefundSubmitting(true);
-                                setRefundStatusPersisted(
-                                  selectedOrder.id,
+                                setRefundStatusTransient(
                                   "submitting",
                                   "Submitting refund request...",
-                                  amountNum,
                                 );
 
                                 const resp = await refundRequest(
@@ -1603,16 +1918,15 @@ export default function BuyRegalia() {
                                       data.refundStatusCode ??
                                         data.statusCode ??
                                         data.code,
-                                    ) ||
-                                    (resp.status === 200
-                                      ? REFUND_CODE.REQUESTED
-                                      : REFUND_CODE.IN_PROGRESS);
+                                    ) || REFUND_CODE.REQUESTED;
 
                                   const newAmt =
                                     data.amount ??
+                                    data.refund ??
                                     data.refundedAmount ??
                                     data.refundRequestedAmount ??
                                     amountNum;
+
                                   const newText = String(
                                     data.refundLastEm ??
                                       data.em ??
@@ -1620,11 +1934,29 @@ export default function BuyRegalia() {
                                       "",
                                   ).trim();
 
+                                  const resolvedText =
+                                    getDisplayRefundTextByCode(
+                                      newCode,
+                                      newText,
+                                    );
+
+                                  const amountPatch =
+                                    newCode === REFUND_CODE.COMPLETED
+                                      ? {
+                                          ...buildCompletedRefundAmountPatch(
+                                            newAmt,
+                                          ),
+                                          ...buildRequestedRefundAmountPatch(
+                                            newAmt,
+                                          ),
+                                        }
+                                      : buildRequestedRefundAmountPatch(newAmt);
+
                                   setSelectedOrder((prev) => ({
                                     ...prev,
                                     refundStatusCode: newCode,
-                                    refundLastEm: newText || prev?.refundLastEm,
-                                    refundedAmount: newAmt,
+                                    refundLastEm: newText,
+                                    ...amountPatch,
                                   }));
 
                                   setOrders((prev) => {
@@ -1633,14 +1965,13 @@ export default function BuyRegalia() {
                                         ? {
                                             ...o,
                                             refundStatusCode: newCode,
-                                            refundLastEm:
-                                              newText || o.refundLastEm,
-                                            refundedAmount: newAmt,
+                                            refundLastEm: newText,
+                                            ...amountPatch,
                                           }
                                         : o,
                                     );
                                     localStorage.setItem(
-                                      "regaliaOrders_buy",
+                                      ORDERS_STORAGE_KEY,
                                       JSON.stringify(updated),
                                     );
                                     return updated;
@@ -1648,14 +1979,10 @@ export default function BuyRegalia() {
 
                                   setRefundAmount(String(newAmt));
 
-                                  // Persist meaningful text for UX (fallback when backend text not yet present)
                                   setRefundStatusPersisted(
                                     selectedOrder.id,
                                     toRefundType(newCode),
-                                    newText ||
-                                      (newCode === REFUND_CODE.REQUESTED
-                                        ? "Refund requested."
-                                        : "Refund in progress."),
+                                    resolvedText,
                                     newAmt,
                                   );
 
@@ -1669,10 +1996,19 @@ export default function BuyRegalia() {
                                   }
 
                                   alert(
-                                    resp.status === 200
+                                    newCode === REFUND_CODE.REQUESTED
                                       ? `Refund requested.\nOrderId: ${selectedOrder.id}`
-                                      : `Refund submitted.\n${newText || ""}`,
+                                      : newCode === REFUND_CODE.IN_PROGRESS
+                                        ? `Refund is in progress.\n${newText || ""}`
+                                        : newCode === REFUND_CODE.FAILED
+                                          ? `Refund failed.\n${newText || ""}`
+                                          : `Refund submitted.\n${newText || ""}`,
                                   );
+                                  return;
+                                }
+
+                                if (resp.status === 401) {
+                                  handleAuthExpired(selectedOrder?.id);
                                   return;
                                 }
 
@@ -1712,15 +2048,27 @@ export default function BuyRegalia() {
                                 alert(msg);
                               } catch (e) {
                                 console.error(e);
+
+                                if (e?.response?.status === 401) {
+                                  handleAuthExpired(selectedOrder?.id);
+                                  return;
+                                }
+
+                                const msg =
+                                  e?.response?.data?.message ||
+                                  e?.response?.data?.em ||
+                                  (typeof e?.response?.data === "string"
+                                    ? e.response.data
+                                    : "") ||
+                                  "Refund request failed.";
+
                                 setRefundStatusPersisted(
                                   selectedOrder.id,
                                   "failed",
-                                  "Refund request failed. Please check backend logs.",
+                                  msg,
                                   Number(refundAmount) || null,
                                 );
-                                alert(
-                                  "Refund request failed. Please check backend logs.",
-                                );
+                                alert(msg);
                               } finally {
                                 setRefundSubmitting(false);
                               }
@@ -1745,15 +2093,10 @@ export default function BuyRegalia() {
                           </button>
                         )}
 
-                        {/* manager: Confirm Refund */}
                         {isManager && (
                           <button
                             type="button"
-                            disabled={
-                              refundSubmitting ||
-                              refundSyncing ||
-                              !hasValidRefundAmount
-                            }
+                            disabled={disableConfirmRefundForManager}
                             onClick={async () => {
                               if (!selectedOrder) return;
 
@@ -1772,11 +2115,9 @@ export default function BuyRegalia() {
 
                               try {
                                 setRefundSubmitting(true);
-                                setRefundStatusPersisted(
-                                  selectedOrder.id,
+                                setRefundStatusTransient(
                                   "submitting",
                                   "Submitting refund approval...",
-                                  amountNum,
                                 );
 
                                 const resp = await refundApprove(
@@ -1789,20 +2130,38 @@ export default function BuyRegalia() {
                                   resp.status === 202
                                 ) {
                                   const data = resp.data || {};
+                                  const ec = Number(data.ec);
+
                                   const newCode =
                                     Number(
                                       data.refundStatusCode ??
                                         data.statusCode ??
                                         data.code,
                                     ) ||
-                                    (resp.status === 200
+                                    (ec === 0
                                       ? REFUND_CODE.COMPLETED
-                                      : REFUND_CODE.IN_PROGRESS);
+                                      : ec === 13
+                                        ? REFUND_CODE.IN_PROGRESS
+                                        : REFUND_CODE.FAILED);
 
                                   const newAmt =
                                     data.amount ??
                                     data.refundedAmount ??
+                                    data.refund ??
                                     amountNum;
+
+                                  const amountPatch =
+                                    newCode === REFUND_CODE.COMPLETED
+                                      ? {
+                                          ...buildCompletedRefundAmountPatch(
+                                            newAmt,
+                                          ),
+                                          ...buildRequestedRefundAmountPatch(
+                                            newAmt,
+                                          ),
+                                        }
+                                      : buildRequestedRefundAmountPatch(newAmt);
+
                                   const newText = String(
                                     data.refundLastEm ??
                                       data.em ??
@@ -1810,13 +2169,19 @@ export default function BuyRegalia() {
                                       "",
                                   ).trim();
 
+                                  const resolvedText =
+                                    getDisplayRefundTextByCode(
+                                      newCode,
+                                      newText,
+                                    );
+
                                   setSelectedOrder((prev) => ({
                                     ...prev,
                                     refundStatusCode: newCode,
-                                    refundLastEm: newText || prev?.refundLastEm,
-                                    refundedAmount: newAmt,
+                                    refundLastEm: newText,
                                     refundTxnId:
                                       data.refundTxnId ?? prev?.refundTxnId,
+                                    ...amountPatch,
                                   }));
 
                                   setOrders((prev) => {
@@ -1825,20 +2190,21 @@ export default function BuyRegalia() {
                                         ? {
                                             ...o,
                                             refundStatusCode: newCode,
-                                            refundLastEm:
-                                              newText || o.refundLastEm,
-                                            refundedAmount: newAmt,
+                                            refundLastEm: newText,
                                             refundTxnId:
                                               data.refundTxnId ?? o.refundTxnId,
+                                            ...amountPatch,
                                           }
                                         : o,
                                     );
                                     localStorage.setItem(
-                                      "regaliaOrders_buy",
+                                      ORDERS_STORAGE_KEY,
                                       JSON.stringify(updated),
                                     );
                                     return updated;
                                   });
+
+                                  setRefundAmount(String(newAmt));
 
                                   if (
                                     newCode === REFUND_CODE.COMPLETED ||
@@ -1847,20 +2213,29 @@ export default function BuyRegalia() {
                                     clearRefundStatusPersisted(
                                       selectedOrder.id,
                                     );
+                                    setRefundStatusType(toRefundType(newCode));
+                                    setRefundStatusText(resolvedText);
                                   } else {
                                     setRefundStatusPersisted(
                                       selectedOrder.id,
                                       toRefundType(newCode),
-                                      newText || "Refund in progress.",
+                                      resolvedText,
                                       newAmt,
                                     );
                                   }
 
                                   alert(
-                                    resp.status === 200
+                                    newCode === REFUND_CODE.COMPLETED
                                       ? `Refund approved.\nOrderId: ${selectedOrder.id}`
-                                      : `Refund is in progress.\n${newText || ""}`,
+                                      : newCode === REFUND_CODE.IN_PROGRESS
+                                        ? `Refund is in progress.\n${newText || ""}`
+                                        : `Refund failed.\n${newText || ""}`,
                                   );
+                                  return;
+                                }
+
+                                if (resp.status === 401) {
+                                  handleAuthExpired(selectedOrder?.id);
                                   return;
                                 }
 
@@ -1900,15 +2275,27 @@ export default function BuyRegalia() {
                                 alert(msg);
                               } catch (e) {
                                 console.error(e);
+
+                                if (e?.response?.status === 401) {
+                                  handleAuthExpired(selectedOrder?.id);
+                                  return;
+                                }
+
+                                const msg =
+                                  e?.response?.data?.message ||
+                                  e?.response?.data?.em ||
+                                  (typeof e?.response?.data === "string"
+                                    ? e.response.data
+                                    : "") ||
+                                  "Refund approve failed.";
+
                                 setRefundStatusPersisted(
                                   selectedOrder.id,
                                   "failed",
-                                  "Refund approve failed. Please check backend logs.",
+                                  msg,
                                   Number(refundAmountInputValue) || null,
                                 );
-                                alert(
-                                  "Refund approve failed. Please check backend logs.",
-                                );
+                                alert(msg);
                               } finally {
                                 setRefundSubmitting(false);
                               }
@@ -1919,20 +2306,12 @@ export default function BuyRegalia() {
                               color: "white",
                               borderRadius: "6px",
                               border: "none",
-                              cursor:
-                                refundSubmitting ||
-                                refundSyncing ||
-                                !hasValidRefundAmount
-                                  ? "not-allowed"
-                                  : "pointer",
+                              cursor: disableConfirmRefundForManager
+                                ? "not-allowed"
+                                : "pointer",
                               fontWeight: "600",
                               width: "fit-content",
-                              opacity:
-                                refundSubmitting ||
-                                refundSyncing ||
-                                !hasValidRefundAmount
-                                  ? 0.7
-                                  : 1,
+                              opacity: disableConfirmRefundForManager ? 0.7 : 1,
                             }}
                           >
                             {refundSubmitting
@@ -1946,7 +2325,7 @@ export default function BuyRegalia() {
                             ? isRefundRequested
                               ? "Refund request submitted. Waiting for manager approval."
                               : "This will submit a refund request for manager review."
-                            : "This will notify the payment provider to process the refund."}
+                            : "Refund must be requested before manager can confirm."}
                         </div>
                       </div>
                     </div>
@@ -1956,6 +2335,7 @@ export default function BuyRegalia() {
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="close-button"
+                      type="button"
                     >
                       Close
                     </button>
