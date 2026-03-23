@@ -1783,7 +1783,7 @@ function CasualHireRegalia() {
                         <div className="info-row">
                           <span className="info-label">Total amount:</span>
                           <span className="info-value">
-                            ${selectedOrder.amount}
+                            ${selectedOrder.orderAmount}
                           </span>
                         </div>
                         {selectedOrder.paymentMethod && (
