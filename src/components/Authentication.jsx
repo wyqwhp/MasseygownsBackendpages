@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthContext.jsx";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+// const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
 
 function Authentication({ children }) {
   const [username, setUsername] = useState("");

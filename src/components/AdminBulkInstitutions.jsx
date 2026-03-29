@@ -22,8 +22,8 @@ import PrintManifest, {printBulkLabels} from "@/components/PrintLabels.js";
 import {XeroToCSV} from "@/components/ExportToXero.js";
 import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.jsx";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-const API_URL = "http://localhost:5144"
+const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144"
 
 export default function AdminBulkOrder() {
   const emptyFormRecord = {
@@ -54,6 +54,7 @@ export default function AdminBulkOrder() {
   const [formData, setFormData] = useState({ emptyFormRecord });
   const [ceremonies, setCeremonies] = useState([]);
   const [prices, setPrices] = useState([]);
+  const [priceCode, setPriceCode] = useState(0);
   const [currentId, setCurrentId] = useState(null);
   const [loading, setLoading] = useState();
   const [error, setError] = useState(null);
@@ -64,14 +65,29 @@ export default function AdminBulkOrder() {
   const [showPrintInvoice, setShowPrintInvoice] = useState(false);
   const [showPrintBulkAddressLabels, setShowPrintBulkAddressLabels] = useState(false);
   const [showPrintPackingDocs, setShowPrintPackingDocs] = useState(false);
+  const [search, setSearch] = useState("");
+  const [saved, setSaved] = useState(false);
   const navButtonClass =
       "bg-green-700 hover:bg-green-800 w-20 h-10 p-0 flex items-center justify-center";
 
   const sortedCeremonies = useMemo(() => {
-    return [...ceremonies].sort((a, b) =>
-        (a.name ?? "").localeCompare(b.name ?? "", undefined, { sensitivity: "base" })
-    );
-  }, [ceremonies]);
+    return [...ceremonies]
+        .filter(ceremony =>
+          Object.values(ceremony).join(" ").toLowerCase().includes(search.toLowerCase()))
+        .sort((a, b) =>
+         (a.name ?? "").localeCompare(b.name ?? "", undefined, { sensitivity: "base" }))
+  }, [ceremonies, search]);
+
+  useEffect(() => {
+    if (sortedCeremonies.length > 0) {
+      if (!saved) {
+        setCurrentId(sortedCeremonies[0]?.id);
+        updateForm(sortedCeremonies[0]);
+      } else {
+        setSaved(false);
+      }
+    }
+  }, [sortedCeremonies]);
 
   const [paper, setPaper] = useState("A4");
 
@@ -80,7 +96,8 @@ export default function AdminBulkOrder() {
   );
 
   const updateForm = (ceremony) => {
-    console.log("Updating form");
+    if (!ceremony) return;
+
     setFormData({
       id: ceremony.id,
       visible: ceremony.visible,
@@ -111,15 +128,19 @@ export default function AdminBulkOrder() {
       hat: ceremony.hat || 0,
       hood: ceremony.hood || 0,
       ucol: ceremony.ucol_sash || 0,
+      accountCode: ceremony.accountCode,
+      total: (ceremony.gown || 0) * (ceremony.gown_count || 0) + (ceremony.hat || 0) * (ceremony.hat_count || 0) +
+          (ceremony.hood || 0) * (ceremony.hood_count || 0) + (ceremony.ucol_sash || 0) * (ceremony.ucol_count || 0),
     });
-    console.log("Ceremony=", ceremony);
   };
 
   useEffect(() => {
-    if (!sortedCeremonies.some(c => c.id === currentId)) {
-      setCurrentId(sortedCeremonies[0]?.id ?? null);
-    }
-  }, [sortedCeremonies, currentId]);
+    if (!priceCode) return;
+    const price = prices.find(x => x.id === Number(priceCode));
+    const total = price.gown * formData?.gown_count + price.hat * formData?.hat_count + price.hood * formData?.hood_count +
+      price.ucolSash * formData?.ucol_count;
+    setFormData((prev) => ({...prev, total: total}))
+  }, [priceCode]);
 
   // Fetch orders on mount
   useEffect(() => {
@@ -128,7 +149,9 @@ export default function AdminBulkOrder() {
     if (cached) {
       const ceremonies = JSON.parse(cached);
       setCeremonies(ceremonies);
+      setCurrentId(ceremonies[0].id);
       updateForm(ceremonies[0]);
+      setCurrentId(); //TODO
     } else {
       setLoading(true);
     }
@@ -138,7 +161,10 @@ export default function AdminBulkOrder() {
       .then((res) => {
         setCeremonies(res.data);
         localStorage.setItem("ceremonies", JSON.stringify(res.data));
-        if (!cached) updateForm(res.data[0]);
+        if (!cached) {
+          updateForm(res.data[0]);
+          setCurrentId(res.data[0].id)
+        }
       })
       .catch((err) =>
         setError(err.message)
@@ -173,7 +199,14 @@ export default function AdminBulkOrder() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    console.log(name, value, editingId);
+    if (name === 'ceremony' && value.toString().toLowerCase().includes('Massey'.toLowerCase()))
+      setFormData((prev) => ({...prev, ['accountCode']: 251 }));
+    else if (name === 'ceremony' && value.toString().toLowerCase().includes('ucol'.toLowerCase()))
+      setFormData((prev) => ({...prev, ['accountCode']: 252 }));
+    else if (name === 'ceremony' && value.toString().toLowerCase().includes('school'.toLowerCase()))
+      setFormData((prev) => ({...prev, ['accountCode']: 254 }));
+    else if (name === 'ceremony')
+      setFormData((prev) => ({...prev, ['accountCode']: 253 }));
 
     setChanged(true);
     if (editingId === null) {
@@ -183,9 +216,6 @@ export default function AdminBulkOrder() {
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
-    // setCeremonies((prev) => prev.map((ceremony, index) =>
-    //     index === currentIndex ? {...ceremony, [name]: value} : ceremony
-    // ))
   };
 
   const handleCopy = () => {
@@ -248,10 +278,8 @@ export default function AdminBulkOrder() {
     e.preventDefault();
     setLoading(true);
     try {
-        console.log("FormData=", formData);
         if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
           await axios.post(`${API_URL}/admin/ceremonies`, formData);
-          // formData.id = res.id;
         } else {
           await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, formData);
         }
@@ -260,6 +288,7 @@ export default function AdminBulkOrder() {
             c.id === editingId ? { ...c, ...formData } : c
           )
       );
+      setSaved(true);
       setEditingId(null);
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -279,7 +308,6 @@ export default function AdminBulkOrder() {
   };
 
   const goNext = () => {
-    console.log("Ceremonies=", sortedCeremonies);
     if (
         editingId &&
         typeof editingId === "string" &&
@@ -332,7 +360,16 @@ export default function AdminBulkOrder() {
         </DialogContent>
       </Dialog>;
       <AdminNavbar />
-      <div className="max-w-6xl mx-auto pt-24 shadow-lg">
+
+      <div className="max-w-6xl mx-auto pt-16 shadow-lg">
+        <Input
+          className="w-60 mb-6"
+          type="text"
+          placeholder="Search for..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
         <Card className="bg-green-50 pt-4">
           <CardContent>
             <form
@@ -343,7 +380,7 @@ export default function AdminBulkOrder() {
                 <Label htmlFor="name">Ceremony</Label>
                 <Input
                   id="name"
-                  name="name"
+                  name="ceremony"
                   value={formData.name}
                   onChange={handleChange}
                 />
@@ -605,9 +642,12 @@ export default function AdminBulkOrder() {
                   value={formData.priceCode?.toString() ?? ''}
                   onValueChange={(value) => {
                       setChanged(true);
-                      setEditingId(ceremonies[currentIndex].id);
+                      setEditingId(ceremonies[currentIndex]?.id);
+                      setPriceCode(value);
+                      const price = prices.find(x => x.id === Number(value));
                       setFormData((prev) =>
-                          ({...prev, priceCode: value ? Number(value) : null}));
+                          ({...prev, priceCode: value ? Number(value) : null, gown: price?.gown, hat: price?.hat,
+                          hood: price?.hood, ucolSash: price?.ucolSash}));
                     }
                   }
                 >
@@ -625,6 +665,18 @@ export default function AdminBulkOrder() {
               </div>
 
               <div className="row-start-8">
+                <Label htmlFor="accountCode">Account Code</Label>
+                <Input
+                    id="accountCode"
+                    name="accountCode"
+                    type="number"
+                    min={0}
+                    value={formData.accountCode}
+                    onChange={handleChange}
+                />
+              </div>
+
+              <div className="row-start-8">
                 <Label htmlFor="freight">Freight</Label>
                 <Input
                   id="freight"
@@ -632,6 +684,11 @@ export default function AdminBulkOrder() {
                   value={formData.freight}
                   onChange={handleChange}
                 />
+              </div>
+
+              <div className="row-start-8 flex flex-col items-center gap-2">
+                <Label>Total:</Label>
+                <Label className="text-xl">${formData.total}</Label>
               </div>
 
               {/*<hr className="row-start-9 col-span-full border-t border-gray-300 my-4" />*/}
@@ -737,7 +794,7 @@ export default function AdminBulkOrder() {
                     className={`${navButtonClass} w-30`}
                     onClick={goNext}
                     type="button"
-                    disabled={currentIndex === ceremonies.length - 1}
+                    disabled={currentIndex === sortedCeremonies.length - 1}
                 >
                   <ChevronsRight />
                 </Button>

@@ -47,6 +47,7 @@ export default function PrintReportOrder({ceremony, onDone}) {
             hat: ceremony.hat ?? 0,
             hood: ceremony.hood ?? 0,
             ucol: ceremony.ucol ?? 0,
+            total: ceremony.total ?? 0,
             // postcode: "0632",
             // country: "NZ",
             // invoiceNumber: "41782315",
@@ -63,24 +64,25 @@ export default function PrintReportOrder({ceremony, onDone}) {
 
     useEffect(() => {
         if (printedRef.current) return;
-
+        printedRef.current = true;
+        setLoading(true);
         axios
             .get(`${API_URL}/admin/ceremonies/bulk/${ceremony.id}`)
             .then((res) => {
                 setCountItems(res.data);
 
                 console.log("Count Item=",res.data);
-                setLoading(false);
+
                 fillData(res.data);
                 updateTemplateWithData();
             })
             .catch((err) => {
                 setError(err.message);
+            })
+            .finally(() => {
                 setLoading(false);
+                onDone?.();
             });
-
-        printedRef.current = true;
-        onDone?.();
     }, []);
 
     function PrintPDF(doc) {
@@ -151,9 +153,12 @@ export default function PrintReportOrder({ceremony, onDone}) {
             PrintPDF(output);
         } catch (err) {
             console.error("Failed to load template", err);
-        } finally {
-            setLoading(false);
         }
     }
-    if (loading) return <FullscreenSpinner />;
+
+    return (
+        <>
+            {loading && <FullscreenSpinner/>}
+        </>
+    );
 }

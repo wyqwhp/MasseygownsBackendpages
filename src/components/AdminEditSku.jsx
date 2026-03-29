@@ -221,12 +221,13 @@ export default function AdminEditSku({ onChange }) {
             </Button>
 
             {/* Header */}
-            <div className="grid grid-cols-[6fr_1fr_6fr_80px_6fr_80px_90px] gap-2">
+            <div className="grid grid-cols-[6fr_1fr_6fr_80px_1fr_6fr_80px_90px] gap-2">
                 <div className="contents font-bold">
                     <span>Name</span>
-                    <span>Size</span>
-                    <span>Fit Type</span>
+                    <span>Gown Size</span>
+                    <span>Gown Fit Type</span>
                     <span>Code</span>
+                    <span>Hat Size</span>
                     <span>Hood Type</span>
                     <span>Qty</span>
                     <span>Save</span>
@@ -294,6 +295,12 @@ export default function AdminEditSku({ onChange }) {
                         <input
                             className="border border-green-700 rounded-lg px-2 py-1"
                             value={newSku.labelsize}
+                            readOnly={true}
+                        />
+
+                        <input
+                            className="border border-green-700 rounded-lg px-2 py-1"
+                            value={newSku.hatSize}
                             readOnly={true}
                         />
 
@@ -375,6 +382,12 @@ export default function AdminEditSku({ onChange }) {
 
                                 <input
                                     className="border-b px-2 py-1"
+                                    value={sku.hatSize}
+                                    readOnly
+                                />
+
+                                <input
+                                    className="border-b px-2 py-1"
                                     value={sku.hood}
                                     readOnly
                                 />
@@ -417,7 +430,7 @@ export default function AdminEditSku({ onChange }) {
 
                                 <input
                                     className="border-b px-2 py-1"
-                                    value={sku.size}
+                                    value={(sku.name.startsWith('Trencher') || sku.name.startsWith('Tudor')) ? '' : sku.size}
                                     readOnly
                                 />
 
@@ -430,6 +443,12 @@ export default function AdminEditSku({ onChange }) {
                                 <input
                                     className="border-b px-2 py-1"
                                     value={sku.labelsize}
+                                    readOnly
+                                />
+
+                                <input
+                                    className="border-b px-2 py-1"
+                                    value={sku.hatSize}
                                     readOnly
                                 />
 
@@ -460,9 +479,6 @@ export default function AdminEditSku({ onChange }) {
                         </Fragment>
                     ))}
                 </div>
-
-
-
             </div>
         </div>
 

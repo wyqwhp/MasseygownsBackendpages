@@ -1,5 +1,8 @@
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144"
+
 const columns = [
     { key: "name", header: "*ContactName" },
     { key: "email", header: "EmailAddress" },
@@ -66,6 +69,7 @@ const data = [
 ];
 
 const exportToCSV = ((orders) => {
+    console.log(orders);
     if (!orders || !orders.length) {
         console.warn("No data to export");
         return;
@@ -74,10 +78,63 @@ const exportToCSV = ((orders) => {
     // Create header row
     const header = columns.map(col => col.header).join(",");
 
+    const itemsToString = ((items) => {
+        let result = '';
+        let gown = '';
+        let hood = '';
+        let hat = '';
+        let ucol = '';
+        items?.map(item => {
+
+            if (item.itemName?.startsWith('Gown')) {
+                gown = gown + (item.itemName ?? '') + ', ' + (item.sizeName ?? '') + ', ' + (item.hire ? 'Hire, ' : '')
+                    + (item.fitName ?? '') + ' ';
+            }
+            if (item.itemName?.startsWith('Trencher') || item.itemName?.startsWith('Bonnet'))
+                hat = hat + (item.itemName ?? '') + ', ' + (item.sizeName ?? '') + ', ' + (item.hire ? 'Hire, ' : '') + ' ';
+            if (item.itemName?.startsWith('Hood'))
+                hood = hood + (item.itemName ?? '') + ', ' + (item.hoodName ?? '') + ', ' + (item.hire ? 'Hire, ' : '') + ' ';
+            if (item.itemName?.startsWith('Ucol'))
+                ucol = ucol + (item.itemName ?? '') + ', ' + (item.hoodName ?? '') + ', ' + (item.hire ? 'Hire, ' : '') + ' ';
+        });
+        result = result + gown + hat + hood + ucol;
+        return result;
+    })
+
     // Create data rows
     const rows = orders.map(row =>
         columns.map(col => {
-            let value = row[col.key] ?? "";
+            let value = '';
+
+            if (row[col.key])
+                value = row[col.key] ?? "";
+            if (col.key === "name")
+                value = 'Sundry Debtors';
+            if (col.key === "email")
+                value = '';
+            if (col.key === "city")
+                value = '';
+            if (col.key === "country")
+                value = '';
+            if (col.key === "reference")
+                value = (row['referenceNo'] ?? '') + ' - ' + row['lastName'];
+            if (col.key === "invoicedate")
+                value = row['orderDate'];
+            if (col.key === "duedate")
+                value = row['orderDate'];
+            if (col.key === "description")
+                value = row['firstName'] + ' ' + row['lastName'] + ' - ' + itemsToString(row['items']) + '    ' +
+                    row['address'] + ' ' + row['city'] + ' ' + row['postcode'] + ' ' + row['email'];
+            if (col.key === "quantity")
+                value = 1;
+            if (col.key === "unitamount")
+                value = row['orderAmount'] / 100;
+            if (col.key === "accountcode")
+                value = row['accountCode'];
+            if (col.key === "taxtype")
+                value = '15% GST on Income';
+            if (col.key === "ab")
+                value = row['ceremony'];
 
             // Escape quotes
             value = String(value).replace(/"/g, '""');
@@ -103,7 +160,7 @@ const exportToCSV = ((orders) => {
 
 export function XeroToCSV(id) {
     axios
-        .get(`/admin/ordersbyceremony/${id}`)
+        .get(`${API_URL}/admin/ordersbyceremony/${id}`)
         .then((res) => {
             exportToCSV(res.data)
         });
