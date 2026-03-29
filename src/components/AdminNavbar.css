@@ -9,7 +9,7 @@
 
 /* Top dark bar */
 .admin-topbar {
-  height: 44px;
+  height: 50px;
   background: #114722;
   color: #fff;
   display: flex;
@@ -32,10 +32,10 @@
 }
 
 .admin-logo {
-  height: 30px;
-  width: 100px;
-  border-radius: 4px;
-  object-fit: cover;
+  height: 50px;
+  width: auto;
+  border-radius: 0px;
+  object-fit: contain;
 }
 
 /* Primary menu */
