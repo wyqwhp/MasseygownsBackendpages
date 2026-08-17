@@ -5,8 +5,8 @@ import "@/fonts/NotoSans-BoldItalic-bolditalic.js";
 import {formatNZDateSlash} from "@/services/DateServices.js";
 import axios from "axios";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE;
-const API_URL = "http://localhost:5144"
+const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+// const API_URL = "http://localhost:5144"
 
 const WIDTH = 64;
 const HEIGHT = 24.3;

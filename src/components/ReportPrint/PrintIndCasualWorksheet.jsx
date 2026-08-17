@@ -25,8 +25,8 @@ export default function PrintIndCasualWorksheet({order, onDone}) {
         sampleData = {
             OrderAccess: order.id,
             idCode: order.idCode,
-            foreName: order.foreName,
-            surname: order.surname.toUpperCase(),
+            foreName: order.firstName,
+            surname: order.lastName.toUpperCase(),
             address: order.address,
             city: order.city,
             phone: order.phone,
