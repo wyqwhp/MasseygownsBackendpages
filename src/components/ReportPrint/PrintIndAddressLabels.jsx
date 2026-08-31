@@ -31,7 +31,7 @@ const PAPER_PRESETS = {
       addrPt: 36,
       cityPostPt: 48,
       attnPt: 24,
-      phonePt: 9,
+      phonePt: 24,
       fromLabelPt: 12,
       fromFooterPt: 12,
       logoWidthMm: 110,
@@ -74,7 +74,7 @@ const PAPER_PRESETS = {
       addrPt: 26,
       cityPostPt: 36,
       attnPt: 16,
-      phonePt: 9,
+      phonePt: 16,
       fromLabelPt: 11,
       fromFooterPt: 9,
       logoWidthMm: 70,
@@ -113,7 +113,7 @@ const PAPER_PRESETS = {
       addrPt: 24,
       cityPostPt: 28,
       attnPt: 14,
-      phonePt: 12,
+      phonePt: 14,
       fromLabelPt: 11,
       fromFooterPt: 9,
       logoWidthMm: 70,
@@ -148,6 +148,7 @@ function getPreset(paper) {
 
 export default function PrintIndAddressLabels({order, paper, onDone}) {
   const [loading, setLoading] = useState(false);
+  console.log("Order=", order);
 
   // Filters
   const [type] = useState("individual");
@@ -160,8 +161,8 @@ export default function PrintIndAddressLabels({order, paper, onDone}) {
     if (!order) return null;
 
     return {
-      foreName: (order.foreName || "").trim(),
-      surname: (order.surname || "").trim(),
+      foreName: (order.firstName || "").trim(),
+      surname: (order.lastName.toUpperCase() || "").trim(),
       attn: (order.organiser || "").trim(),
       phone: (order.phone || "").trim(),
       address1: (order.address || "").trim(),
@@ -576,7 +577,7 @@ function AddressLabelCard({ label }) {
         </div>
       </div>
 
-      <div className="from-sep" />
+      {/*<div className="from-sep" />*/}
 
       <div className="from-area">
         <div className="from-label">From:</div>

@@ -418,55 +418,55 @@ export default function AdminBulkOrder() {
                 />
               </div>
 
+              <div className="row-start-2 col-span-2" >
+                <Label htmlFor="courieraddress">Delivery Address</Label>
+                <Input
+                  id="courieraddress"
+                  name="courierAddress"
+                  value={formData.courierAddress}
+                  onChange={handleChange}
+                />
+              </div>
+
               <div className="row-start-2">
                 <Label htmlFor="city">City</Label>
                 <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
                 />
               </div>
 
               <div className="row-start-2">
-                <Label htmlFor="postaladdress">Postal Address</Label>
+                <Label htmlFor="postaladdress2">Postcode</Label>
                 <Input
-                  id="postaladdress"
-                  name="postalAddress"
-                  value={formData.postalAddress}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="row-start-2">
-                <Label htmlFor="postaladdress2">Postal Address 2</Label>
-                <Input
-                    id="postaladdress2"
-                    name="postalAddress2"
+                    id="postcode"
+                    name="postcode"
                     value={formData.postalAddress2}
                     onChange={handleChange}
                 />
               </div>
 
-              <div className="row-start-2">
-                <Label htmlFor="postaladdress3">Postal Address 3</Label>
-                <Input
-                    id="postaladdress3"
-                    name="postalAddress3"
-                    value={formData.postalAddress3}
-                    onChange={handleChange}
-                />
-              </div>
+              {/*<div className="row-start-2">*/}
+              {/*  <Label htmlFor="postaladdress3">Postal Address 3</Label>*/}
+              {/*  <Input*/}
+              {/*      id="postaladdress3"*/}
+              {/*      name="postalAddress3"*/}
+              {/*      value={formData.postalAddress3}*/}
+              {/*      onChange={handleChange}*/}
+              {/*  />*/}
+              {/*</div>*/}
 
-              <div className="row-start-3">
-                <Label htmlFor="courieraddress">Courier Address</Label>
-                <Input
-                    id="courieraddress"
-                    name="courierAddress"
-                    value={formData.courierAddress}
-                    onChange={handleChange}
-                />
-              </div>
+              {/*<div className="row-start-3">*/}
+              {/*  <Label htmlFor="courieraddress">Courier Address</Label>*/}
+              {/*  <Input*/}
+              {/*      id="courieraddress"*/}
+              {/*      name="courierAddress"*/}
+              {/*      value={formData.courierAddress}*/}
+              {/*      onChange={handleChange}*/}
+              {/*  />*/}
+              {/*</div>*/}
 
               <div className="row-start-3">
                 <Label htmlFor="email">Email</Label>
@@ -504,16 +504,16 @@ export default function AdminBulkOrder() {
 
               <hr className="row-start-4 col-span-full border-t border-gray-300 my-4" />
 
-              <div className="row-start-5">
-                <Label htmlFor="ceremonyNo">Ceremony No</Label>
-                <Input
-                    id="ceremonyNo"
-                    name="ceremonyNo"
-                    type="text"
-                    value={formData.ceremonyNo}
-                    onChange={handleChange}
-                />
-              </div>
+              {/*<div className="row-start-5">*/}
+              {/*  <Label htmlFor="ceremonyNo">Ceremony No</Label>*/}
+              {/*  <Input*/}
+              {/*      id="ceremonyNo"*/}
+              {/*      name="ceremonyNo"*/}
+              {/*      type="text"*/}
+              {/*      value={formData.ceremonyNo}*/}
+              {/*      onChange={handleChange}*/}
+              {/*  />*/}
+              {/*</div>*/}
 
               <div className="row-start-5">
                 <Label htmlFor="ceremonydate">Ceremony Date</Label>

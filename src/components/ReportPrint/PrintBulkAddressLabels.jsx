@@ -575,7 +575,7 @@ function AddressLabelCard({ label }) {
         </div>
       </div>
 
-      <div className="from-sep" />
+      {/*<div className="from-sep" />*/}
 
       <div className="from-area">
         <div className="from-label">From:</div>
