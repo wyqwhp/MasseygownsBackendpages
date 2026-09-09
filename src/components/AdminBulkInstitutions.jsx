@@ -209,7 +209,7 @@ export default function AdminBulkOrder() {
       setFormData((prev) => ({...prev, ['accountCode']: 253 }));
 
     setChanged(true);
-    if (editingId === null) {
+    if (editingId === undefined || editingId === null) {
       setEditingId(ceremonies[currentIndex].id);
       setFormData((prev) => ({ ...prev, id: ceremonies[currentIndex].id, [name]: value }));
 
