@@ -210,9 +210,9 @@ export default function AdminBulkOrder() {
 
     setChanged(true);
     if (editingId === undefined || editingId === null) {
-      setEditingId(ceremonies[currentIndex].id);
-      setFormData((prev) => ({ ...prev, id: ceremonies[currentIndex].id, [name]: value }));
-
+      const idx = sortedCeremonies.findIndex(c => c.id === currentId);
+      setEditingId(sortedCeremonies[idx].id);
+      setFormData((prev) => ({ ...prev, id: sortedCeremonies[idx].id, [name]: value }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
