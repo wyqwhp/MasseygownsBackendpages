@@ -22,8 +22,8 @@ import PrintManifest, {printBulkLabels} from "@/components/PrintLabels.js";
 import {XeroToCSV} from "@/components/ExportToXero.js";
 import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144"
 
 export default function AdminBulkOrder() {
   const emptyFormRecord = {
@@ -34,12 +34,13 @@ export default function AdminBulkOrder() {
     courierAddress: "",
     postalAddress: "",
     city: "",
-    ceremonyDate: null,
-    dueDate: null,
-    despatchDate: null,
-    dateSent: null,
-    returnDate: null,
-    dateReturned: null,
+    postcode: "",
+    ceremonyDate: "",
+    dueDate: "",
+    despatchDate: "",
+    dateSent: "",
+    returnDate: "",
+    dateReturned: "",
     organiser: "",
     phone: "",
     email: "",
@@ -50,6 +51,7 @@ export default function AdminBulkOrder() {
     hat_count: 0,
     hood_count: 0,
     ucol_count: 0,
+    accountCode: ""
   };
   const [formData, setFormData] = useState({ emptyFormRecord });
   const [ceremonies, setCeremonies] = useState([]);
@@ -98,6 +100,8 @@ export default function AdminBulkOrder() {
   const updateForm = (ceremony) => {
     if (!ceremony) return;
 
+    console.log("Ceremony=", ceremony);
+
     setFormData({
       id: ceremony.id,
       visible: ceremony.visible,
@@ -107,13 +111,14 @@ export default function AdminBulkOrder() {
       institutionName: ceremony.institutionName || "",
       courierAddress: ceremony.courierAddress || "",
       postalAddress: ceremony.postalAddress || "",
+      postcode: ceremony.postcode || "",
       city: ceremony.city || "",
-      ceremonyDate: ceremony.ceremonyDate || null,
-      dueDate: ceremony.dueDate || null,
-      despatchDate: ceremony.despatchDate || null,
-      dateSent: ceremony.dateSent || null,
-      returnDate: ceremony.returnDate || null,
-      dateReturned: ceremony.dateReturned || null,
+      ceremonyDate: ceremony.ceremonyDate || "",
+      dueDate: ceremony.dueDate || "",
+      despatchDate: ceremony.despatchDate || "",
+      dateSent: ceremony.dateSent || "",
+      returnDate: ceremony.returnDate || "",
+      dateReturned: ceremony.dateReturned || "",
       organiser: ceremony.organiser || "",
       phone: ceremony.phone || "",
       email: ceremony.email || "",
@@ -439,11 +444,12 @@ export default function AdminBulkOrder() {
               </div>
 
               <div className="row-start-2">
-                <Label htmlFor="postaladdress2">Postcode</Label>
+                <Label htmlFor="postcode">Postcode</Label>
                 <Input
                     id="postcode"
                     name="postcode"
-                    value={formData.postalAddress2}
+                    maxLength={10}
+                    value={formData.postcode}
                     onChange={handleChange}
                 />
               </div>
