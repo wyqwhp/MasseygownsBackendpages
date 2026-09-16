@@ -204,6 +204,8 @@ export default function AdminBulkOrder() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
+    console.log("name=", name, " value=", value);
+
     if (name === 'ceremony' && value.toString().toLowerCase().includes('Massey'.toLowerCase()))
       setFormData((prev) => ({...prev, ['accountCode']: 251 }));
     else if (name === 'ceremony' && value.toString().toLowerCase().includes('ucol'.toLowerCase()))
@@ -385,7 +387,7 @@ export default function AdminBulkOrder() {
                 <Label htmlFor="name">Ceremony</Label>
                 <Input
                   id="name"
-                  name="ceremony"
+                  name="name"
                   value={formData.name}
                   onChange={handleChange}
                 />
