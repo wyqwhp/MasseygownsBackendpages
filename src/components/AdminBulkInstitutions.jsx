@@ -113,12 +113,12 @@ export default function AdminBulkOrder() {
       postalAddress: ceremony.postalAddress || "",
       postcode: ceremony.postcode || "",
       city: ceremony.city || "",
-      ceremonyDate: ceremony.ceremonyDate || "",
-      dueDate: ceremony.dueDate || "",
-      despatchDate: ceremony.despatchDate || "",
-      dateSent: ceremony.dateSent || "",
-      returnDate: ceremony.returnDate || "",
-      dateReturned: ceremony.dateReturned || "",
+      ceremonyDate: ceremony.ceremonyDate || null,
+      dueDate: ceremony.dueDate || null,
+      despatchDate: ceremony.despatchDate || null,
+      dateSent: ceremony.dateSent || null,
+      returnDate: ceremony.returnDate || null,
+      dateReturned: ceremony.dateReturned || null,
       organiser: ceremony.organiser || "",
       phone: ceremony.phone || "",
       email: ceremony.email || "",
@@ -527,7 +527,7 @@ export default function AdminBulkOrder() {
                   id="ceremonydate"
                   name="ceremonyDate"
                   type="date"
-                  value={formData.ceremonyDate}
+                  value={formData.ceremonyDate ?? ""}
                   onChange={handleChange}
                 />
               </div>
@@ -538,7 +538,7 @@ export default function AdminBulkOrder() {
                   id="ceremonydate2"
                   name="ceremonydate2"
                   type="date"
-                  value={formData.ceremonyDate2}
+                  value={formData.ceremonyDate2 ?? ""}
                   onChange={handleChange}
                 />
               </div>
@@ -549,7 +549,7 @@ export default function AdminBulkOrder() {
                   id="despatchdate"
                   name="despatchDate"
                   type="date"
-                  value={formData.despatchDate}
+                  value={formData.despatchDate ?? ""}
                   onChange={handleChange}
                 />
               </div>
@@ -560,7 +560,7 @@ export default function AdminBulkOrder() {
                   id="datesent"
                   name="dateSent"
                   type="date"
-                  value={formData.dateSent}
+                  value={formData.dateSent ?? ""}
                   onChange={handleChange}
                 />
               </div>
@@ -571,7 +571,7 @@ export default function AdminBulkOrder() {
                   id="returndate"
                   name="returnDate"
                   type="date"
-                  value={formData.returnDate}
+                  value={formData.returnDate ?? ""}
                   onChange={handleChange}
                 />
               </div>
@@ -582,7 +582,7 @@ export default function AdminBulkOrder() {
                   id="datereturned"
                   name="dateReturned"
                   type="date"
-                  value={formData.dateReturned}
+                  value={formData.dateReturned ?? ""}
                   onChange={handleChange}
                 />
               </div>
