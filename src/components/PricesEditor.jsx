@@ -5,8 +5,8 @@ import AdminNavbar from "@/components/AdminNavbar.jsx";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import {list} from "postcss";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
 
 export default function PricesEditor() {
     const [loading, setLoading] = useState(true);
@@ -33,6 +33,7 @@ export default function PricesEditor() {
         if (newPrice) {
             const res = await axios
                 .post(`${API_URL}/admin/prices`, newPrice);
+
             setPrices(list => [...list, res.data].sort((a, b) => a.name.localeCompare(b.name)));
             setNewPrice({});
         }
@@ -80,49 +81,49 @@ export default function PricesEditor() {
                 <div className="flex gap-2 mb-6">
                     <input
                         type="text"
-                        value={newPrice.name}
+                        value={newPrice.name ?? ""}
                         onChange={(e) => handleNewPriceChange("name", e.target.value)}
                         placeholder={`Add new category...`}
                         className="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <input
                         type="text"
-                        value={newPrice.priceNote}
+                        value={newPrice.priceNote ?? ""}
                         onChange={(e) => handleNewPriceChange("priceNote", e.target.value)}
                         placeholder={`Add new description...`}
                         className="w-128 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <input
                         type="text"
-                        value={newPrice.priceCode}
+                        value={newPrice.priceCode ?? ""}
                         onChange={(e) => handleNewPriceChange("priceCode", e.target.value)}
                         placeholder={`Code...`}
                         className="w-20 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <input
                         type="text"
-                        value={newPrice.gown}
+                        value={newPrice.gown ?? ""}
                         onChange={(e) => handleNewPriceChange("gown", e.target.value)}
                         placeholder={`Gown...`}
                         className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <input
                         type="text"
-                        value={newPrice.hat}
+                        value={newPrice.hat ?? ""}
                         onChange={(e) => handleNewPriceChange("hat", e.target.value)}
                         placeholder={`Hat...`}
                         className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <input
                         type="text"
-                        value={newPrice.hood}
+                        value={newPrice.hood ?? ""}
                         onChange={(e) => handleNewPriceChange("hood", e.target.value)}
                         placeholder={`Hood...`}
                         className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                     />
                     <input
                         type="text"
-                        value={newPrice.xtraHood}
+                        value={newPrice.xtraHood ?? ""}
                         onChange={(e) => handleNewPriceChange("xtraHood", e.target.value)}
                         placeholder={`Xtra Hood...`}
                         className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"

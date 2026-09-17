@@ -100,8 +100,6 @@ export default function AdminBulkOrder() {
   const updateForm = (ceremony) => {
     if (!ceremony) return;
 
-    console.log("Ceremony=", ceremony);
-
     setFormData({
       id: ceremony.id,
       visible: ceremony.visible,
@@ -203,8 +201,6 @@ export default function AdminBulkOrder() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    console.log("name=", name, " value=", value);
 
     if (name === 'ceremony' && value.toString().toLowerCase().includes('Massey'.toLowerCase()))
       setFormData((prev) => ({...prev, ['accountCode']: 251 }));
