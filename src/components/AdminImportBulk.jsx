@@ -3,9 +3,10 @@ import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import "./AdminImportBulk.css";
 import axios from "axios";
+import { toNullableDecimal } from "../services/DecimalServices.js";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE;
-// const API_URL = "http://localhost:5144";
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+const API_URL = "http://localhost:5144";
 
 export default function AdminImportBulk() {
   const [editFile, setEditFile] = useState(null);
@@ -39,14 +40,16 @@ export default function AdminImportBulk() {
         const worksheet = workbook.Sheets[worksheetName];
 
         // Convert to JSON (array of objects)
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-          defval: "", // fills empty cells with empty string
+        let jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          defval: null, // fills empty cells with empty string
         });
         console.log("Parsed data:", jsonData);
 
         if (jsonData.length === 0) throw new Error("Empty file received");
 
         jsonData.forEach((row) => {
+          row.Height = toNullableDecimal(row.Height);
+          row.Headsize = toNullableDecimal(row.Headsize);
           console.log(`Name: `, row.Name, ` Height: `, row.Height);
         });
 
@@ -57,7 +60,7 @@ export default function AdminImportBulk() {
         console.log("Error=", err);
         setStatusError(
           err instanceof Error
-            ? "Failed to upload file. " + err.response.data
+            ? "Failed to upload file. " + err.response.data.title
             : "Failed to upload file."
         );
       } finally {
