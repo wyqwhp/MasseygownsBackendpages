@@ -5,8 +5,8 @@ import "./AdminImportBulk.css";
 import axios from "axios";
 import { toNullableDecimal } from "../services/DecimalServices.js";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE;
-const API_URL = "http://localhost:5144";
+const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+// const API_URL = "http://localhost:5144";
 
 export default function AdminImportBulk() {
   const [editFile, setEditFile] = useState(null);
@@ -16,7 +16,6 @@ export default function AdminImportBulk() {
 
   // File upload handler (CSV / Excel)
   async function handleUploadFile() {
-    // console.log("Upload File=", editFile);
     if (!editFile) return;
 
     setIsSaving(true);
