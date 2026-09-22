@@ -10,7 +10,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import {CheckIcon, CheckSquare, ChevronsLeft, ChevronsRight, Printer} from "lucide-react";
+import {CheckIcon, CheckSquare, ChevronsLeft, ChevronsRight, Printer, PlusCircle, Trash2} from "lucide-react";
 import AdminNavbar from "./AdminNavbar.jsx";
 import axios from "axios";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
@@ -47,6 +47,7 @@ export default function AdminIndOrder() {
     ceremony: "",
     gownSize: "",
     hatSize: "",
+    hatLabel: "",
     gownType: "",
     hatType: "",
     height: "",
@@ -73,8 +74,10 @@ export default function AdminIndOrder() {
   const [error, setError] = useState(null);
   const [changed, setChanged] = useState(false);
   const [changedItems, setChangedItems] = useState([]);
+  const [deletedItemIds, setDeletedItemIds] = useState([]);
   const [items, setItems] = useState([]);
   const [sizes, setSizes] = useState([]);
+  const [hats, setHats] = useState([]);
   const [hoods, setHoods] = useState([]);
   const [gownId, setGownId] = useState("");
   const [hatId, setHatId] = useState("");
@@ -216,8 +219,6 @@ export default function AdminIndOrder() {
   };
 
   const updateForm = (order) => {
-    console.log('Order=', order);
-
     setFormData({
       id: order.id,
       lastName: order.lastName,
@@ -251,10 +252,7 @@ export default function AdminIndOrder() {
       refund: order.refund ?? 0,
       purchaseOrder: order.purchaseOrder,
       paymentMethod: order.paymentMethod,
-
-      // gownType: order.items?.[0]?.itemName ?? ""
     });
-    console.log("Freight=", order.freight);
     retrieveItems(order);
   };
 
@@ -273,6 +271,12 @@ export default function AdminIndOrder() {
   useEffect(() => {
     axios.get(`${API_URL}/hoodsonly`).then((res) => {
       setHoods(res.data);
+    });
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${API_URL}/hatsonly`).then((res) => {
+      setHats(res.data);
     });
   }, []);
 
@@ -338,8 +342,8 @@ export default function AdminIndOrder() {
     const selectedItem = items.find((g) => (g.name === itemName && (g.category === "Headwear" || g.category === "Set")));
     if (!selectedItem) return [];
     const map = new Map();
-    sizes
-        .filter((g) => g.itemId === selectedItem.id && g.labelsize && g.fitId === null)
+    hats
+        .filter((g) => g.itemId === selectedItem.id && g.labelsize)
         .forEach((g) => {
           if (!map.has(g.labelsize)) map.set(g.labelsize, g);
         });
@@ -367,6 +371,7 @@ export default function AdminIndOrder() {
       updatedItem.itemId = selectedCatalogItem?.id;
       updatedItem.labelsize = undefined;
       updatedItem.fitName = "";
+      updatedItem.hatLabel = "";
       updatedItem.hoodName = "";
       updatedItem.cost = cost;
     }
@@ -386,6 +391,13 @@ export default function AdminIndOrder() {
       updatedItem.hoodId = hoodOption?.id;
     }
 
+    if (field === "hatSize") {
+      const hatOption = getHatsForItemName(updatedItem.itemName).find((g) => g.labelsize === value);
+      updatedItem.hatId = hatOption?.id;
+
+      console.log("hatSize=", hatOption, value);
+    }
+
     setFormData((prev) => {
       const items = [...prev.items];
       items[index] = updatedItem;
@@ -403,8 +415,40 @@ export default function AdminIndOrder() {
     setEditingId(formData.id);
   };
 
+  const handleAddItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, { tempId: crypto.randomUUID(), itemName: "", cost: 0 }],
+    }));
+    setChanged(true);
+    setEditingId(formData.id);
+  };
+
+  const handleDeleteItem = (index) => {
+    const item = formData.items[index];
+
+    if (item.id) {
+      setDeletedItemIds((prev) => [...prev, item.id]);
+      setChangedItems((prev) => prev.filter((i) => i.id !== item.id));
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+    setChanged(true);
+    setEditingId(formData.id);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const missingItemName = formData.items.some((item) => !item.itemName);
+
+    if (missingItemName) {
+      setError("Please select an item for every row before saving.");
+      return;
+    }
 
     const missingSize = formData.items.some(
         (item) => getSizesForItemName(item.itemName).length > 0 && !item.labelsize
@@ -485,9 +529,51 @@ export default function AdminIndOrder() {
             })
     );
 
-    setChangedItems([]);
+    const itemCreates = formData.items
+        .filter((item) => !item.id)
+        .map((item) => {
+          const { tempId, ...payload } = item;
 
-    Promise.all([orderUpdate, ...itemUpdates])
+          return axios.post(`${API_URL}/orders/${formData.id}/items`, payload)
+              .then((res) => {
+                const newId = res.data?.id;
+
+                console.log("Created Item Id=", newId);
+
+                if (newId) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    items: prev.items.map((i) =>
+                        i.tempId && i.tempId === tempId ? { ...i, id: newId } : i
+                    ),
+                  }));
+
+                  setOrders((prevOrders) => {
+                    const updated = prevOrders.map((o) =>
+                        o.id === formData.id
+                            ? {
+                              ...o,
+                              items: o.items.map((i) =>
+                                  i.tempId && i.tempId === tempId ? { ...i, id: newId } : i
+                              ),
+                            }
+                            : o
+                    );
+                    localStorage.setItem("orders", JSON.stringify(updated));
+                    return updated;
+                  });
+                }
+              });
+        });
+
+    const itemDeletes = deletedItemIds.map((id) =>
+        axios.delete(`${API_URL}/orders/${formData.id}/items/${id}`)
+    );
+
+    setChangedItems([]);
+    setDeletedItemIds([]);
+
+    Promise.all([orderUpdate, ...itemUpdates, ...itemCreates, ...itemDeletes])
         .catch((err) => {
           setError(err.message);
         })
@@ -650,160 +736,6 @@ export default function AdminIndOrder() {
                 />
               </div>
 
-              {/*<div>*/}
-              {/*  <Label htmlFor="ceremonyId">Ceremony Id</Label>*/}
-              {/*  <Input*/}
-              {/*    id="ceremonyId"*/}
-              {/*    name="ceremonyId"*/}
-              {/*    value={formData.ceremonyId}*/}
-              {/*    onChange={handleChange}*/}
-              {/*    required*/}
-              {/*  />*/}
-              {/*</div>*/}
-
-              {/*<hr className="col-span-full border-t border-gray-300 my-4" />*/}
-
-              {/*<div className="row-start-4">*/}
-              {/*  <Label htmlFor="gowntype">Gown Type</Label>*/}
-              {/*  <Select*/}
-              {/*    value={String(gownId)}*/}
-              {/*    onValueChange={(id) => {*/}
-              {/*      const gown = items.find((g) => g.id === Number(id));*/}
-              {/*      console.log("GownId ext=", gownId);*/}
-              {/*      console.log("GownId=", typeof id);*/}
-              {/*      console.log("Gown=", gown);*/}
-              {/*      console.log("Items=", items);*/}
-              {/*      if (gown) {*/}
-              {/*        console.log("GownId Inside=", gown.id);*/}
-              {/*        setGownId(Number(gown.id));*/}
-              {/*        setFormData((prev) => ({*/}
-              {/*          ...prev,*/}
-              {/*          gownType: getLabel(gown.name),*/}
-              {/*          gownSize: "",*/}
-              {/*        }));*/}
-              {/*      }*/}
-              {/*    }}*/}
-              {/*  >*/}
-              {/*    <SelectTrigger className="!bg-white w-36">*/}
-              {/*      <SelectValue placeholder="Select a gown type" />*/}
-              {/*    </SelectTrigger>*/}
-
-              {/*    <SelectContent>*/}
-              {/*      {items*/}
-              {/*        .filter((g) => g.category === "Academic Gown" || g.category === "Set")*/}
-              {/*        .map((g) => (*/}
-              {/*          <SelectItem key={g.id} value={String(g.id)}>*/}
-              {/*            {getLabel(g.name)}*/}
-              {/*          </SelectItem>*/}
-              {/*        ))}*/}
-              {/*    </SelectContent>*/}
-              {/*  </Select>*/}
-              {/*</div>*/}
-
-              {/*<div className="row-start-4">*/}
-              {/*  <Label htmlFor="gownsize">Gown</Label>*/}
-              {/*  <Select*/}
-              {/*    defaultValue={formData.gownSize}*/}
-              {/*    onValueChange={(value) => {*/}
-              {/*      updateItem(formData.id, gownId, value);*/}
-              {/*      // setFormData((prev) => ({...prev, gownSize: value}))*/}
-              {/*      setChanged(true);*/}
-              {/*      console.log('Gown Size=', value);*/}
-              {/*    }*/}
-              {/*    }*/}
-              {/*  >*/}
-              {/*    <SelectTrigger className="!bg-white w-36">*/}
-              {/*      <SelectValue placeholder="Select a gown size" />*/}
-              {/*    </SelectTrigger>*/}
-
-              {/*    <SelectContent>*/}
-              {/*      {sizes*/}
-              {/*        .filter((g) => g.itemId === gownId && g.fitId === 1)*/}
-              {/*        .map((g) => (*/}
-              {/*          <SelectItem key={g.id} value={String(g.id)}>*/}
-              {/*            {g.labelsize}*/}
-              {/*          </SelectItem>*/}
-              {/*        ))}*/}
-              {/*    </SelectContent>*/}
-              {/*  </Select>*/}
-              {/*</div>*/}
-
-              {/*<div className="row-start-4">*/}
-              {/*  <Label htmlFor="hattype">Hat</Label>*/}
-              {/*  <Select*/}
-              {/*      value={formData.hatId}*/}
-              {/*      onValueChange={(value) => {*/}
-              {/*          setFormData((prev) => ({...prev, hatId: value}))*/}
-              {/*          console.log("Selected hatSize:", value, typeof value);*/}
-              {/*        }*/}
-              {/*      }*/}
-              {/*  >*/}
-              {/*    <SelectTrigger className="!bg-white w-36">*/}
-              {/*      <SelectValue placeholder="Select a hat size" />*/}
-              {/*    </SelectTrigger>*/}
-
-              {/*    <SelectContent className="max-h-[40vh] overflow-y-auto">*/}
-              {/*      {sizes*/}
-              {/*          .filter((g) => g.itemId === 3 || g.itemId === 8)*/}
-              {/*          .map((g) => (*/}
-              {/*              <SelectItem key={g.id} value={String(g.id)}>*/}
-              {/*                {g.labelsize}*/}
-              {/*              </SelectItem>*/}
-              {/*          ))}*/}
-              {/*    </SelectContent>*/}
-              {/*  </Select>*/}
-              {/*</div>*/}
-
-              {/*<div className="row-start-4">*/}
-              {/*  <Label htmlFor="hoodType">Hood</Label>*/}
-              {/*  <Select*/}
-              {/*    value={formData.hoodType}*/}
-              {/*    onValueChange={(value) =>*/}
-              {/*      setFormData((prev) => ({ ...prev, hoodType: value }))*/}
-              {/*    }*/}
-              {/*  >*/}
-              {/*    <SelectTrigger className="!bg-white w-36">*/}
-              {/*      <SelectValue placeholder="Select a hood type" />*/}
-              {/*    </SelectTrigger>*/}
-
-              {/*    <SelectContent className="max-h-[40vh] overflow-y-auto">*/}
-              {/*      {hoods*/}
-              {/*        .map((g) =>*/}
-              {/*            (*/}
-              {/*          <SelectItem key={g.id} value={String(g.id)}>*/}
-              {/*            {g.shortName}*/}
-              {/*          </SelectItem>*/}
-              {/*        ))}*/}
-              {/*    </SelectContent>*/}
-              {/*  </Select>*/}
-              {/*</div>*/}
-
-              {/*<div className="row-start-5">*/}
-              {/*  <Label htmlFor="qualification">Qualification</Label>*/}
-              {/*  <Select*/}
-              {/*    value={formData.qualification}*/}
-              {/*    onValueChange={(value) =>*/}
-              {/*      setFormData((prev) => ({ ...prev, qualification: value }))*/}
-              {/*    }*/}
-              {/*  >*/}
-              {/*    <SelectTrigger className="!bg-white">*/}
-              {/*      <SelectValue placeholder="Select a qualification" />*/}
-              {/*    </SelectTrigger>*/}
-
-              {/*    <SelectContent>*/}
-              {/*      <SelectViewport className="max-h-64">*/}
-              {/*        {hoods*/}
-              {/*          .filter((g) => g.itemId === Number(4))*/}
-              {/*          .map((g) => (*/}
-              {/*            <SelectItem key={g.id} value={g.name}>*/}
-              {/*              {g.name}*/}
-              {/*            </SelectItem>*/}
-              {/*          ))}*/}
-              {/*      </SelectViewport>*/}
-              {/*    </SelectContent>*/}
-              {/*  </Select>*/}
-              {/*</div>*/}
-
               <div className="row-start-2 row-span-3 col-4">
                 <Label htmlFor="packNote">Pack Note</Label>
                 <Textarea
@@ -864,12 +796,6 @@ export default function AdminIndOrder() {
                     <SelectItem key="1" value="1">Hire</SelectItem>
                     <SelectItem key="2" value="2">Sale</SelectItem>
                     <SelectItem key="3" value="3">Casual Hire</SelectItem>
-                    {/*<SelectItem value="refund">Refund</SelectItem>*/}
-                    {/*<SelectItem value="hire">Hire</SelectItem>*/}
-                    {/*<SelectItem value="sale">Sale</SelectItem>*/}
-                    {/*<SelectItem value="sundry">Sundry</SelectItem>*/}
-                    {/*<SelectItem value="sundry_costs">Sundry Costs</SelectItem>*/}
-                    {/*<SelectItem value="cancel">Cancel</SelectItem>*/}
                   </SelectContent>
                 </Select>
               </div>
@@ -978,20 +904,20 @@ export default function AdminIndOrder() {
                 />
               </div>
 
-              <div className="col-span-4 gap-4 grid grid-cols-[300px_100px_100px_320px_60px_60px]">
+              <div className="col-span-4 gap-4 grid grid-cols-[300px_100px_100px_320px_60px_60px_40px]">
                 <Label htmlFor="itemName" className="text-base underline">Item Name:</Label>
                 <Label htmlFor="itemName" className="text-base underline">Item Size:</Label>
-                {/*<Label htmlFor="itemName" className="text-base underline">Item Fit:</Label>*/}
                 <Label htmlFor="itemName" className="text-base underline">Hat Size:</Label>
                 <Label htmlFor="itemName" className="text-base underline">Hood Name:</Label>
                 <Label htmlFor="itemName" className="text-base underline">Cost:</Label>
                 <Label htmlFor="itemName" className="text-base underline">Hire:</Label>
+                <span />
               </div>
 
               <div className="col-span-4 gap-2">
 
                 {formData.items.map((item, index) =>
-                  <div key={item.id ?? index} className="grid grid-cols-[300px_100px_100px_320px_60px_60px] gap-4 mb-1">
+                  <div key={item.id ?? item.tempId ?? index} className="grid grid-cols-[300px_100px_100px_320px_60px_60px_40px] gap-4 mb-1 items-center">
                     <Select
                       value={item.itemName ?? ""}
                       onValueChange={(value) => {
@@ -1033,29 +959,10 @@ export default function AdminIndOrder() {
                       </Select>
                     </div>
 
-                    {/*<Select*/}
-                    {/*  value={item.fitName ?? ""}*/}
-                    {/*  onValueChange={(value) => handleItemChange(index, "fitName", value)}*/}
-                    {/*>*/}
-                    {/*  <SelectTrigger*/}
-                    {/*    className={`!bg-white text-blue-800 text-base h-8 ${*/}
-                    {/*      getFitsForItemName(item.itemName).length > 0 ? "" : "invisible"*/}
-                    {/*    }`}*/}
-                    {/*  >*/}
-                    {/*    <SelectValue placeholder="Fit" />*/}
-                    {/*  </SelectTrigger>*/}
-                    {/*  <SelectContent className="max-h-[40vh] overflow-y-auto">*/}
-                    {/*    {getFitsForItemName(item.itemName).map((g) => (*/}
-                    {/*      <SelectItem key={g.id} value={g.fitName}>*/}
-                    {/*        {g.fitName}*/}
-                    {/*      </SelectItem>*/}
-                    {/*    ))}*/}
-                    {/*  </SelectContent>*/}
-                    {/*</Select>*/}
-
+                    {/*Hat Size for Trenchers and Tudor Bonnets*/}
                     <Select
-                      value={item.hatSize ?? ""}
-                      onValueChange={(value) => handleItemChange(index, "hatSize", value)}
+                      value={item.hatLabel ?? ""}
+                      onValueChange={(value) => handleItemChange(index, "hatLabel", value)}
                     >
                       <SelectTrigger
                         className={`!bg-white text-blue-800 text-base h-8 ${
@@ -1093,9 +1000,29 @@ export default function AdminIndOrder() {
                     </Select>
 
                     <Label className="text-blue-800 text-base">${item.cost ?? ""} </Label>
-                    {item.hire && <CheckSquare className="text-blue-800"/>}
+                    <CheckSquare className={`text-blue-800 ${item.hire ? "" : "invisible"}`}/>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-600 hover:text-red-800 hover:bg-red-50"
+                      onClick={() => handleDeleteItem(index)}
+                      aria-label="Delete item"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-2"
+                  onClick={handleAddItem}
+                >
+                  <PlusCircle className="h-4 w-4 mr-1" /> Add Item
+                </Button>
               </div>
 
               <div className="row-start-11 col-start-1 flex justify-around gap-0 mt-4" aria-label="Paper size choice">
