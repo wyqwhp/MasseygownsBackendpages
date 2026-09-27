@@ -15,10 +15,12 @@ export default function AdminEditSku({ onChange }) {
     const [skus, setSkus] = useState([]);
     const [items, setItems] = useState([]);
     const [sizes, setSizes] = useState([]);
+    const [hats, setHats] = useState([]);
     const [hoods, setHoods] = useState([]);
     const [selectedItemId, setSelectedItemId] = useState(0);
     const [selectedSizeId, setSelectedSizeId] = useState(0);
     const [selectedFitId, setSelectedFitId] = useState(0);
+    const [selectedHatId, setSelectedHatId] = useState(0);
     const [selectedHoodId, setSelectedHoodId] = useState(0);
     const [newSku, setNewSku] = useState(null);
     const [edited, setEdited] = useState(0);
@@ -67,6 +69,18 @@ export default function AdminEditSku({ onChange }) {
             .get(`${API_URL}/hoodsonly`)
             .then((res) => {
                 setHoods(res.data);
+            })
+            .catch((err) => {
+                setError(err);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+
+        axios
+            .get(`${API_URL}/hatsonly`)
+            .then((res) => {
+                setHats(res.data);
             })
             .catch((err) => {
                 setError(err);
@@ -136,6 +150,7 @@ export default function AdminEditSku({ onChange }) {
             const selectedItem = items.find(i => i.id === selectedItemId);
             const selectedSize = sizes.find(i => i.id === selectedSizeId);
             const selectedFit = sizes.find(i => i.fitId === selectedFitId);
+            const selectedHat = hats.find(i => i.id === selectedHatId);
             const selectedHood = hoods.find(i => i.id === selectedHoodId);
 
             const duplicate = skus.some(sku =>
@@ -143,6 +158,7 @@ export default function AdminEditSku({ onChange }) {
                     sku.name === selectedItem?.name &&
                     sku.size === selectedSize?.size &&
                     sku.fitType === selectedFit?.fitName &&
+                    sku.hatSize === selectedHat?.labelsize &&
                     sku.hoodId === selectedHoodId
             );
 
@@ -161,7 +177,7 @@ export default function AdminEditSku({ onChange }) {
                 prev.map(sku =>
                     sku.id === edited
                         ? { ...sku, name: selectedItem?.name ?? "", fitType: selectedFit?.fitName ?? "", hood: selectedHood?.name ?? "",
-                        size: selectedSize?.size ?? ""}
+                        size: selectedSize?.size ?? "", hatSize: selectedHat?.labelsize ?? ""}
                         : sku
                 )
             );
@@ -268,7 +284,8 @@ export default function AdminEditSku({ onChange }) {
                             </SelectTrigger>
 
                             <SelectContent>
-                                {sizes.filter(size => size.itemId === selectedItemId && (size.fitId === 1 || size.fitId === null))
+                                {items.find(item => item.id === selectedItemId)?.category !== 'Headwear' &&
+                                    sizes.filter(size => size.itemId === selectedItemId && (size.fitId === 1 || size.fitId === null))
                                       .map(size => (
                                       <SelectItem key={size.id} value={String(size.id)}>{size.size}</SelectItem>
                                 ))}
@@ -298,11 +315,21 @@ export default function AdminEditSku({ onChange }) {
                             readOnly={true}
                         />
 
-                        <input
-                            className="border border-green-700 rounded-lg px-2 py-1"
-                            value={newSku.hatSize}
-                            readOnly={true}
-                        />
+                        <Select
+                            value={String(selectedHatId)}
+                            onValueChange={(value) => setSelectedHatId(Number(value))}
+                        >
+                            <SelectTrigger className="border border-green-700 rounded-lg px-2 py-1">
+                                <SelectValue placeholder="Select hat size..." />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                {hats.filter(hat => hat.itemId === selectedItemId)
+                                    .map(hat => (
+                                        <SelectItem key={hat.id} value={String(hat.id)}>{hat.labelsize}</SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
 
                         <Select
                             value={String(selectedHoodId)}
@@ -336,6 +363,7 @@ export default function AdminEditSku({ onChange }) {
                                         itemId:selectedItemId,
                                         sizeId: selectedSizeId,
                                         fitId: selectedFitId,
+                                        hatId: selectedHatId,
                                         hoodId: selectedHoodId,
                                         count: newSku.count})}>
                                 <Save/>
@@ -382,7 +410,7 @@ export default function AdminEditSku({ onChange }) {
 
                                 <input
                                     className="border-b px-2 py-1"
-                                    value={sku.hatSize}
+                                    value={sku.hatLabelSize}
                                     readOnly
                                 />
 
@@ -442,13 +470,13 @@ export default function AdminEditSku({ onChange }) {
 
                                 <input
                                     className="border-b px-2 py-1"
-                                    value={sku.labelsize}
+                                    value={sku.name === 'Trencher' || sku.name === 'Tudor Bonnet' ? sku.hatLabelSize : sku.labelsize}
                                     readOnly
                                 />
 
                                 <input
                                     className="border-b px-2 py-1"
-                                    value={sku.hatSize}
+                                    value={sku.hatLabelSize}
                                     readOnly
                                 />
 

@@ -500,8 +500,6 @@ export default function AdminIndOrder() {
             .then((res) => {
               const newId = res.data?.id;
 
-              console.log("New Item Id=", newId);
-
               if (newId) {
                 setFormData((prev) => ({
                   ...prev,
@@ -522,7 +520,6 @@ export default function AdminIndOrder() {
                           : o
                   );
                   localStorage.setItem("orders", JSON.stringify(updated));
-                  console.log("Updated=", updated);
                   return updated;
                 });
               }
@@ -537,8 +534,6 @@ export default function AdminIndOrder() {
           return axios.post(`${API_URL}/orders/${formData.id}/items`, payload)
               .then((res) => {
                 const newId = res.data?.id;
-
-                console.log("Created Item Id=", newId);
 
                 if (newId) {
                   setFormData((prev) => ({

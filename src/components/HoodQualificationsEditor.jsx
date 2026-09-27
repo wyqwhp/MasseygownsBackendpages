@@ -28,6 +28,10 @@ export default function HoodQualificationsEditor() {
     const [newShortName, setNewShortName] = useState('');
     const [newBin, setNewBin] = useState(0);
     const [newNote, setNewNote] = useState('');
+    const [newInstitution, setNewInstitution] = useState('');
+    const [newCategory, setNewCategory] = useState('');
+    const [newStock, setNewStock] = useState(0);
+    const [categoryFilter, setCategoryFilter] = useState('');
     const [hoods, setHoods] = useState({
         bachelor: [],
         master: [],
@@ -42,6 +46,10 @@ export default function HoodQualificationsEditor() {
     });
     // const []
     const currentList = hoods[activeTab];
+    const categories = [...new Set(currentList.map(item => item.category).filter(Boolean))].sort();
+    const filteredList = categoryFilter
+        ? currentList.filter(item => item.category === categoryFilter)
+        : currentList;
     const setCurrentList = updater =>
         setHoods(prev => ({
             ...prev,
@@ -193,20 +201,27 @@ export default function HoodQualificationsEditor() {
             });
     }, []);
 
+    useEffect(() => {
+        setCategoryFilter('');
+    }, [activeTab]);
+
     const addItem = async () => {
         if (newItem.trim()) {
             var addedItem;
             switch (activeTab) {
                 case 'master':
                     addedItem = {name: newItem.trim(), shortName: newShortName.trim(), bin: newBin, note: newNote.trim(),
+                        institution: newInstitution.trim(), category: newCategory.trim(), stock: newStock,
                         itemId: TAB_IDS[activeTab], doctoral: false};
                     break;
                 case 'doctoral':
                     addedItem = {name: newItem.trim(), shortName: newShortName.trim(), bin: newBin, note: newNote.trim(),
+                        institution: newInstitution.trim(), category: newCategory.trim(), stock: newStock,
                         itemId: TAB_IDS[activeTab], doctoral: true};
                     break;
                 default:
                     addedItem = {name: newItem.trim(), shortName: newShortName.trim(), bin: newBin, note: newNote.trim(),
+                        institution: newInstitution.trim(), category: newCategory.trim(), stock: newStock,
                         itemId: TAB_IDS[activeTab]};
             }
             const res = await axios
@@ -242,7 +257,7 @@ export default function HoodQualificationsEditor() {
         <>
         <AdminNavbar />
         <div className="p-6 topform">
-            <div className="max-w-7xl mx-auto p-6">
+            <div className="max-w-[1450px] mx-auto p-6">
                 <h1 className="text-2xl text-center font-bold mb-6">Hood Qualifications Editor</h1>
 
                 {/* Tabs */}
@@ -312,150 +327,221 @@ export default function HoodQualificationsEditor() {
                         Doctoral
                     </button>
 
-                    <button
-                        onClick={() => setActiveTab('UCOL bachelor')}
-                        className={`px-6 py-3 font-medium transition-colors ${
-                            activeTab === 'UCOL bachelor'
-                                ? 'border-b-2 border-green-600 text-green-700'
-                                : 'text-gray-600 hover:text-gray-800'
-                        }`}
-                    >
-                        UCOL Bachelor
-                    </button>
+                    {/*<button*/}
+                    {/*    onClick={() => setActiveTab('UCOL bachelor')}*/}
+                    {/*    className={`px-6 py-3 font-medium transition-colors ${*/}
+                    {/*        activeTab === 'UCOL bachelor'*/}
+                    {/*            ? 'border-b-2 border-green-600 text-green-700'*/}
+                    {/*            : 'text-gray-600 hover:text-gray-800'*/}
+                    {/*    }`}*/}
+                    {/*>*/}
+                    {/*    UCOL Bachelor*/}
+                    {/*</button>*/}
 
-                    <button
-                        onClick={() => setActiveTab('UCOL grad')}
-                        className={`px-6 py-3 font-medium transition-colors ${
-                            activeTab === 'UCOL grad'
-                                ? 'border-b-2 border-green-600 text-green-700'
-                                : 'text-gray-600 hover:text-gray-800'
-                        }`}
-                    >
-                        UCOL Grad
-                    </button>
+                    {/*<button*/}
+                    {/*    onClick={() => setActiveTab('UCOL grad')}*/}
+                    {/*    className={`px-6 py-3 font-medium transition-colors ${*/}
+                    {/*        activeTab === 'UCOL grad'*/}
+                    {/*            ? 'border-b-2 border-green-600 text-green-700'*/}
+                    {/*            : 'text-gray-600 hover:text-gray-800'*/}
+                    {/*    }`}*/}
+                    {/*>*/}
+                    {/*    UCOL Grad*/}
+                    {/*</button>*/}
 
-                    <button
-                        onClick={() => setActiveTab('UCOL postgrad')}
-                        className={`px-6 py-3 font-medium transition-colors ${
-                            activeTab === 'UCOL postgrad'
-                                ? 'border-b-2 border-green-600 text-green-700'
-                                : 'text-gray-600 hover:text-gray-800'
-                        }`}
-                    >
-                        UCOL Postgrad
-                    </button>
+                    {/*<button*/}
+                    {/*    onClick={() => setActiveTab('UCOL postgrad')}*/}
+                    {/*    className={`px-6 py-3 font-medium transition-colors ${*/}
+                    {/*        activeTab === 'UCOL postgrad'*/}
+                    {/*            ? 'border-b-2 border-green-600 text-green-700'*/}
+                    {/*            : 'text-gray-600 hover:text-gray-800'*/}
+                    {/*    }`}*/}
+                    {/*>*/}
+                    {/*    UCOL Postgrad*/}
+                    {/*</button>*/}
 
-                    <button
-                        onClick={() => setActiveTab('UCOL master')}
-                        className={`px-6 py-3 font-medium transition-colors ${
-                            activeTab === 'UCOL master'
-                                ? 'border-b-2 border-green-600 text-green-700'
-                                : 'text-gray-600 hover:text-gray-800'
-                        }`}
-                    >
-                        UCOL Master
-                    </button>
+                    {/*<button*/}
+                    {/*    onClick={() => setActiveTab('UCOL master')}*/}
+                    {/*    className={`px-6 py-3 font-medium transition-colors ${*/}
+                    {/*        activeTab === 'UCOL master'*/}
+                    {/*            ? 'border-b-2 border-green-600 text-green-700'*/}
+                    {/*            : 'text-gray-600 hover:text-gray-800'*/}
+                    {/*    }`}*/}
+                    {/*>*/}
+                    {/*    UCOL Master*/}
+                    {/*</button>*/}
                 </div>
 
                 {/* Add new item */}
                 <div className="flex gap-2 mb-6">
                     <input
                         type="text"
+                        value={newCategory}
+                        onChange={(e) => setNewCategory(e.target.value)}
+                        placeholder="Category..."
+                        className="w-48 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 shrink-0"
+                    />
+                    <input
+                        type="text"
                         value={newItem}
                         onChange={(e) => setNewItem(e.target.value)}
                         placeholder={`Add new ${activeTab} qualification...`}
-                        className="w-112 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                        className="w-[20rem] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 shrink-0"
                     />
                     <input
                         type="text"
                         value={newShortName}
                         onChange={(e) => setNewShortName(e.target.value)}
                         placeholder={`Add new ${activeTab} description...`}
-                        className="w-128 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                        className="w-[24rem] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 shrink-0"
                     />
                     <input
                         type="text"
                         value={newShortName}
                         onChange={(e) => setNewShortName(e.target.value)}
                         placeholder={`Short name...`}
-                        className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                        className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 shrink-0"
                     />
                     <input
                         type="text"
                         value={newBin}
                         onChange={(e) => setNewBin(e.target.value)}
-                        className="w-16 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                        className="w-16 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 shrink-0"
+                    />
+                    <input
+                        type="text"
+                        value={newInstitution}
+                        onChange={(e) => setNewInstitution(e.target.value)}
+                        placeholder="Institution..."
+                        className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 shrink-0"
+                    />
+                    <input
+                        type="text"
+                        value={newStock}
+                        onChange={(e) => setNewStock(e.target.value)}
+                        className="w-16 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 shrink-0"
                     />
                     <button
                         onClick={addItem}
-                        className="w-16  px-2 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                        className="w-16  px-2 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 shrink-0"
                     >
                         <Plus size={20} />
                         Add
                     </button>
                 </div>
+                <div className="flex gap-2 items-center mb-4">
+                    <label className="font-medium text-gray-700" htmlFor="categoryFilter">
+                        Filter by Category:
+                    </label>
+                    <select
+                        id="categoryFilter"
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                    >
+                        <option value="">All Categories</option>
+                        {categories.map((category) => (
+                            <option key={category} value={category}>
+                                {category}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="flex gap-2 mb-2">
-                    <span className="w-112 px-1 py-0 font-bold">
+                    <span className="w-48 px-1 py-0 font-bold shrink-0">
+                        Category
+                    </span>
+                    <span className="w-[20rem] px-1 py-0 font-bold shrink-0">
                         Full Name
                     </span>
-                    <span className="w-128 px-1 py-0 font-bold">
+                    <span className="w-[24rem] px-1 py-0 font-bold shrink-0">
                         Description
                     </span>
-                    <span className="w-32 px-1 py-0 font-bold">
+                    <span className="w-32 px-1 py-0 font-bold shrink-0">
                         Short Name
                     </span>
-                    <span className="w-16 px-1 py-0 font-bold">
+                    <span className="w-16 px-1 py-0 font-bold shrink-0">
                         Bin
                     </span>
-                    <span className="w-16 px-1 py-0 font-bold">
+                    <span className="w-32 px-1 py-0 font-bold shrink-0">
+                        Institution
+                    </span>
+                    <span className="w-16 px-1 py-0 font-bold shrink-0">
+                        Stock
+                    </span>
+                    <span className="w-16 px-1 py-0 font-bold shrink-0">
                         Save
                     </span>
                 </div>
 
                 {/* List of items */}
                 <div className="space-y-2">
-                    {currentList.length === 0 ? (
+                    {filteredList.length === 0 ? (
                         <p className="text-gray-500 text-center py-8">
-                            No qualifications added yet. Add one above to get started.
+                            {currentList.length === 0
+                                ? 'No qualifications added yet. Add one above to get started.'
+                                : 'No qualifications match the selected category.'}
                         </p>
                     ) : (
-                        currentList
+                        filteredList
                         .map((item) => (
                             <div
                                 key={item.id}
-                                className="flex gap-1 items-center p-0 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                className="flex gap-2 items-center p-0 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                             >
+                                <input
+                                    type="text"
+                                    name="category"
+                                    value={item.category}
+                                    onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
+                                    className="w-48 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
+                                />
                                 <input
                                     type="text"
                                     name="name"
                                     value={item.name}
                                     onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
-                                    className="w-112 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-[20rem] px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
                                 />
                                 <input
                                     type="text"
                                     name="hoodNote"
                                     value={item.hoodNote}
                                     onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
-                                    className="w-128 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-[24rem] px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
                                 />
                                 <input
                                     type="text"
                                     name="shortName"
                                     value={item.shortName}
                                     onChange={(e) => updateItem(item.id, e.target.value)}
-                                    className="w-32 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-32 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
                                 />
                                 <input
                                     type="text"
                                     name="hoodBin"
                                     value={item.hoodBin}
                                     onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
-                                    className="w-16 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-16 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
+                                />
+                                <input
+                                    type="text"
+                                    name="institution"
+                                    value={item.institution}
+                                    onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
+                                    className="w-32 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
+                                />
+                                <input
+                                    type="text"
+                                    name="stock"
+                                    value={item.stock}
+                                    onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
+                                    className="w-16 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
                                 />
                                 <button
                                     onClick={() => editItem(item.id)}
-                                    className="w-16 p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                    className="w-16 p-2 text-green-600 hover:bg-green-50 rounded transition-colors shrink-0"
                                     title="Edit"
                                 >
                                     <Edit size={20} />
@@ -468,7 +554,8 @@ export default function HoodQualificationsEditor() {
                 {/* Summary */}
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-gray-700">
-                        <span className="font-medium">Total {activeTab} qualifications:</span> {currentList.length}
+                        <span className="font-medium">Total {activeTab} qualifications:</span> {filteredList.length}
+                        {categoryFilter && ` of ${currentList.length}`}
                     </p>
                 </div>
             </div>
