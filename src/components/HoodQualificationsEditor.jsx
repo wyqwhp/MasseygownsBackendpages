@@ -4,8 +4,8 @@ import {Edit, Plus, Trash2} from 'lucide-react';
 import AdminNavbar from "@/components/AdminNavbar.jsx";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144" // or hardcode "http://localhost:5144"
 
 const TAB_IDS = {
     bachelor: 4,
@@ -37,6 +37,7 @@ export default function HoodQualificationsEditor() {
         master: [],
         phd: [],
         doctoral: [],
+        other: [],
         'bachelor set': [],
         'master set': [],
         ucolbachelor: [],
@@ -199,6 +200,20 @@ export default function HoodQualificationsEditor() {
                 setError(err.message);
                 setLoading(false);
             });
+
+        axios
+            .get(`${API_URL}/admin/hoods`)
+            .then((res) => {
+                setHoods(prev => ({
+                    ...prev,
+                    other: res.data
+                }));
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setLoading(false);
+            });
     }, []);
 
     useEffect(() => {
@@ -236,11 +251,15 @@ export default function HoodQualificationsEditor() {
             [...list].sort((a, b) => a.name.localeCompare(b.name))
         );
         const editedItem = currentList.find(x => x.id === index);
+
+        console.log("Edited item=", editedItem);
         axios
         .put(`${API_URL}/admin/hoods/${editedItem.id}`, editedItem);
     };
 
     const updateItem = (index, name, value) => {
+        console.log(index, name, value);
+
         setCurrentList(list =>
             list.map(item =>
                 item.id === index
@@ -325,6 +344,17 @@ export default function HoodQualificationsEditor() {
                         }`}
                     >
                         Doctoral
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('other')}
+                        className={`px-6 py-3 font-medium transition-colors ${
+                            activeTab === 'other'
+                                ? 'border-b-2 border-green-600 text-green-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Others
                     </button>
 
                     {/*<button*/}
@@ -515,7 +545,7 @@ export default function HoodQualificationsEditor() {
                                     type="text"
                                     name="shortName"
                                     value={item.shortName}
-                                    onChange={(e) => updateItem(item.id, e.target.value)}
+                                    onChange={(e) => updateItem(item.id, e.target.name, e.target.value)}
                                     className="w-32 px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
                                 />
                                 <input
