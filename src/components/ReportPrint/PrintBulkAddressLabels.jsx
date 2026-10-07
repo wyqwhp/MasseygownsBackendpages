@@ -111,7 +111,7 @@ const PAPER_PRESETS = {
     font: {
       toNamePt: 24,
       addrPt: 24,
-      cityPostPt: 28,
+      cityPostPt: 16,
       attnPt: 14,
       phonePt: 12,
       fromLabelPt: 11,
@@ -163,7 +163,8 @@ export default function PrintBulkAddressLabels({ceremony, paper, onDone}) {
       toName: (ceremony.name || "").trim(),
       attn: (ceremony.organiser || "").trim(),
       phone: (ceremony.phone || "").trim(),
-      address1: (ceremony.postalAddress || "").trim(),
+      address1: (ceremony.courierAddress || "").trim(),
+      postcode: (ceremony.postcode || "").trim(),
       city: (ceremony.city || "").trim(),
     };
   }, [ceremony]);
@@ -553,7 +554,7 @@ function AddressLabelCard({ label }) {
   const address1 = label.address1 || "";
   // const address2 = label.address2 || "";
   const city = label.city || "";
-  // const postcode = label.postcode || "";
+  const postcode = label.postcode || "";
   const attn = label.attn || "";
   const phone = label.phone || "";
 
@@ -568,6 +569,7 @@ function AddressLabelCard({ label }) {
         {/*{address2 ? <div className="addr-line addr2">{address2}</div> : null}*/}
 
         <div className="addr-line citypost">{city}</div>
+        <div className="addr-line citypost">{postcode}</div>
 
         <div className="attn-block">
           <div className="attn-text">Attn: {attn}</div>

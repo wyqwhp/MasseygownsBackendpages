@@ -22,8 +22,8 @@ import PrintManifest, {printBulkLabels} from "@/components/PrintLabels.js";
 import {XeroToCSV} from "@/components/ExportToXero.js";
 import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144"
 
 export default function AdminBulkOrder() {
   const emptyFormRecord = {
@@ -262,7 +262,7 @@ export default function AdminBulkOrder() {
 
   const handlePrintManifest = async (ceremony) => {
     setLoading(true);
-    axios.get(`${API_URL}/admin/ceremony/itemcount/${ceremony.id}`)
+    axios.get(`${API_URL}/admin/bulkceremony/itemcount/${ceremony.id}`)
         .then((res) => {
           setTimeout(() => {
             console.log('PrintData=', res.data);
@@ -282,6 +282,8 @@ export default function AdminBulkOrder() {
     setLoading(true);
     try {
         if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
+          setFormData((prev) => ({...prev, id: 0}));
+          console.log(formData);
           await axios.post(`${API_URL}/admin/ceremonies`, formData);
         } else {
           await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, formData);

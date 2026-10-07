@@ -3,7 +3,7 @@ import "./Spinner.css";
 import "@/fonts/NotoSans-Regular-normal.js";
 import "@/fonts/NotoSans-BoldItalic-bolditalic.js";
 import {formatNZDateSlash} from "@/services/DateServices.js";
-import axios from "axios";
+// import axios from "axios";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144"
@@ -11,11 +11,12 @@ const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 const WIDTH = 64;
 const HEIGHT = 24.3;
 
+// Print Manifest Button
 export default async function PrintManifest (ceremony, printData) {
   try {
-    const response = await fetch(`${API_URL}/admin/items/ceremony/${ceremony.id}`);
-    const orders = await response.json();
-    generateManifestPDF(orders, ceremony, printData);
+    const response = await fetch(`${API_URL}/admin/items/bulkceremony/${ceremony.id}`);
+    const bulkOrders = await response.json();
+    generateManifestPDF(bulkOrders, ceremony, printData);
   } catch(err) {
     console.error(err);
   }
@@ -85,7 +86,7 @@ function generateManifestPDF(orders, ceremony, printData) {
 
     doc.setFontSize(10);
     doc.text(order.hoodName ?? '', 10, y);
-    doc.text(order.lastName.toUpperCase() + ", " + order.firstName, 30, y);
+    doc.text(order.lastName.toUpperCase() + (order.firstName ? ", " : "") + (order.firstName ?? ''), 30, y);
     doc.text(order.hoodName ?? '', 90, y);
     doc.text(order.gownSize ?? '', 110, y);
     doc.text(order.hatSize ?? '', 120, y);
@@ -113,7 +114,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  })), 90, 20);
+  })), 90, 10);
   doc.text('T = Trencher, F = Bonnet with black cords', 10, 30);
   doc.text('Hat Size', 10, 40);
   doc.text('Count', 60, 40);
@@ -151,7 +152,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  })), 90, 20);
+  })), 90, 10);
   doc.text('Hood / Stole', 20, 30);
   doc.text('Count', 100, 30);
   doc.setLineWidth(1);
@@ -185,7 +186,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  })), 110, 20);
+  })), 90, 10);
   doc.text('B = Bachelor, M = Master, WB = Wide Bachelor, WM = Wide Master,', 10, 30)
   doc.text('D = Doctor (red stripe), S = Scarlet Gown (or other special gown), BL = Blue Gown', 10, 40)
   doc.text('Hood / Stole', 20, 50);
@@ -213,6 +214,7 @@ function generateManifestPDF(orders, ceremony, printData) {
   doc.save("manifest.pdf");
 }
 
+// Print Labels Button
 export function printBulkLabels(bulkCeremonyId) {
   console.log("BulkCeremonyId=", bulkCeremonyId);
   const doc = new jsPDF();
@@ -229,7 +231,7 @@ export function printBulkLabels(bulkCeremonyId) {
       console.log("HoodType=", label.hoodType);
 
       doc.text(String(label.idCode) == 'null'?"":String(label.idCode), x, y);
-      doc.text(label.hoodType, x, y + 6);
+      doc.text(label.hoodType ?? "", x, y + 6);
 
       if (++j == 3) {
         j = 0; i++; x = 20;
