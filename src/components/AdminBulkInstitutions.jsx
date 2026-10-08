@@ -22,8 +22,8 @@ import PrintManifest, {printBulkLabels} from "@/components/PrintLabels.js";
 import {XeroToCSV} from "@/components/ExportToXero.js";
 import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.jsx";
 
-// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-const API_URL = "http://localhost:5144"
+const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+// const API_URL = "http://localhost:5144"
 
 export default function AdminBulkOrder() {
   const emptyFormRecord = {
@@ -222,9 +222,16 @@ export default function AdminBulkOrder() {
   };
 
   const handleCopy = () => {
-    setEditingId("temp-" + crypto.randomUUID());
-    const duplicated = { ...formData, name: `${formData.name} - Copy`, idCode: `${formData.idCode} - Copy` };
+    const tempId = "temp-" + crypto.randomUUID();
+    setEditingId(tempId);
+    const duplicated = { ...formData, id: tempId, name: `${formData.name} - Copy`, idCode: `${formData.idCode} - Copy`,
+    ceremonyDate: null, dueDate: null, despatchDate: null, dateSent: null, returnDate: null, dateReturned: null,
+      priceCode: null, gown_count: 0, hat_count: 0, hood_count: 0, ucol_count: 0
+    };
+    setSaved(true);
+    setCeremonies([...ceremonies, duplicated]);
     setFormData(duplicated);
+    setCurrentId(tempId);
     setChanged(true);
   }
 
@@ -280,19 +287,33 @@ export default function AdminBulkOrder() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    let savedRecord = formData;
     try {
         if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
-          setFormData((prev) => ({...prev, id: 0}));
-          console.log(formData);
-          await axios.post(`${API_URL}/admin/ceremonies`, formData);
+          // Determine if this is a new record created locally
+          const isTemporaryId =
+              typeof formData.id === 'string' && String(formData.id).startsWith('temp-');
+
+          const payload = {
+            ...formData,
+            // Convert temporary string IDs to 0 or null for backend processing
+            id: isTemporaryId || !formData.id ? 0 : Number(formData.id)
+          };
+          const res = await axios.post(`${API_URL}/admin/ceremonies`, payload);
+          savedRecord = {...formData, ...res.data};
         } else {
           await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, formData);
         }
+        console.log('Saved=', savedRecord);
+        console.log('EditingId=', editingId);
+
         setCeremonies((prevCeremonies) =>
           prevCeremonies.map((c) =>
-            c.id === editingId ? { ...c, ...formData } : c
+            c.id === editingId ? { ...c, ...savedRecord } : c
           )
       );
+      setFormData(savedRecord);
+      setCurrentId(savedRecord.id);
       setSaved(true);
       setEditingId(null);
     } catch (err) {
@@ -312,15 +333,35 @@ export default function AdminBulkOrder() {
     }
   };
 
+  // Drop an unsaved new/copied record. If it is the current record, move to its
+  // neighbour in the given direction (step = 1 next, -1 previous).
+  const discardTemp = (step) => {
+    const remaining = sortedCeremonies.filter(c => c.id !== editingId);
+    let target;
+    if (currentId === editingId) {
+      const idx = Math.max(sortedCeremonies.findIndex(c => c.id === editingId), 0);
+      // after removing the temp record, remaining[idx] is the next one and remaining[idx - 1] the previous one
+      target = step > 0
+          ? remaining[idx] ?? remaining[idx - 1]
+          : remaining[idx - 1] ?? remaining[idx];
+    } else {
+      target = remaining.find(c => c.id === currentId);
+    }
+    setSaved(true); // stop the sortedCeremonies effect from jumping to the first record
+    setCeremonies((prev) => prev.filter((d) => d.id !== editingId));
+    if (target) {
+      setCurrentId(target.id);
+      updateForm(target);
+    }
+  };
+
   const goNext = () => {
     if (
         editingId &&
         typeof editingId === "string" &&
         editingId.startsWith("temp-")
     ) {
-      setCeremonies(ceremonies.filter((d) => d.id !== editingId));
-      const idx = sortedCeremonies.findIndex(c => c.id === currentId);
-      updateForm(sortedCeremonies[idx]);
+      discardTemp(1);
     } else {
       const idx = sortedCeremonies.findIndex(c => c.id === currentId);
       if (idx >= 0 && idx < sortedCeremonies.length - 1) {
@@ -338,9 +379,7 @@ export default function AdminBulkOrder() {
         typeof editingId === "string" &&
         editingId.startsWith("temp-")
     ) {
-      setCeremonies(ceremonies.filter((d) => d.id !== editingId));
-      const idx = sortedCeremonies.findIndex(c => c.id === currentId);
-      updateForm(sortedCeremonies[idx]);
+      discardTemp(-1);
     } else {
       const idx = sortedCeremonies.findIndex(c => c.id === currentId);
       if (idx > 0) {
