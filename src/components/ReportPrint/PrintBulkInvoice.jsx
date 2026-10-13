@@ -3,8 +3,8 @@ import React, {useEffect, useRef, useState} from "react";
 import FullscreenSpinner from "@/components/FullscreenSpinner.jsx";
 import axios from "axios";
 import {formatNZDate} from "@/services/DateServices.js";
+import {printHtmlToPdf} from "@/services/PdfServices.js";
 
-const PRINT_API_URL = import.meta.env.VITE_PRINT_PDF;
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144";
 
@@ -74,7 +74,7 @@ export default function PrintReportOrder({ceremony, onDone}) {
                 console.log("Count Item=",res.data);
 
                 fillData(res.data);
-                updateTemplateWithData();
+                return updateTemplateWithData();
             })
             .catch((err) => {
                 setError(err.message);
@@ -85,63 +85,6 @@ export default function PrintReportOrder({ceremony, onDone}) {
             });
     }, []);
 
-    function PrintPDF(doc) {
-        console.log("Printing PDF...");
-        const generatePdf = async () => {
-            const html = `<!DOCTYPE html>
-            <html>
-                <head>
-                    <title>Preview</title>
-                    <meta charset="UTF-8" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                </head>
-                <body>
-                     ${doc}
-                </body>
-            </html>`;
-
-            // console.log("HTML=", html);
-
-            const response = await fetch(`${PRINT_API_URL}/api/pdf/print`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/pdf'
-                },
-                body: JSON.stringify({
-                    html
-                })
-            });
-
-            // Clone response so we can read it multiple times
-            const clonedResponse = response.clone();
-
-            // Try to read as text first to see what we got
-            const text = await clonedResponse.text();
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${text}`);
-            }
-
-            // If it's a PDF, convert to blob
-            if (response.headers.get('Content-Type')?.includes('application/pdf')) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'BulkInvoice.pdf';
-                a.click();
-                window.URL.revokeObjectURL(url);
-                console.log('PDF downloaded successfully');
-            } else {
-                console.error('Expected PDF but got:', response.headers.get('Content-Type'));
-                console.error('Body:', text);
-            }
-        };
-
-        generatePdf();
-    }
-
     const updateTemplateWithData = async () => {
         try {
             const template = await getCMSTemplate({Name: "Bulk Invoice"});
@@ -150,9 +93,9 @@ export default function PrintReportOrder({ceremony, onDone}) {
                 output = output.replaceAll(`{{${key}}}`, sampleData[key]);
             });
 
-            PrintPDF(output);
+            await printHtmlToPdf(output, "BulkInvoice.pdf");
         } catch (err) {
-            console.error("Failed to load template", err);
+            console.error("Failed to print invoice", err);
         }
     }
 

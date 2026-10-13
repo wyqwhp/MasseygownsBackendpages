@@ -5,8 +5,8 @@ import "./AdminImportBulk.css";
 import axios from "axios";
 import { toNullableDecimal } from "../services/DecimalServices.js";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE;
-// const API_URL = "http://localhost:5144";
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+const API_URL = "http://localhost:5144";
 
 export default function AdminImportBulk() {
   const [editFile, setEditFile] = useState(null);
@@ -46,9 +46,32 @@ export default function AdminImportBulk() {
 
         if (jsonData.length === 0) throw new Error("Empty file received");
 
+        // Height -> itemSize matching table
+        const { data: importSizes } = await axios.get(`${API_URL}/admin/importsize`);
+        const sizeByHeight = new Map(
+          importSizes.map((s) => [Number(s.importHeight), s.itemSize])
+        );
+
+        // console.log("Size By Height=", importSizes);
+
+        // console.log("ImportSize=", sizeByHeight.values());
+        // console.table(Object.fromEntries(sizeByHeight));
+
         jsonData.forEach((row) => {
+          // console.log("Height1=", row.Height);
+
           row.Height = toNullableDecimal(row.Height);
           row.Headsize = toNullableDecimal(row.Headsize);
+
+          // Name is "LASTNAME, Firstname"
+          const [lastName, ...firstParts] = String(row.Name ?? "").split(",");
+          row.LastName = lastName.trim() || null;
+          row.FirstName = firstParts.join(",").trim() || null;
+
+          // console.log("Height2=", row.Height);
+
+          row.Height = row.Height == null ? null : sizeByHeight.get(Number(row.Height)) ?? null;
+
           console.log(`Name: `, row.Name, ` Height: `, row.Height);
         });
 

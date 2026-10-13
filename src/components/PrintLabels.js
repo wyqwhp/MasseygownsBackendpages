@@ -5,8 +5,8 @@ import "@/fonts/NotoSans-BoldItalic-bolditalic.js";
 import {formatNZDateSlash} from "@/services/DateServices.js";
 // import axios from "axios";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE;
-// const API_URL = "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE;
+const API_URL = "http://localhost:5144"
 
 const WIDTH = 64;
 const HEIGHT = 24.3;
@@ -221,20 +221,33 @@ export function printBulkLabels(bulkCeremonyId) {
 
   const getLabels = function (bulkCeremony) {
     let i= 0, j = 0;
-    let x = 20, y = 20;
+    let x = 10, y = 20;
 
     console.log("BulkCeremony=", bulkCeremony);
 
     bulkCeremony.forEach((label) => {
-      doc.setFontSize(10);
+      doc.setFontSize(9);
 
-      console.log("HoodType=", label.hoodType);
+      // console.log("HoodType=", label.hoodType);
 
-      doc.text(String(label.idCode) == 'null'?"":String(label.idCode), x, y);
-      doc.text(label.hoodType ?? "", x, y + 6);
+      const firstName = (label.firstName ?? "").trim();
+      const fullName = firstName ? `${label.lastName ?? ""}, ${firstName} ` : (label.lastName ?? "");
+      const code = label.idCode == null ? "" : String(label.idCode);
+      const codeText = code ? " " + code : "";
+      // Shorten the name until name + idCode fits the label width (small margin so text doesn't touch the next label)
+      const maxWidth = WIDTH - 2;
+      let name = fullName;
+      while (name && doc.getTextWidth(name + codeText) > maxWidth) {
+        name = name.slice(0, -1);
+      }
+      doc.text(name.trimEnd() + codeText, x, y);
+      // doc.text(String(label.idCode) == 'null'?"":String(label.idCode), x + 30, y);
+      doc.text(label.hoodType + " " + label.gownType + label.height + " " + label.hatType + label.headSize,
+          x, y + 6);
+      // doc.text(label.hoodType ?? "", x, y + 6);
 
       if (++j == 3) {
-        j = 0; i++; x = 20;
+        j = 0; i++; x = 10;
       } else {
         x = (j) * WIDTH + 20;
       }
