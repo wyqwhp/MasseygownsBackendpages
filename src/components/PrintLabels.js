@@ -85,13 +85,13 @@ function generateManifestPDF(orders, ceremony, printData) {
     doc.setLineDash([1, 1]);
 
     doc.setFontSize(10);
-    doc.text(order.hoodName ?? '', 10, y);
-    doc.text(order.lastName.toUpperCase() + (order.firstName ? ", " : "") + (order.firstName ?? ''), 30, y);
-    doc.text(order.hoodName ?? '', 90, y);
-    doc.text(order.gownSize ?? '', 110, y);
-    doc.text(order.hatSize ?? '', 120, y);
-    doc.text(order.sashName ?? 'NoUcolSa', 150, y);
-    doc.text(order.gownSize?.startsWith('W') ? 'Wide Gown' : '', 170, y);
+    doc.text(order.hoodName.substring(0, 35) ?? '', 10, y);
+    doc.text(order.lastName.toUpperCase() + (order.firstName ? ", " : "") + (order.firstName.substring(0, 10) ?? ''), 80, y);
+    // doc.text(order.hoodName ?? '', 90, y);
+    doc.text(order.gownSize ?? '', 120, y);
+    doc.text(order.hatSize ?? '', 140, y);
+    doc.text(order.sashName ?? '', 170, y);
+    doc.text(order.gownSize?.startsWith('W') ? 'Wide Gown' : '', 180, y);
     doc.line(10, y + 2, 200, y + 2);
     i++;
     if (i !== 0 && i % 24 === 0) {
@@ -226,14 +226,14 @@ export function printBulkLabels(bulkCeremonyId) {
     console.log("BulkCeremony=", bulkCeremony);
 
     bulkCeremony.forEach((label) => {
-      doc.setFontSize(9);
+      doc.setFontSize(11);
 
       // console.log("HoodType=", label.hoodType);
 
       const firstName = (label.firstName ?? "").trim();
-      const fullName = firstName ? `${label.lastName ?? ""}, ${firstName} ` : (label.lastName ?? "");
+      const fullName = firstName ? `${label.lastName ?? ""}, ${firstName[0]} ` : (label.lastName ?? "");
       const code = label.idCode == null ? "" : String(label.idCode);
-      const codeText = code ? " " + code : "";
+      const codeText = code ? "    " + code : "";
       // Shorten the name until name + idCode fits the label width (small margin so text doesn't touch the next label)
       const maxWidth = WIDTH - 2;
       let name = fullName;
@@ -242,8 +242,9 @@ export function printBulkLabels(bulkCeremonyId) {
       }
       doc.text(name.trimEnd() + codeText, x, y);
       // doc.text(String(label.idCode) == 'null'?"":String(label.idCode), x + 30, y);
-      doc.text(label.hoodType + " " + label.gownType + label.height + " " + label.hatType + label.headSize,
-          x, y + 6);
+      const gown = `${label.gownType ?? ""}${label.height ?? ""}`;
+      const hat = `${label.hatType ?? ""}${label.headSize ?? ""}`;
+      doc.text([label.hoodType.substring(0, 20), gown, hat].filter(Boolean).join("  "), x, y + 6);
       // doc.text(label.hoodType ?? "", x, y + 6);
 
       if (++j == 3) {
