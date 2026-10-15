@@ -22,8 +22,8 @@ import PrintManifest, {printBulkLabels} from "@/components/PrintLabels.js";
 import {XeroToCSV} from "@/components/ExportToXero.js";
 import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.jsx";
 
-const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
-// const API_URL = "http://localhost:5144"
+// const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
+const API_URL = "http://localhost:5144"
 
 export default function AdminBulkOrder() {
   const emptyFormRecord = {
@@ -687,7 +687,13 @@ export default function AdminBulkOrder() {
                   value={formData.priceCode?.toString() ?? ''}
                   onValueChange={(value) => {
                       setChanged(true);
-                      setEditingId(ceremonies[currentIndex]?.id);
+
+                      if (editingId === undefined || editingId === null) {
+                        const idx = sortedCeremonies.findIndex(c => c.id === currentId);
+                        setEditingId(sortedCeremonies[idx].id);
+                      }
+
+                      // setEditingId(ceremonies[currentIndex]?.id);
                       setPriceCode(value);
                       const price = prices.find(x => x.id === Number(value));
                       setFormData((prev) =>
