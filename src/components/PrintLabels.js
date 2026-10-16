@@ -8,8 +8,10 @@ import {formatNZDateSlash} from "@/services/DateServices.js";
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144"
 
-const WIDTH = 64;
+const WIDTH = 64 + 2.5;
 const HEIGHT = 24.3;
+const LEFT_MARGIN = 8.7;
+const TOP_MARGIN = 14;
 
 // Print Manifest Button
 export default async function PrintManifest (ceremony, printData) {
@@ -85,11 +87,12 @@ function generateManifestPDF(orders, ceremony, printData) {
     doc.setLineDash([1, 1]);
 
     doc.setFontSize(10);
-    doc.text(order.hoodName.substring(0, 35) ?? '', 10, y);
-    doc.text(order.lastName.toUpperCase() + (order.firstName ? ", " : "") + (order.firstName.substring(0, 10) ?? ''), 80, y);
+    doc.text(order.hoodCode ?? '', 8, y);
+    doc.text(order.hoodName.substring(0, 35) ?? '', 30, y);
+    doc.text(order.lastName.toUpperCase() + (order.firstName ? ", " : "") + (order.firstName.substring(0, 10) ?? ''), 90, y);
     // doc.text(order.hoodName ?? '', 90, y);
-    doc.text(order.gownSize ?? '', 120, y);
-    doc.text(order.hatSize ?? '', 140, y);
+    doc.text(order.gownSize ?? '', 130, y);
+    doc.text(order.hatSize ?? '', 145, y);
     doc.text(order.sashName ?? '', 170, y);
     doc.text(order.gownSize?.startsWith('W') ? 'Wide Gown' : '', 180, y);
     doc.line(10, y + 2, 200, y + 2);
@@ -163,9 +166,10 @@ function generateManifestPDF(orders, ceremony, printData) {
   doc.setLineDash([1, 1])
   doc.setLineWidth(0.1);
   doc.setFontSize(10);
-  printData['hood']?.forEach((hatSize) => {
-    doc.text(hatSize.itemSize ?? '', 20, y);
-    doc.text(hatSize.itemCount.toString(), 100, y);
+  printData['hood']?.forEach((hoodType) => {
+    // doc.text(hoodType.itemSize ?? '', 20, y);
+    doc.text(hoodType.itemSize ?? '', 20, y);
+    doc.text(hoodType.itemCount.toString(), 100, y);
     doc.line(10, y + 2, 150, y + 2);
     i++;
     if (i !== 0 && i % 24 === 0) {
@@ -221,7 +225,7 @@ export function printBulkLabels(bulkCeremonyId) {
 
   const getLabels = function (bulkCeremony) {
     let i= 0, j = 0;
-    let x = 10, y = 20;
+    let x = LEFT_MARGIN, y = TOP_MARGIN;
 
     console.log("BulkCeremony=", bulkCeremony);
 
@@ -248,17 +252,17 @@ export function printBulkLabels(bulkCeremonyId) {
       // doc.text(label.hoodType ?? "", x, y + 6);
 
       if (++j == 3) {
-        j = 0; i++; x = 10;
+        j = 0; i++; x = LEFT_MARGIN;
       } else {
-        x = (j) * WIDTH + 20;
+        x = (j) * WIDTH + LEFT_MARGIN;
       }
 
       if (i % 11 == 0 && i > 0) {
         i = 0;
         doc.addPage();
-        y = 20;
+        y = TOP_MARGIN;
       } else {
-        y = (i) * HEIGHT + 20;
+        y = (i) * HEIGHT + TOP_MARGIN;
       }
     });
     doc.save("BulkLabels.pdf");
