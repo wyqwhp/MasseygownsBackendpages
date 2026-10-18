@@ -155,7 +155,6 @@ export default function AdminBulkOrder() {
       setCeremonies(ceremonies);
       setCurrentId(ceremonies[0].id);
       updateForm(ceremonies[0]);
-      setCurrentId(); //TODO
     } else {
       setLoading(true);
     }
@@ -178,7 +177,7 @@ export default function AdminBulkOrder() {
   }, []);
 
   useEffect(() => {
-    const cached = localStorage.getItem("ceremonies");
+    const cached = localStorage.getItem("prices");
 
     if (cached) {
       const prices = JSON.parse(cached);
@@ -214,9 +213,9 @@ export default function AdminBulkOrder() {
 
     setChanged(true);
     if (editingId === undefined || editingId === null) {
-      const idx = sortedCeremonies.findIndex(c => c.id === currentId);
-      setEditingId(sortedCeremonies[idx].id);
-      setFormData((prev) => ({ ...prev, id: sortedCeremonies[idx].id, [name]: value }));
+      const id = sortedCeremonies.find(c => c.id === currentId)?.id ?? formData.id;
+      setEditingId(id);
+      setFormData((prev) => ({ ...prev, id, [name]: value }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -690,8 +689,7 @@ export default function AdminBulkOrder() {
                       setChanged(true);
 
                       if (editingId === undefined || editingId === null) {
-                        const idx = sortedCeremonies.findIndex(c => c.id === currentId);
-                        setEditingId(sortedCeremonies[idx].id);
+                        setEditingId(sortedCeremonies.find(c => c.id === currentId)?.id ?? formData.id);
                       }
 
                       // setEditingId(ceremonies[currentIndex]?.id);

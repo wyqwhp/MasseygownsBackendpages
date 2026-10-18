@@ -106,16 +106,7 @@ export default function AdminImportBulk() {
           hoods.map((h) => [h.shortName, h.name])
         );
 
-        console.log("Hoods=", hoodNameByShortName);
-
-        // console.log("Size By Height=", importSizes);
-
-        // console.log("ImportSize=", sizeByHeight.values());
-        // console.table(Object.fromEntries(sizeByHeight));
-
         jsonData.forEach((row) => {
-          // console.log("Height1=", row.Height);
-
           row.Height = toNullableDecimal(row.Height);
           row.Headsize = toNullableDecimal(row.Headsize);
 
@@ -123,12 +114,11 @@ export default function AdminImportBulk() {
           row.LastName = lastName;
           row.FirstName = firstName;
 
-          // console.log("Height2=", row.Height);
-
           row.Height = row.Height == null ? null : sizeByHeight.get(Number(row.Height)) ?? null;
 
           // Hood code -> hood name (keep the original value if the code is unknown)
           if (row.Hood != null) {
+            row.HoodCode = row.Hood;
             row.Hood = hoodNameByShortName.get(String(row.Hood).trim()) ?? row.Hood;
           }
 

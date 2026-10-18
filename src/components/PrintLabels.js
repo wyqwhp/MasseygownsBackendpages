@@ -8,10 +8,10 @@ import {formatNZDateSlash} from "@/services/DateServices.js";
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144"
 
-const WIDTH = 64 + 2.5;
-const HEIGHT = 24.3;
-const LEFT_MARGIN = 8.7;
-const TOP_MARGIN = 14;
+const WIDTH = 70;
+const HEIGHT = 25.4;
+const LEFT_MARGIN = 5;
+const TOP_MARGIN = 12;
 
 // Print Manifest Button
 export default async function PrintManifest (ceremony, printData) {
