@@ -88,7 +88,7 @@ function generateManifestPDF(orders, ceremony, printData) {
 
     doc.setFontSize(10);
     doc.text(order.hoodCode ?? '', 8, y);
-    doc.text(order.hoodName.substring(0, 35) ?? '', 30, y);
+    doc.text((order.hoodName ?? "").substring(0, 35) ?? '', 30, y);
     doc.text(order.lastName.toUpperCase() + (order.firstName ? ", " : "") + (order.firstName.substring(0, 10) ?? ''), 90, y);
     // doc.text(order.hoodName ?? '', 90, y);
     doc.text(order.gownSize ?? '', 130, y);
@@ -248,7 +248,7 @@ export function printBulkLabels(bulkCeremonyId) {
       // doc.text(String(label.idCode) == 'null'?"":String(label.idCode), x + 30, y);
       const gown = `${label.gownType ?? ""}${label.height ?? ""}`;
       const hat = `${label.hatType ?? ""}${label.headSize ?? ""}`;
-      doc.text([label.hoodType.substring(0, 20), gown, hat].filter(Boolean).join("  "), x, y + 6);
+      doc.text([(label.hoodType ?? "").substring(0, 20), gown, hat].filter(Boolean).join("  "), x, y + 6);
       // doc.text(label.hoodType ?? "", x, y + 6);
 
       if (++j == 3) {

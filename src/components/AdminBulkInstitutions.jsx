@@ -69,6 +69,7 @@ export default function AdminBulkOrder() {
   const [showPrintPackingDocs, setShowPrintPackingDocs] = useState(false);
   const [search, setSearch] = useState("");
   const [saved, setSaved] = useState(false);
+  const [newRecord, setNewRecord] = useState(false);
   const navButtonClass =
       "bg-green-700 hover:bg-green-800 w-20 h-10 p-0 flex items-center justify-center";
 
