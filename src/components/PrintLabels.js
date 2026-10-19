@@ -9,7 +9,7 @@ const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144"
 
 const WIDTH = 70;
-const HEIGHT = 25.5;
+const HEIGHT = 25.6;
 const LEFT_MARGIN = 5;
 const TOP_MARGIN = 12;
 
@@ -226,6 +226,9 @@ export function printBulkLabels(bulkCeremonyId) {
   const getLabels = function (bulkCeremony) {
     let i= 0, j = 0;
     let x = LEFT_MARGIN, y = TOP_MARGIN;
+
+    doc.setFontSize(3);
+    doc.text("Print Labels v2.1", 10,3);
 
     console.log("BulkCeremony=", bulkCeremony);
 
