@@ -9,9 +9,9 @@ const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144"
 
 const WIDTH = 70;
-const HEIGHT = 25.6;
+const HEIGHT = 25.4;
 const LEFT_MARGIN = 5;
-const TOP_MARGIN = 12;
+const TOP_MARGIN = 11;
 
 // Print Manifest Button
 export default async function PrintManifest (ceremony, printData) {
@@ -73,7 +73,10 @@ function generateLabelsPDF(orders) {
 }
 
 function generateManifestPDF(orders, ceremony, printData) {
-  const doc = new jsPDF();
+  const doc = new jsPDF({
+    unit: "mm",
+    format: "A4"
+  });
   doc.setFontSize(16);
   doc.setFont('NotoSans-BoldItalic', 'bolditalic');
   doc.text("OutwardList", 10, 20);
@@ -221,14 +224,17 @@ function generateManifestPDF(orders, ceremony, printData) {
 // Print Labels Button
 export function printBulkLabels(bulkCeremonyId) {
   console.log("BulkCeremonyId=", bulkCeremonyId);
-  const doc = new jsPDF();
+  const doc = new jsPDF({
+    unit: "mm",
+    format: "A4"
+  });
 
   const getLabels = function (bulkCeremony) {
     let i= 0, j = 0;
     let x = LEFT_MARGIN, y = TOP_MARGIN;
 
     doc.setFontSize(3);
-    doc.text("Print Labels v2.1", 10,3);
+    doc.text("Print Labels v2.2", 10,3);
 
     console.log("BulkCeremony=", bulkCeremony);
 
@@ -247,11 +253,12 @@ export function printBulkLabels(bulkCeremonyId) {
       while (name && doc.getTextWidth(name + codeText) > maxWidth) {
         name = name.slice(0, -1);
       }
-      doc.text(name.trimEnd() + codeText, x, y);
+      doc.text(name.trimEnd() + codeText, x, y, {baseline: "top"});
       // doc.text(String(label.idCode) == 'null'?"":String(label.idCode), x + 30, y);
       const gown = `${label.gownType ?? ""}${label.height ?? ""}`;
       const hat = `${label.hatType ?? ""}${label.headSize ?? ""}`;
-      doc.text([(label.hoodCode ?? ""), (label.hoodType ?? "").substring(0, 10), gown, hat].filter(Boolean).join("  "), x, y + 6);
+      doc.text((label.hoodType ?? "").substring(0, 30), x, y + 6, {baseline: "top"});
+      doc.text([gown, (label.hoodCode ?? ""), hat].filter(Boolean).join("  "), x, y + 12, {baseline: "top"});
       // doc.text(label.hoodType ?? "", x, y + 6);
 
       if (++j == 3) {
