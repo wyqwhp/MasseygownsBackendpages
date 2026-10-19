@@ -9,7 +9,7 @@ const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144"
 
 const WIDTH = 70;
-const HEIGHT = 25.4;
+const HEIGHT = 25.5;
 const LEFT_MARGIN = 5;
 const TOP_MARGIN = 12;
 
@@ -82,7 +82,7 @@ function generateManifestPDF(orders, ceremony, printData) {
   doc.setFont('NotoSans-Regular', 'normal');
 
   var i = 0;
-  let y = 30;
+  let y = 30.0;
   orders.forEach((order) => {
     doc.setLineDash([1, 1]);
 
@@ -248,7 +248,7 @@ export function printBulkLabels(bulkCeremonyId) {
       // doc.text(String(label.idCode) == 'null'?"":String(label.idCode), x + 30, y);
       const gown = `${label.gownType ?? ""}${label.height ?? ""}`;
       const hat = `${label.hatType ?? ""}${label.headSize ?? ""}`;
-      doc.text([(label.hoodType ?? "").substring(0, 20), gown, hat].filter(Boolean).join("  "), x, y + 6);
+      doc.text([(label.hoodCode ?? ""), (label.hoodType ?? "").substring(0, 10), gown, hat].filter(Boolean).join("  "), x, y + 6);
       // doc.text(label.hoodType ?? "", x, y + 6);
 
       if (++j == 3) {
