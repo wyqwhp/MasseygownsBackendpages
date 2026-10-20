@@ -92,7 +92,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     doc.setFontSize(10);
     doc.text(order.hoodCode ?? '', 8, y);
     doc.text((order.hoodName ?? "").substring(0, 35) ?? '', 30, y);
-    doc.text(order.lastName.toUpperCase() + (order.firstName ? ", " : "") + (order.firstName.substring(0, 10) ?? ''), 90, y);
+    doc.text((order.lastName ?? "").toUpperCase() + (order.firstName ? ", " : "") + ((order.firstName ?? "").substring(0, 10) ?? ''), 90, y);
     // doc.text(order.hoodName ?? '', 90, y);
     doc.text(order.gownSize ?? '', 130, y);
     doc.text(order.hatSize ?? '', 145, y);
