@@ -12,6 +12,9 @@ const PX_PER_MM = 96 / 25.4;
 const PRINTABLE_WIDTH_PX = Math.round(PRINTABLE_WIDTH_MM * PX_PER_MM);
 const PRINTABLE_HEIGHT_PX = Math.round(PRINTABLE_HEIGHT_MM * PX_PER_MM);
 const SCALE = 2;
+// html2canvas draws text a few px lower than the browser lays it out, so the
+// last line overflows the measured content height; capture some extra space.
+const BOTTOM_PADDING_PX = 20;
 
 // Renders the HTML in an isolated hidden iframe (so app/Tailwind styles don't
 // leak in), rasterises it with html2canvas, paginates it onto A4 pages inside
@@ -34,7 +37,7 @@ export async function printHtmlToPdf(doc, fileName) {
             <html>
                 <head>
                     <meta charset="UTF-8" />
-                    <style>body { margin: 0; background: #fff; }</style>
+                    <style>body { margin: 0; background: #fff; font-family: Arial, Helvetica, sans-serif; }</style>
                 </head>
                 <body>
                      ${doc}
@@ -58,11 +61,13 @@ export async function printHtmlToPdf(doc, fileName) {
         iframe.style.height = "0px";
         const contentHeight = Math.max(
             1,
+            Math.ceil(root.getBoundingClientRect().height),
+            Math.ceil(iframeDoc.body.getBoundingClientRect().height),
             root.scrollHeight,
             root.offsetHeight,
             iframeDoc.body.scrollHeight,
             iframeDoc.body.offsetHeight
-        );
+        ) + BOTTOM_PADDING_PX;
         // Templates with a fixed width wider than the printable area are captured
         // in full and scaled down to fit between the margins.
         const contentWidth = Math.max(PRINTABLE_WIDTH_PX, root.scrollWidth, iframeDoc.body.scrollWidth);
@@ -91,9 +96,19 @@ export async function printHtmlToPdf(doc, fileName) {
         const ctx = pageCanvas.getContext("2d");
 
         // Ignore a trailing sliver left over from sub-pixel rounding so it
-        // doesn't produce a blank extra page.
+        // doesn't produce a blank extra page, but only when it is actually
+        // blank: it may hold the bottom half of a line split across pages.
         const minSliceHeight = 10 * SCALE;
-        for (let y = 0, page = 0; y < canvas.height && (page === 0 || canvas.height - y > minSliceHeight); y += pageHeightPx, page++) {
+        const isBlank = (y, height) => {
+            const {data} = canvas.getContext("2d").getImageData(0, y, canvas.width, height);
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] < 250 || data[i + 1] < 250 || data[i + 2] < 250) return false;
+            }
+            return true;
+        };
+        for (let y = 0, page = 0; y < canvas.height; y += pageHeightPx, page++) {
+            const remaining = canvas.height - y;
+            if (page > 0 && remaining <= minSliceHeight && isBlank(y, remaining)) break;
             const sliceHeight = Math.min(pageHeightPx, canvas.height - y);
             pageCanvas.height = sliceHeight;
             ctx.fillStyle = "#ffffff";

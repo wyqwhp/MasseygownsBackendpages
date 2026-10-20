@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
-import "@/fonts/NotoSans-Regular-normal.js";
-import "@/fonts/NotoSans-BoldItalic-bolditalic.js";
+import "@/fonts/Arial-Regular-normal.js";
+import "@/fonts/Arial-BoldItalic-bolditalic.js";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 const WIDTH = 300;
@@ -50,7 +50,7 @@ function generateManifestPDF(orders) {
 
 const PrintHeaderHired = (doc) => {
     doc.setFontSize(11);
-    doc.setFont('NotoSans-BoldItalic', 'bolditalic');
+    doc.setFont('Arial', 'bolditalic');
     doc.text("Client ID", 10, 20);
     doc.text("Surname", 35, 20);
     doc.text("Forenames", 70, 20);
@@ -62,12 +62,12 @@ const PrintHeaderHired = (doc) => {
     doc.setLineWidth(1);
     doc.line(10, 23, 190, 23);
     doc.setFontSize(8);
-    doc.setFont('NotoSans-Regular', 'normal');
+    doc.setFont('Arial', 'normal');
 }
 
 const PrintHeaderGraduated = (doc) => {
     doc.setFontSize(11);
-    doc.setFont('NotoSans-BoldItalic', 'bolditalic');
+    doc.setFont('Arial', 'bolditalic');
     doc.text("Client ID", 10, 20);
     doc.text("Surname", 35, 20);
     doc.text("Forenames", 70, 20);
@@ -78,7 +78,7 @@ const PrintHeaderGraduated = (doc) => {
     doc.setLineWidth(1);
     doc.line(10, 23, 190, 23);
     doc.setFontSize(8);
-    doc.setFont('NotoSans-Regular', 'normal');
+    doc.setFont('Arial', 'normal');
 }
 
 export function PrintHiredNotGraduatedPDF(orders) {

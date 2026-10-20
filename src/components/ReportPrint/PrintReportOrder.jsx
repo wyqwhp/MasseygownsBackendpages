@@ -15,6 +15,8 @@ export default function PrintReportOrder({ceremony}) {
     let sampleData = {};
 
     const fillData = (countItem) => {
+        console.log("Ceremony=", ceremony);
+
         sampleData = {
             idCode: ceremony.idCode,
             Name: ceremony.name,
@@ -60,7 +62,9 @@ export default function PrintReportOrder({ceremony}) {
 
                 console.log("Count Item=",res.data);
                 setLoading(false);
+                console.log("Before Fill Data");
                 fillData(res.data);
+                console.log("After Fill Data");
                 updateTemplateWithData();
             })
             .catch((err) => {
@@ -78,6 +82,8 @@ export default function PrintReportOrder({ceremony}) {
             Object.keys(sampleData).forEach((key) => {
                 output = output.replaceAll(`{{${key}}}`, sampleData[key]);
             });
+
+            console.log("Output: ", output);
 
             await printHtmlToPdf(output, "BulkWorksheet.pdf");
         } catch (err) {

@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import "./Spinner.css";
-import "@/fonts/NotoSans-Regular-normal.js";
-import "@/fonts/NotoSans-BoldItalic-bolditalic.js";
+import "@/fonts/Arial-Regular-normal.js";
+import "@/fonts/Arial-BoldItalic-bolditalic.js";
 import {formatNZDateSlash} from "@/services/DateServices.js";
 // import axios from "axios";
 
@@ -78,14 +78,14 @@ function generateManifestPDF(orders, ceremony, printData) {
     format: "A4"
   });
   doc.setFontSize(16);
-  doc.setFont('NotoSans-BoldItalic', 'bolditalic');
+  doc.setFont('Arial', 'bolditalic');
   doc.text("OutwardList", 10, 20);
   doc.text(ceremony.name, 80, 20);
   doc.line(10, 22, 200, 22);
-  doc.setFont('NotoSans-Regular', 'normal');
+  doc.setFont('Arial', 'normal');
 
   var i = 0;
-  let y = 30.0;
+  let y = 30.0;I
   orders.forEach((order) => {
     doc.setLineDash([1, 1]);
 
@@ -112,10 +112,10 @@ function generateManifestPDF(orders, ceremony, printData) {
 
   // print hat summary table
   doc.setFontSize(16);
-  doc.setFont('NotoSans-BoldItalic', 'bolditalic');
+  doc.setFont('Arial', 'bolditalic');
   doc.text("Hats: " + ceremony.name, 10, 20);
   doc.setFontSize(12);
-  doc.setFont('NotoSans-Regular', 'normal');
+  doc.setFont('Arial', 'normal');
   doc.text(formatNZDateSlash(new Date().toLocaleDateString("en-NZ", {
     day: "2-digit",
     month: "2-digit",
@@ -150,10 +150,10 @@ function generateManifestPDF(orders, ceremony, printData) {
 
   // print hood summary table
   doc.setFontSize(16);
-  doc.setFont('NotoSans-BoldItalic', 'bolditalic');
+  doc.setFont('Arial', 'bolditalic');
   doc.text("Hoods: " + ceremony.name, 10, 20);
   doc.setFontSize(12);
-  doc.setFont('NotoSans-Regular', 'normal');
+  doc.setFont('Arial', 'normal');
   doc.text(formatNZDateSlash(new Date().toLocaleDateString("en-NZ", {
     day: "2-digit",
     month: "2-digit",
@@ -185,10 +185,10 @@ function generateManifestPDF(orders, ceremony, printData) {
   doc.addPage();
   // print gown summary table
   doc.setFontSize(16);
-  doc.setFont('NotoSans-BoldItalic', 'bolditalic');
+  doc.setFont('Arial', 'bolditalic');
   doc.text("Gowns List: " + ceremony.name, 10, 20);
   doc.setFontSize(12);
-  doc.setFont('NotoSans-Regular', 'normal');
+  doc.setFont('Arial', 'normal');
   doc.text(formatNZDateSlash(new Date().toLocaleDateString("en-NZ", {
     day: "2-digit",
     month: "2-digit",
