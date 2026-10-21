@@ -85,7 +85,7 @@ function generateManifestPDF(orders, ceremony, printData) {
   doc.setFont('Arial', 'normal');
 
   var i = 0;
-  let y = 30.0;I
+  let y = 30.0;
   orders.forEach((order) => {
     doc.setLineDash([1, 1]);
 
@@ -122,7 +122,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     year: "numeric",
   })), 90, 10);
   doc.text('T = Trencher, F = Bonnet with black cords', 10, 30);
-  doc.text('Hat Size', 10, 40);
+  doc.text('Hat Size', 20, 40);
   doc.text('Count', 60, 40);
   doc.setLineWidth(1);
   doc.line(10, 42, 100, 42);
@@ -196,7 +196,7 @@ function generateManifestPDF(orders, ceremony, printData) {
   })), 90, 10);
   doc.text('B = Bachelor, M = Master, WB = Wide Bachelor, WM = Wide Master,', 10, 30)
   doc.text('D = Doctor (red stripe), S = Scarlet Gown (or other special gown), BL = Blue Gown', 10, 40)
-  doc.text('Hood / Stole', 20, 50);
+  doc.text('Gown', 20, 50);
   doc.text('Count', 100, 50);
   doc.setLineWidth(1);
   doc.line(10, 52, 150, 52);

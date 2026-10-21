@@ -37,6 +37,8 @@ export default function PrintReportOrder({ceremony}) {
             hoodsReturned: 0,
             ucolDespatched: countItem.ucol_count,
             ucolReturned: 0,
+            amountDue: (ceremony.gown || 0) * (ceremony.gown_count || 0) + (ceremony.hat || 0) * (ceremony.hat_count || 0) +
+                (ceremony.hood || 0) * (ceremony.hood_count || 0) + (ceremony.ucol_sash || 0) * (ceremony.ucol_count || 0),
             city: ceremony.city,
             // postcode: "0632",
             // country: "NZ",
@@ -62,9 +64,7 @@ export default function PrintReportOrder({ceremony}) {
 
                 console.log("Count Item=",res.data);
                 setLoading(false);
-                console.log("Before Fill Data");
                 fillData(res.data);
-                console.log("After Fill Data");
                 updateTemplateWithData();
             })
             .catch((err) => {
@@ -83,7 +83,7 @@ export default function PrintReportOrder({ceremony}) {
                 output = output.replaceAll(`{{${key}}}`, sampleData[key]);
             });
 
-            console.log("Output: ", output);
+            // console.log("Output: ", output);
 
             await printHtmlToPdf(output, "BulkWorksheet.pdf");
         } catch (err) {

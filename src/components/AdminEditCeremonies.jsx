@@ -50,7 +50,9 @@ export default function CeremonyEditor() {
   const handleChange = (e) => {
     console.log(e.target.name);
     console.log(e.target.value);
-    setForm({ ...form, [e.target.name]: e.target.value });
+    // A cleared date input gives "", which the backend rejects; send null instead
+    const value = e.target.type === "date" && e.target.value === "" ? null : e.target.value;
+    setForm({ ...form, [e.target.name]: value });
   };
 
   // Handle field change

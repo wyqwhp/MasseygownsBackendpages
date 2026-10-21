@@ -306,7 +306,9 @@ export default function AdminIndOrder() {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, type } = e.target;
+    // A cleared date input gives "", which the backend rejects; send null instead
+    const value = type === "date" && e.target.value === "" ? null : e.target.value;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setChanged(true);
     setEditingId(formData.id);

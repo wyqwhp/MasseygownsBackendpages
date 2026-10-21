@@ -35,12 +35,13 @@ export default function AdminBulkOrder() {
     postalAddress: "",
     city: "",
     postcode: "",
-    ceremonyDate: "",
-    dueDate: "",
-    despatchDate: "",
-    dateSent: "",
-    returnDate: "",
-    dateReturned: "",
+    ceremonyDate: null,
+    ceremonyDate2: null,
+    dueDate: null,
+    despatchDate: null,
+    dateSent: null,
+    returnDate: null,
+    dateReturned: null,
     organiser: "",
     phone: "",
     email: "",
@@ -69,7 +70,6 @@ export default function AdminBulkOrder() {
   const [showPrintPackingDocs, setShowPrintPackingDocs] = useState(false);
   const [search, setSearch] = useState("");
   const [saved, setSaved] = useState(false);
-  const [newRecord, setNewRecord] = useState(false);
   const navButtonClass =
       "bg-green-700 hover:bg-green-800 w-20 h-10 p-0 flex items-center justify-center";
 
@@ -113,6 +113,7 @@ export default function AdminBulkOrder() {
       postcode: ceremony.postcode || "",
       city: ceremony.city || "",
       ceremonyDate: ceremony.ceremonyDate || null,
+      ceremonyDate2: ceremony.ceremonyDate2 || null,
       dueDate: ceremony.dueDate || null,
       despatchDate: ceremony.despatchDate || null,
       dateSent: ceremony.dateSent || null,
@@ -200,7 +201,9 @@ export default function AdminBulkOrder() {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, type } = e.target;
+    // A cleared date input gives "", which the backend rejects; send null instead
+    const value = type === "date" && e.target.value === "" ? null : e.target.value;
 
     if (name === 'ceremony' && value.toString().toLowerCase().includes('Massey'.toLowerCase()))
       setFormData((prev) => ({...prev, ['accountCode']: 251 }));
@@ -217,6 +220,7 @@ export default function AdminBulkOrder() {
       setEditingId(id);
       setFormData((prev) => ({ ...prev, id, [name]: value }));
     } else {
+      console.log(name, value);
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
@@ -225,7 +229,7 @@ export default function AdminBulkOrder() {
     const tempId = "temp-" + crypto.randomUUID();
     setEditingId(tempId);
     const duplicated = { ...formData, id: tempId, name: `${formData.name} - Copy`, idCode: `${formData.idCode} - Copy`,
-    ceremonyDate: null, dueDate: null, despatchDate: null, dateSent: null, returnDate: null, dateReturned: null,
+    ceremonyDate: null, ceremonyDate2: null, dueDate: null, despatchDate: null, dateSent: null, returnDate: null, dateReturned: null,
       priceCode: null, gown_count: 0, hat_count: 0, hood_count: 0, ucol_count: 0
     };
     setSaved(true);
@@ -575,7 +579,7 @@ export default function AdminBulkOrder() {
                 <Label htmlFor="ceremonydate2">Ceremony Date 2</Label>
                 <Input
                   id="ceremonydate2"
-                  name="ceremonydate2"
+                  name="ceremonyDate2"
                   type="date"
                   value={formData.ceremonyDate2 ?? ""}
                   onChange={handleChange}
