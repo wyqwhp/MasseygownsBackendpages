@@ -62,6 +62,7 @@ export default function AdminBulkOrder() {
   const [loading, setLoading] = useState();
   const [error, setError] = useState(null);
   const [showError, setShowError] = useState(false);
+  const [idCodeError, setIdCodeError] = useState("");
   const [changed, setChanged] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showPrint, setShowPrint] = useState(false);
@@ -86,6 +87,9 @@ export default function AdminBulkOrder() {
       if (!saved) {
         setCurrentId(sortedCeremonies[0]?.id);
         updateForm(sortedCeremonies[0]);
+
+        console.log("Current Id=", sortedCeremonies[0]?.id);
+        
       } else {
         setSaved(false);
       }
@@ -101,8 +105,9 @@ export default function AdminBulkOrder() {
   const updateForm = (ceremony) => {
     if (!ceremony) return;
 
+    setIdCodeError("");
     setFormData({
-      id: ceremony.id,
+      id: ceremony.id || "",
       visible: ceremony.visible,
       name: ceremony.name || "",
       idCode: ceremony.idCode || "",
@@ -205,6 +210,8 @@ export default function AdminBulkOrder() {
     // A cleared date input gives "", which the backend rejects; send null instead
     const value = type === "date" && e.target.value === "" ? null : e.target.value;
 
+    if (name === "idCode" && value.trim()) setIdCodeError("");
+
     if (name === 'ceremony' && value.toString().toLowerCase().includes('Massey'.toLowerCase()))
       setFormData((prev) => ({...prev, ['accountCode']: 251 }));
     else if (name === 'ceremony' && value.toString().toLowerCase().includes('ucol'.toLowerCase()))
@@ -244,6 +251,7 @@ export default function AdminBulkOrder() {
     setEditingId(tempId);
     setCeremonies([...ceremonies, {id: tempId}]);
     setFormData(emptyFormRecord);
+    setIdCodeError("");
     setChanged(true);
   }
 
@@ -290,8 +298,15 @@ export default function AdminBulkOrder() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.idCode?.trim()) {
+      setIdCodeError("Id Code is required");
+      document.getElementById("idcode")?.focus();
+      return;
+    }
     setLoading(true);
     let savedRecord = formData;
+    console.log("Saving=", savedRecord);
+
     try {
         if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
           // Determine if this is a new record created locally
@@ -442,7 +457,10 @@ export default function AdminBulkOrder() {
                   value={formData.idCode}
                   onChange={handleChange}
                   required
+                  aria-invalid={!!idCodeError}
+                  className={idCodeError ? "border-red-500" : ""}
                 />
+                {idCodeError && <p className="text-red-600 mt-1">{idCodeError}</p>}
               </div>
 
               <div>

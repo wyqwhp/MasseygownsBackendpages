@@ -100,7 +100,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     doc.text(order.gownSize?.startsWith('W') ? 'Wide Gown' : '', 180, y);
     doc.line(10, y + 2, 200, y + 2);
     i++;
-    if (i !== 0 && i % 24 === 0) {
+    if (i !== 0 && i % 24 === 0 && i !== orders.length) {
       doc.addPage();
       y = 20;
     }
@@ -140,7 +140,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     doc.text(hatSize.itemCount.toString(), 60, y);
     doc.line(10, y + 2, 100, y + 2);
     i++;
-    if (i !== 0 && i % 24 === 0) {
+    if (i !== 0 && i % 24 === 0 && i !== printData['headwear'].length) {
       doc.addPage();
       y = 20;
     }
@@ -175,7 +175,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     doc.text(hoodType.itemCount.toString(), 100, y);
     doc.line(10, y + 2, 150, y + 2);
     i++;
-    if (i !== 0 && i % 24 === 0) {
+    if (i !== 0 && i % 24 === 0 && i !== printData['hood'].length) {
       doc.addPage();
       y = 20;
     }
@@ -211,7 +211,7 @@ function generateManifestPDF(orders, ceremony, printData) {
     doc.text(hatSize.itemCount.toString(), 100, y);
     doc.line(10, y + 2, 150, y + 2);
     i++;
-    if (i !== 0 && i % 24 === 0) {
+    if (i !== 0 && i % 24 === 0 && i !== printData['gown'].length) {
       doc.addPage();
       y = 20;
     }
