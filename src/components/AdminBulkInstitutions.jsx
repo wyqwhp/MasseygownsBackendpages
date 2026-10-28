@@ -25,6 +25,9 @@ import PrintBulkPackingDocs from "@/components/ReportPrint/PrintBulkPackingDocs.
 const API_URL = import.meta.env.VITE_GOWN_API_BASE; // or hardcode "http://localhost:5144"
 // const API_URL = "http://localhost:5144"
 
+// New/copied records get a "temp-" id until the backend assigns a real one
+const isTempId = (id) => typeof id === "string" && id.startsWith("temp-");
+
 export default function AdminBulkOrder() {
   const emptyFormRecord = {
     name: "",
@@ -64,7 +67,6 @@ export default function AdminBulkOrder() {
   const [showError, setShowError] = useState(false);
   const [idCodeError, setIdCodeError] = useState("");
   const [changed, setChanged] = useState(false);
-  const [editingId, setEditingId] = useState(null);
   const [showPrint, setShowPrint] = useState(false);
   const [showPrintInvoice, setShowPrintInvoice] = useState(false);
   const [showPrintBulkAddressLabels, setShowPrintBulkAddressLabels] = useState(false);
@@ -87,9 +89,10 @@ export default function AdminBulkOrder() {
       if (!saved) {
         setCurrentId(sortedCeremonies[0]?.id);
         updateForm(sortedCeremonies[0]);
+        setChanged(false);
 
         console.log("Current Id=", sortedCeremonies[0]?.id);
-        
+
       } else {
         setSaved(false);
       }
@@ -222,19 +225,11 @@ export default function AdminBulkOrder() {
       setFormData((prev) => ({...prev, ['accountCode']: 253 }));
 
     setChanged(true);
-    if (editingId === undefined || editingId === null) {
-      const id = sortedCeremonies.find(c => c.id === currentId)?.id ?? formData.id;
-      setEditingId(id);
-      setFormData((prev) => ({ ...prev, id, [name]: value }));
-    } else {
-      console.log(name, value);
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleCopy = () => {
     const tempId = "temp-" + crypto.randomUUID();
-    setEditingId(tempId);
     const duplicated = { ...formData, id: tempId, name: `${formData.name} - Copy`, idCode: `${formData.idCode} - Copy`,
     ceremonyDate: null, ceremonyDate2: null, dueDate: null, despatchDate: null, dateSent: null, returnDate: null, dateReturned: null,
       priceCode: null, gown_count: 0, hat_count: 0, hood_count: 0, ucol_count: 0
@@ -248,9 +243,10 @@ export default function AdminBulkOrder() {
 
   const handleNew = () => {
     const tempId = "temp-" + crypto.randomUUID();
-    setEditingId(tempId);
+    setSaved(true); // stop the sortedCeremonies effect from jumping to the first record
     setCeremonies([...ceremonies, {id: tempId}]);
-    setFormData(emptyFormRecord);
+    setFormData({ ...emptyFormRecord, id: tempId });
+    setCurrentId(tempId);
     setIdCodeError("");
     setChanged(true);
   }
@@ -308,33 +304,23 @@ export default function AdminBulkOrder() {
     console.log("Saving=", savedRecord);
 
     try {
-        if (editingId && typeof editingId === 'string' && editingId.startsWith("temp-")) {
-          // Determine if this is a new record created locally
-          const isTemporaryId =
-              typeof formData.id === 'string' && String(formData.id).startsWith('temp-');
-
-          const payload = {
-            ...formData,
-            // Convert temporary string IDs to 0 or null for backend processing
-            id: isTemporaryId || !formData.id ? 0 : Number(formData.id)
-          };
-          const res = await axios.post(`${API_URL}/admin/ceremonies`, payload);
+        if (isTempId(formData.id)) {
+          // New record created locally: the backend assigns the real id
+          const res = await axios.post(`${API_URL}/admin/ceremonies`, { ...formData, id: 0 });
           savedRecord = {...formData, ...res.data};
         } else {
-          await axios.put(`${API_URL}/admin/ceremonies/${editingId}`, formData);
+          await axios.put(`${API_URL}/admin/ceremonies/${formData.id}`, formData);
         }
         console.log('Saved=', savedRecord);
-        console.log('EditingId=', editingId);
 
         setCeremonies((prevCeremonies) =>
           prevCeremonies.map((c) =>
-            c.id === editingId ? { ...c, ...savedRecord } : c
+            c.id === formData.id ? { ...c, ...savedRecord } : c
           )
       );
       setFormData(savedRecord);
       setCurrentId(savedRecord.id);
       setSaved(true);
-      setEditingId(null);
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 409) {
@@ -355,10 +341,11 @@ export default function AdminBulkOrder() {
   // Drop an unsaved new/copied record. If it is the current record, move to its
   // neighbour in the given direction (step = 1 next, -1 previous).
   const discardTemp = (step) => {
-    const remaining = sortedCeremonies.filter(c => c.id !== editingId);
+    const tempId = formData.id;
+    const remaining = sortedCeremonies.filter(c => c.id !== tempId);
     let target;
-    if (currentId === editingId) {
-      const idx = Math.max(sortedCeremonies.findIndex(c => c.id === editingId), 0);
+    if (currentId === tempId) {
+      const idx = Math.max(sortedCeremonies.findIndex(c => c.id === tempId), 0);
       // after removing the temp record, remaining[idx] is the next one and remaining[idx - 1] the previous one
       target = step > 0
           ? remaining[idx] ?? remaining[idx - 1]
@@ -367,7 +354,7 @@ export default function AdminBulkOrder() {
       target = remaining.find(c => c.id === currentId);
     }
     setSaved(true); // stop the sortedCeremonies effect from jumping to the first record
-    setCeremonies((prev) => prev.filter((d) => d.id !== editingId));
+    setCeremonies((prev) => prev.filter((d) => d.id !== tempId));
     if (target) {
       setCurrentId(target.id);
       updateForm(target);
@@ -375,11 +362,7 @@ export default function AdminBulkOrder() {
   };
 
   const goNext = () => {
-    if (
-        editingId &&
-        typeof editingId === "string" &&
-        editingId.startsWith("temp-")
-    ) {
+    if (isTempId(formData.id)) {
       discardTemp(1);
     } else {
       const idx = sortedCeremonies.findIndex(c => c.id === currentId);
@@ -389,15 +372,10 @@ export default function AdminBulkOrder() {
       }
     }
     setChanged(false);
-    setEditingId(null);
   };
 
   const goPrev = () => {
-    if (
-        editingId &&
-        typeof editingId === "string" &&
-        editingId.startsWith("temp-")
-    ) {
+    if (isTempId(formData.id)) {
       discardTemp(-1);
     } else {
       const idx = sortedCeremonies.findIndex(c => c.id === currentId);
@@ -407,7 +385,6 @@ export default function AdminBulkOrder() {
       }
     }
     setChanged(false);
-    setEditingId(null);
   };
 
   return (
@@ -430,7 +407,11 @@ export default function AdminBulkOrder() {
           type="text"
           placeholder="Search for..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            // the form switches to the first match, so drop any unsaved new/copied record
+            setCeremonies((prev) => prev.some(c => isTempId(c.id)) ? prev.filter(c => !isTempId(c.id)) : prev);
+          }}
         />
 
         <Card className="bg-green-50 pt-4">
@@ -489,6 +470,7 @@ export default function AdminBulkOrder() {
                 <Input
                   id="courieraddress"
                   name="courierAddress"
+                  maxLength={80}
                   value={formData.courierAddress}
                   onChange={handleChange}
                 />
@@ -710,11 +692,8 @@ export default function AdminBulkOrder() {
                   onValueChange={(value) => {
                       setChanged(true);
 
-                      if (editingId === undefined || editingId === null) {
-                        setEditingId(sortedCeremonies.find(c => c.id === currentId)?.id ?? formData.id);
-                      }
+                      console.log("In Price Code change");
 
-                      // setEditingId(ceremonies[currentIndex]?.id);
                       setPriceCode(value);
                       const price = prices.find(x => x.id === Number(value));
                       setFormData((prev) =>
