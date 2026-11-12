@@ -17,6 +17,7 @@ import HomePage from "@/pages/HomePage.jsx";
 import AdminIndOrder from "@/components/AdminIndOrder.jsx";
 import AdminBulkOrder from "@/components/AdminBulkInstitutions.jsx";
 import AdminImportBulk from "@/components/AdminImportBulk.jsx";
+import AdminImportIndividual from "@/components/AdminImportIndividual.jsx";
 import EmailTemplatesPage from "@/pages/EmailTemplatesPage.jsx";
 import PrintAddressLabels from "@/pages/PrintAddressLabels.jsx";
 import InternalManagementForm from "@/components/AdminInternalManagementForm.jsx";
@@ -164,6 +165,14 @@ function App() {
         element={
           <Authentication>
             <AdminImportBulk />
+          </Authentication>
+        }
+      />
+      <Route
+        path="/ImportIndividual"
+        element={
+          <Authentication>
+            <AdminImportIndividual />
           </Authentication>
         }
       />

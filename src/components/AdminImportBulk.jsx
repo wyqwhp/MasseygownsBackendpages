@@ -4,57 +4,10 @@ import * as XLSX from "xlsx";
 import "./AdminImportBulk.css";
 import axios from "axios";
 import { toNullableDecimal } from "../services/DecimalServices.js";
+import { parseName } from "../services/NameServices.js";
 
 const API_URL = import.meta.env.VITE_GOWN_API_BASE;
 // const API_URL = "http://localhost:5144";
-
-// A token is treated as an upper-case surname if it has 2+ letters, all upper case
-function isUpperCaseWord(word) {
-  const letters = word.replace(/[^\p{L}]/gu, "");
-  return letters.length > 1 && letters === letters.toUpperCase() && letters !== letters.toLowerCase();
-}
-
-// Splits a raw name into first and last name. Supported formats:
-//   "SMITH, John"        -> last: SMITH, first: John
-//   "John Smith"         -> last: Smith, first: John
-//   "SMITH John"         -> last: SMITH, first: John (upper-case word is the surname)
-//   "John VAN DER BERG"  -> last: VAN DER BERG, first: John
-// Comments in brackets, e.g. "(VIP)" or "[late]", are stripped out.
-function parseName(rawName) {
-  const name = String(rawName ?? "")
-    .replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!name) return { firstName: null, lastName: null };
-
-  // "LAST, First"
-  if (name.includes(",")) {
-    const [lastName, ...firstParts] = name.split(",");
-    return {
-      lastName: lastName.trim() || null,
-      firstName: firstParts.join(" ").replace(/\s+/g, " ").trim() || null,
-    };
-  }
-
-  const words = name.split(" ");
-  if (words.length === 1) return { firstName: null, lastName: words[0] };
-
-  // Mixed case: upper-case words are the surname, e.g. "SMITH John" or "John SMITH"
-  const upperWords = words.filter(isUpperCaseWord);
-  if (upperWords.length > 0 && upperWords.length < words.length) {
-    return {
-      lastName: upperWords.join(" "),
-      firstName: words.filter((w) => !isUpperCaseWord(w)).join(" "),
-    };
-  }
-
-  // "First [Middle] Last"
-  return {
-    lastName: words[words.length - 1],
-    firstName: words.slice(0, -1).join(" "),
-  };
-}
 
 export default function AdminImportBulk() {
   const [editFile, setEditFile] = useState(null);
@@ -110,9 +63,12 @@ export default function AdminImportBulk() {
           row.Height = toNullableDecimal(row.Height);
           row.Headsize = toNullableDecimal(row.Headsize);
 
-          const { firstName, lastName } = parseName(row.Name);
-          row.LastName = lastName;
-          row.FirstName = firstName;
+          // Use explicit LastName/FirstName columns if present, otherwise split Name
+          if (row.LastName == null && row.FirstName == null) {
+              const { firstName, lastName } = parseName(row.Name);
+              row.LastName = lastName;
+              row.FirstName = firstName;
+          }
 
           row.Height = row.Height == null ? null : sizeByHeight.get(Number(row.Height)) ?? null;
 
@@ -122,7 +78,7 @@ export default function AdminImportBulk() {
             row.Hood = hoodNameByShortName.get(String(row.Hood).trim()) ?? row.Hood;
           }
 
-          console.log(`Name: `, row.Name, ` Height: `, row.Height);
+          console.log(`Last Name: `, row.LastName, ` First Name: `, row.Height);
         });
 
         await axios.post(`${API_URL}/admin/bulkorders`, jsonData);

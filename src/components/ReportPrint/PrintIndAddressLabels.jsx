@@ -210,7 +210,7 @@ export default function PrintIndAddressLabels({order, paper, onDone}) {
       const is120 = paper === "120x90";
       const isA5 = paper === "A5";
 
-      const pdf = new jsPDF(preset.jsPdf);
+      const pdf = new jsPDF({ ...preset.jsPdf, compress: true });
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -489,9 +489,11 @@ export default function PrintIndAddressLabels({order, paper, onDone}) {
           },
         });
 
-        const imgData = canvas.toDataURL("image/png");
-        const imgProps = pdf.getImageProperties(imgData);
-        const imgRatio = imgProps.width / imgProps.height;
+        // JPEG is far smaller than PNG; large PNG pages overflow jsPDF's output string
+        const imgData = canvas.toDataURL("image/jpeg", 0.85);
+        const imgRatio = canvas.width / canvas.height;
+        canvas.width = 0;
+        canvas.height = 0;
 
         let imgW = pageWidth;
         let imgH = imgW / imgRatio;
@@ -501,11 +503,11 @@ export default function PrintIndAddressLabels({order, paper, onDone}) {
           imgW = imgH * imgRatio;
         }
 
-        const x = 10;
-        const y = 10;
+        const x = (pageWidth - imgW) / 2;
+        const y = (pageHeight - imgH) / 2;
 
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", x, y, imgW, imgH);
+        pdf.addImage(imgData, "JPEG", x, y, imgW, imgH, undefined, "FAST");
       }
 
       pdf.save(`address-labels-${type}-${paper}.pdf`);
